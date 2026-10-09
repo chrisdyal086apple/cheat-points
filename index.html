@@ -702,11 +702,18 @@ html.typing .tabbar { display: none; }
 
 /* ---------- Sheet ---------- */
 dialog.sheet {
+  position: fixed;
+  top: auto;
+  bottom: 0;
+  left: 0;
+  right: 0;
   width: 100%;
   max-width: 560px;
+  /* JS also sets a pixel max-height from the window, since iPhone can misreport dvh right after the file picker. */
   max-height: 88vh;
   max-height: 88dvh;
-  margin: auto auto 0;
+  min-height: min(240px, 60vh);
+  margin: 0 auto;
   padding: 0;
   border: 1px solid rgba(127, 155, 255, 0.45);
   border-bottom: 0;
@@ -1065,7 +1072,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.09.2","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.09.3","profile":null};</script>
 <script>
 (function () {
   "use strict";
@@ -1848,6 +1855,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     if (!d.open) {
       if (typeof d.showModal === "function") d.showModal(); else d.setAttribute("open", "");
     }
+    fitSheet();
     b.scrollTop = 0;
     try { $("sheetTitle").focus({ preventScroll: true }); } catch (e) { /* focus is a nicety */ }
     document.documentElement.classList.add("sheet-open");
@@ -1856,6 +1864,20 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var d = $("sheet");
     if (!d.open) return;
     if (typeof d.close === "function") d.close(); else { d.removeAttribute("open"); onSheetClosed(); }
+  }
+  // Size the sheet from the real window height (iPhone can report a bad dvh just after the file picker).
+  function fitSheet() {
+    var d = $("sheet");
+    if (!d.open) return;
+    var h = Math.round((window.visualViewport && window.visualViewport.height) || window.innerHeight || 0);
+    d.style.maxHeight = h > 300 ? Math.round(h * 0.88) + "px" : "";
+  }
+  // Run fn once the page is visible again and laid out (after the file picker closes).
+  function whenSettled(fn) {
+    function go() { requestAnimationFrame(function () { requestAnimationFrame(function () { setTimeout(fn, 250); }); }); }
+    if (!document.hidden) { go(); return; }
+    var h = function () { if (document.hidden) return; document.removeEventListener("visibilitychange", h); go(); };
+    document.addEventListener("visibilitychange", h);
   }
   function onSheetClosed() {
     document.documentElement.classList.remove("sheet-open");
@@ -3064,7 +3086,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       try { obj = JSON.parse(String(reader.result)); } catch (err) { obj = null; }
       var docs = cleanBackup(obj);
       if (!docs || !Object.keys(docs).length) { toast("That isn't a Cheat Points backup file."); return; }
-      confirmRestore(docs, obj);
+      whenSettled(function () { confirmRestore(docs, obj); });
     };
     reader.onerror = function () { toast("Couldn't read that file."); };
     reader.readAsText(f);
@@ -3279,6 +3301,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   var sheet = $("sheet");
   sheet.addEventListener("close", onSheetClosed);
   sheet.addEventListener("click", function (e) { if (e.target === sheet) closeSheet(); });
+  window.addEventListener("resize", fitSheet);
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", fitSheet);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) setTimeout(fitSheet, 200); });
   $("sheetClose").addEventListener("click", closeSheet);
   $("snackUndo").addEventListener("click", function () { var fn = snackUndo; hideSnack(); if (fn) fn(); });
   $("restoreFile").addEventListener("change", onRestoreFile);
