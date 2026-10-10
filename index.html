@@ -293,13 +293,35 @@ h2 {
 .meter { height: 8px; border-radius: 99px; background: rgba(127, 155, 255, 0.22); overflow: hidden; }
 .meter-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #4d6bff, #74e4ff); box-shadow: 0 0 10px var(--glow-cyan); transition: width 0.4s ease; }
 .goal-eta { color: var(--board-dim); font-size: 0.84rem; }
-.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+/* Day strip: the last 31 days, today on the right. Picking a day switches the whole Today page to it. */
+.strip {
+  --fl: 0px;
+  --fr: 0px;
+  display: flex;
+  gap: 6px;
+  margin: -4px -6px 0;
+  padding: 9px 6px 6px 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 10px 6px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--fl), #000 calc(100% - var(--fr)), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 var(--fl), #000 calc(100% - var(--fr)), transparent 100%);
+}
+.strip::-webkit-scrollbar { display: none; }
+.strip.more-left { --fl: 22px; }
+.strip.more-right { --fr: 22px; }
 .day {
+  position: relative;
   appearance: none;
+  flex: 0 0 calc((100% - 36px) / 7);
   min-width: 0;
   display: grid;
   justify-items: center;
-  gap: 3px;
+  gap: 2px;
   padding: 6px 0 7px;
   border: 1px solid var(--board-line);
   border-radius: 10px;
@@ -307,14 +329,27 @@ h2 {
   color: var(--board-ink);
   font: inherit;
   cursor: pointer;
+  scroll-snap-align: start;
 }
 .day .dl { font-weight: 600; font-size: 0.7rem; letter-spacing: 0.06em; color: var(--board-dim); }
-.day .dp { font-family: var(--display); font-weight: 400; font-size: 1.35rem; line-height: 1; }
+.day .dd { font-weight: 600; font-size: 0.64rem; line-height: 1.1; color: var(--board-dim); opacity: 0.85; white-space: nowrap; }
+.day .dp { font-family: var(--display); font-weight: 400; font-size: 1.22rem; line-height: 1.05; white-space: nowrap; }
+.day .dp.l4 { font-size: 1.02rem; }
+.day .dp.l5 { font-size: 0.9rem; }
 .day .dp.neg { color: var(--spend); }
 .day.has { background: var(--board-cell); }
 .day.today { border-color: var(--accent); box-shadow: 0 0 10px var(--glow-cyan); }
 .day.sel { box-shadow: inset 0 0 0 2px var(--accent), 0 0 10px var(--glow-cyan); }
-.day:disabled { opacity: 0.35; cursor: default; }
+.day .chain { position: absolute; top: -8px; left: -8px; width: 22px; height: 22px; overflow: visible; pointer-events: none; }
+.day .chain rect, .day .chain path { fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; }
+.day .chain.n { color: #7fd6ff; filter: drop-shadow(0 0 2px rgba(127, 214, 255, 0.9)); }
+.day .chain.spent { color: #5cf2a1; filter: drop-shadow(0 0 2px rgba(92, 242, 161, 0.85)); }
+.day .chain.hit { color: #ff5c7a; filter: drop-shadow(0 0 2px rgba(255, 92, 122, 0.85)); }
+.day .draftdot { position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--glow-cyan); }
+.viewing { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: -4px; font-size: 0.86rem; font-weight: 600; color: var(--board-dim); }
+.viewing .linkbtn { color: var(--accent); }
+.dayname { font-weight: 600; font-size: 0.92rem; color: var(--muted); white-space: nowrap; }
+.dayname.past { color: var(--accent); }
 
 /* ---------- Notes and warnings ---------- */
 .notes, .warns { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
@@ -496,41 +531,21 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .wstat b.down { color: var(--earn); }
 .wstat b.up { color: var(--spend); }
 
-/* ---------- Logged so far ---------- */
-.sofar { display: grid; gap: 4px; padding: 10px 12px 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5); }
-.sofar .minor { margin: 0; }
-.sofar-list { list-style: none; margin: 0; padding: 0; display: grid; }
-.sofar-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto 4.4em; align-items: baseline; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); }
-.sofar-list li > .linkbtn { justify-self: end; }
-.sofar-list li:last-child { border-bottom: 0; }
-.sofar-list .t { min-width: 0; overflow-wrap: anywhere; }
-.sofar-list .v { font-family: var(--display); font-weight: 400; font-size: 1.45rem; text-align: right; }
-.sofar-list .v.earn { color: var(--earn); }
-.sofar-list .v.spend { color: var(--spend); }
-.sofar-list .v.late { font-family: var(--body); font-weight: 600; font-size: 0.82rem; color: var(--muted); }
-.sofar-foot { display: flex; justify-content: flex-end; }
+/* ---------- Save state ---------- */
+.savefoot { display: flex; align-items: center; justify-content: flex-end; gap: 6px 18px; flex-wrap: wrap; margin-top: -4px; font-size: 0.88rem; }
+.savestate { margin-right: auto; color: var(--muted); font-weight: 600; }
+.savestate:empty { display: none; }
+.savestate.dirty { color: var(--accent); }
 
 /* ---------- Off-plan food and favorites ---------- */
 .food { display: grid; gap: 8px; }
-.favs { display: grid; gap: 6px; }
-.favs-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.favs-h .minor { margin: 0; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip {
-  appearance: none;
-  max-width: 100%;
-  padding: 7px 12px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: rgba(21, 32, 105, 0.55);
-  color: var(--ink);
-  font: 600 0.9rem var(--body);
-  text-align: left;
-  overflow-wrap: anywhere;
-  cursor: pointer;
-}
-.chip small { color: var(--muted); font-weight: 500; }
-.chip.del { border-color: var(--accent); color: var(--accent); }
+.favs { display: flex; align-items: center; gap: 14px; }
+.favs select { flex: 1 1 auto; width: auto; }
+.favlist { list-style: none; margin: 0; padding: 0; display: grid; }
+.favlist li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.favlist li:last-child { border-bottom: 0; }
+.favlist .fn { min-width: 0; overflow-wrap: anywhere; }
+.favlist .fk { display: block; color: var(--muted); font-size: 0.86rem; }
 .food-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .fitem { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5); }
 .frow { display: grid; grid-template-columns: minmax(0, 1fr) 7.2em; gap: 8px; }
@@ -611,7 +626,7 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .wk-net.spend { color: var(--spend); }
 .hrow, .srow { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; row-gap: 2px; align-items: center; width: 100%; padding: 9px 0; }
 .hrow { appearance: none; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.hrow:disabled { cursor: default; }
+.hrow:disabled, .hrow.static { cursor: default; }
 .when { font-weight: 600; }
 .what { grid-column: 1; color: var(--muted); font-size: 0.9rem; overflow-wrap: anywhere; }
 .what.off { color: var(--spend); }
@@ -763,6 +778,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 .snack button { appearance: none; flex: none; min-height: 36px; padding: 6px 12px; border: 1px solid rgba(255, 255, 255, 0.75); border-radius: 10px; background: rgba(5, 8, 35, 0.25); color: #ffffff; font: 700 0.82rem var(--body); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
 
 @media (max-width: 380px) {
+  .day .dp { font-size: 1.08rem; }
+  .day .dp.l4 { font-size: 0.92rem; }
+  .day .dp.l5 { font-size: 0.82rem; }
   .bank-num { font-size: 4.6rem; }
   .seg span { font-size: 0.92rem; }
   .stat .v { font-size: 1.85rem; }
@@ -802,7 +820,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         <div class="meter" id="goalMeter" role="progressbar" aria-label="Savings goal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="meter-fill" id="goalFill"></div></div>
         <div class="goal-eta" id="goalEta"></div>
       </div>
-      <div class="week" id="week" role="group" aria-label="This week, Monday to Sunday"></div>
+      <div class="strip" id="week" role="group" aria-label="The last 31 days. Pick a day to view or change it."></div>
+      <div class="viewing" id="viewing" hidden><span id="viewingTxt"></span><button type="button" class="linkbtn" id="toToday">Back to today</button></div>
     </section>
 
     <ul class="notes" id="notes" aria-live="polite"></ul>
@@ -810,7 +829,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     <section class="block" id="weigh" aria-labelledby="weighH">
       <div class="block-h">
         <h2 id="weighH">Weigh-in<button type="button" class="qm" data-help="weigh" aria-label="Help: weigh-ins">?</button></h2>
-        <input type="date" id="wDate" aria-label="Weigh-in date">
+        <span class="dayname" id="weighDay">Today</span>
       </div>
       <div class="wrow">
         <label for="wLb">Morning weight (lb)</label>
@@ -823,13 +842,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     <section class="block" id="log" aria-labelledby="logH">
       <div class="block-h">
         <h2 id="logH">Log a day<button type="button" class="qm" data-help="logging" aria-label="Help: logging and the on-plan bonus">?</button></h2>
-        <input type="date" id="logDate" aria-label="Day to log">
-      </div>
-
-      <div class="sofar" id="sofar" hidden>
-        <p class="minor">Logged so far</p>
-        <ul class="sofar-list" id="sofarList"></ul>
-        <div class="sofar-foot"><button type="button" class="linkbtn" id="deleteDay">Delete this day</button></div>
+        <span class="dayname" id="logDay">Today</span>
       </div>
 
       <fieldset class="seg two" id="planQ">
@@ -841,8 +854,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       </fieldset>
       <div class="food" id="food" hidden>
         <div class="favs" id="favs" hidden>
-          <div class="favs-h"><p class="minor">Favorites</p><button type="button" class="linkbtn" id="favEdit">Edit</button></div>
-          <div class="chips" id="favChips"></div>
+          <select id="favPick" aria-label="Add a favorite"><option value="">Add a favorite…</option></select>
+          <button type="button" class="linkbtn" id="favEdit">Edit</button>
         </div>
         <ul class="food-list" id="foodList"></ul>
         <button type="button" class="btn ghost" id="addFood">Add another</button>
@@ -907,6 +920,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       </div>
       <div class="actions">
         <button type="button" class="btn primary" id="saveDay">Save</button>
+      </div>
+      <div class="savefoot" id="saveFoot">
+        <span class="savestate" id="saveState"></span>
+        <button type="button" class="linkbtn" id="discardDay" hidden>Discard changes</button>
+        <button type="button" class="linkbtn" id="deleteDay" hidden>Delete this day</button>
       </div>
     </section>
 
@@ -1072,7 +1090,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.09.3","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.09.4","profile":null};</script>
 <script>
 (function () {
   "use strict";
@@ -1107,6 +1125,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   var KCAL_PER_LB = 3500;
   var BACKUP_DAYS = 7;
   var TALLY_RUN = 28, TALLY_HIT = 1000;
+  var STRIP_DAYS = 30;        // the day strip runs from 30 days back to today
+  var FAV_LIMIT = 200;
   var MEAL_KEYS = ["breakfast", "lunch", "dinner"];
   var MEAL_INFO = {
     breakfast: { label: "Different breakfast", short: "breakfast" },
@@ -1123,7 +1143,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     { id: "hard", name: "Hard", feel: "Only a few words at a time.", ex: "Singles tennis, a basketball game, soccer, hiking uphill with a pack." }
   ];
   var TABS = ["today", "progress", "guide", "settings"];
-  var LS_KEY = "cheat-points-v1", META_KEY = "cheat-points-meta";
+  var LS_KEY = "cheat-points-v1", META_KEY = "cheat-points-meta", DRAFT_KEY = "cheat-points-drafts";
   var ID_RE = /^(settings|favorites|day-\d{4}-\d{2}-\d{2}|w-\d{4}-\d{2}-\d{2}|t-\d{4}-\d{2}-\d{2}|spend-[A-Za-z0-9_-]{1,60})$/;
 
   // ---------- Small helpers ----------
@@ -1188,14 +1208,13 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     tab: "today",
     histAll: false,
     weeksAll: false,
-    favEdit: false,
-    logDate: today(),
+    logDate: today(),       // the day picked on the strip; the whole Today page shows it
+    drafts: {},             // unsaved changes by date: { form, wlb }
     liftSel: "",
     food: [],
     foodEls: [],
     armedSpend: null,
     armedFood: -1,
-    armedItem: "",
     armedDay: false,
     updateReady: null,
     updateRequested: false,
@@ -1273,9 +1292,10 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   function foodCost(f) { return isNum(f.cost) ? f.cost : Math.max(0, foodDelta(f)); }
 
   // ---------- Day records ----------
-  // A day holds everything reported for it: workouts, cardio and other sessions add up, steps are the day's
-  // total (a new total replaces the old), off-plan items add up. Each entry earns only if reported by noon the
-  // next day; a corrected step total keeps the on-time status of the first one.
+  // A day holds what was logged for it: a workout, the step total, cardio, other activity, and any off-plan
+  // food. Saving the form replaces the day. Points come only from what was logged by noon the next day: after
+  // that, changes still record but can't add points (lowering something still lowers them), except that
+  // correcting a step total reported on time keeps it on time.
   function deadline(date) { var d = parseISO(date); return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 12, 0, 0).getTime(); }
   function finalizeDay(day) {
     day.food = day.food || [];
@@ -1317,24 +1337,70 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     return out;
   }
   function getDay(date) { return normDay(state.docs.get("day-" + date)); }
-  function hasReport(r) {
-    return !!((r.lift && r.liftMin) || r.steps || r.cardioMin || r.otherMin || (r.plan === "no" && r.food.length));
+  // Older versions could hold several entries of one kind; the form reads them as one.
+  function collapse(list) {
+    if (!list || !list.length) return null;
+    return { min: sum(list, function (x) { return +x.min || 0; }), pts: sum(list, function (x) { return x.pts || 0; }), late: list.every(function (x) { return !!x.late; }) };
   }
-  function applyReport(existing, r, now) {
-    var basis = existing ? { weight: existing.weight, tight: existing.tight } : settings();
-    var lateNow = now > deadline(r.date);
-    var day = existing ? clone(existing) : blankDay(r.date, basis, lateNow);
-    var b = bandFor(day.weight), k = rateK(day.tight);
-    if (r.lift && r.liftMin) day.workouts.push({ type: r.lift, min: Math.round(r.liftMin), late: lateNow, pts: lateNow ? 0 : liftPts(b, k, r.lift, r.liftMin) });
-    if (r.steps) {
-      var stepsLate = day.steps ? !!day.steps.late : lateNow;
-      day.steps = { total: Math.round(r.steps), late: stepsLate, pts: stepsLate ? 0 : stepPts(b, k, r.steps) };
+  // What an entry earns when saved: before the deadline, its full value; after it, nothing new.
+  function earnFor(prev, fresh, lateNow, keepOnTime) {
+    if (!lateNow) return { pts: fresh, late: false };
+    if (!prev || prev.late) return { pts: 0, late: true };
+    return { pts: keepOnTime ? fresh : Math.min(fresh, prev.pts || 0), late: false };
+  }
+  // A food line keeps the plan-meal value it was saved with unless its meal is changed.
+  function formFoodBase(x) { return isNum(x.base) && x.bmeal === x.meal ? x.base : mealKcal(x.meal); }
+  function formFoodEst(x) { var kc = Math.round(num(x.kcal)); return Math.round(x.posted === false ? kc * NO_LABEL : kc); }
+  function formFoodCost(x) { return Math.max(0, formFoodEst(x) - formFoodBase(x)); }
+  // The day as it would be saved from form f, given the saved day prev (or none).
+  function buildDay(prev, f, date, now) {
+    var basis = prev ? { weight: prev.weight, tight: prev.tight } : settings();
+    var lateNow = now > deadline(date);
+    var day = blankDay(date, basis, prev ? !!prev.late : lateNow);
+    var b = bandFor(day.weight || 250), k = rateK(day.tight);
+    var lm = Math.round(num(f.liftMin));
+    if (f.lift && lm) {
+      var ew = earnFor(prev && collapse(prev.workouts), liftPts(b, k, f.lift, lm), lateNow);
+      day.workouts.push({ type: f.lift, min: lm, late: ew.late, pts: ew.pts });
     }
-    if (r.cardioMin) day.cardio.push({ min: Math.round(r.cardioMin), tread: r.cardioSteps, late: lateNow, pts: lateNow ? 0 : cardioPts(b, k, r.cardioMin, r.cardioSteps) });
-    if (r.otherMin) day.other.push({ min: Math.round(r.otherMin), level: r.otherLevel, name: r.otherName, late: lateNow, pts: lateNow ? 0 : otherPts(b, k, r.otherMin, r.otherLevel) });
-    if (r.plan === "no") r.food.forEach(function (f) { day.food.push(clone(f)); });
+    var st = Math.round(num(f.steps));
+    if (st) {
+      var es = earnFor(prev && prev.steps, stepPts(b, k, st), lateNow, true);
+      day.steps = { total: st, late: es.late, pts: es.pts };
+    }
+    var cm = Math.round(num(f.cardioMin));
+    if (cm) {
+      var tread = f.ckind !== "bike";
+      var ec = earnFor(prev && collapse(prev.cardio), cardioPts(b, k, cm, tread), lateNow);
+      day.cardio.push({ min: cm, tread: tread, late: ec.late, pts: ec.pts });
+    }
+    var om = Math.round(num(f.otherMin));
+    if (om) {
+      var lv = EFFORTS.some(function (e) { return e.id === f.olevel; }) ? f.olevel : "moderate";
+      var eo = earnFor(prev && collapse(prev.other), otherPts(b, k, om, lv), lateNow);
+      day.other.push({ min: om, level: lv, name: String(f.otherName || "").trim().slice(0, 40), late: eo.late, pts: eo.pts });
+    }
+    if (f.plan === "no") (f.food || []).forEach(function (x) {
+      var kc = Math.round(num(x.kcal));
+      if (!kc) return;
+      var entry = { meal: MEAL_INFO[x.meal] ? x.meal : "extra", kcal: kc, posted: x.posted !== false, name: String(x.name || "").trim().slice(0, 40) };
+      entry.base = formFoodBase(x);
+      entry.est = formFoodEst(x);
+      entry.cost = Math.max(0, entry.est - entry.base);
+      day.food.push(entry);
+    });
     day.ts = now;
     return finalizeDay(day);
+  }
+  // Full points for form f with no deadline, to show what late changes would have earned.
+  function freshPts(f, basis) {
+    var b = bandFor(basis.weight || 250), k = rateK(basis.tight);
+    return {
+      lift: f.lift ? liftPts(b, k, f.lift, num(f.liftMin)) : 0,
+      steps: stepPts(b, k, num(f.steps)),
+      cardio: cardioPts(b, k, num(f.cardioMin), f.ckind !== "bike"),
+      other: otherPts(b, k, num(f.otherMin), f.olevel)
+    };
   }
   // Activity in standard points (no Tight, no late rule), for burn estimates.
   function stdActivity(day) {
@@ -1375,15 +1441,15 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   // TALLY_RUN of them adds a point and restarts the count. A yes takes a point, or with none left,
   // restarts the count and takes TALLY_HIT off the bank.
   function tallyState() {
-    var run = 0, pts = 0, hits = [];
+    var run = 0, pts = 0, hits = [], marks = {};
     allOf("tally").filter(function (x) { return x.a === "y" || x.a === "n"; })
       .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; })
       .forEach(function (x) {
-        if (x.a === "n") { run++; if (run >= TALLY_RUN) { pts++; run = 0; } }
-        else if (pts > 0) pts--;
-        else { run = 0; hits.push(x.date); }
+        if (x.a === "n") { run++; if (run >= TALLY_RUN) { pts++; run = 0; } marks[x.date] = "n"; }
+        else if (pts > 0) { pts--; marks[x.date] = "spent"; }
+        else { run = 0; hits.push(x.date); marks[x.date] = "hit"; }
       });
-    return { run: run, pts: pts, hits: hits };
+    return { run: run, pts: pts, hits: hits, marks: marks };
   }
   function tallyHit() { return tallyState().hits.length * TALLY_HIT; }
   function spendsByDate() {
@@ -1662,7 +1728,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         "<b>Bank</b>: everything you've earned minus everything you've spent.",
         "<b>This week</b> and <b>Spent</b> cover Monday through Sunday.",
         "<b>Streak</b>: days in a row logged on time.",
-        "The strip shows each day's net. Tap a day to open it.",
+        "The strip shows the last 31 days with each day's net, today on the right. Swipe for earlier days. Tap a day and the whole page switches to it.",
         "<b>In the red</b>: the next cheat waits until you're back to 0. Never skip plan meals to pay it back.",
         "<b>Over " + fmt(BIG_BANK) + "</b>: fine if you're saving for an event. Regular cheats are easier to bounce back from than one huge one.",
         "Set a <b>savings goal</b> in Settings to track it here."
@@ -1670,10 +1736,10 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     } },
     logging: { title: "Logging and the on-plan bonus", html: function (c) {
       return ul([
-        "Log as often as you like. The form starts blank and each save adds to the day. A new step total replaces the old one.",
-        "<b>Logged so far</b> shows the day. Tap Remove to take an entry back out, or Undo right after saving.",
+        "Pick a day on the strip. The form shows what's saved for it; change anything and tap <b>Update</b>.",
+        "Changes you haven't saved stay with their day when you switch days or close the app, and a dot marks the day. <b>Discard changes</b> puts the day back. Undo right after saving or deleting puts it back too.",
         "An on-plan day earns <b>" + c.bonus + "</b> even with no activity" + (c.s.tight ? " (25 on the Standard rate)." : " (17 on the Tight rate)."),
-        "<b>Log by noon the next day.</b> Anything reported later still records, and off-plan food still counts, but it earns nothing. Correcting a step total you reported on time keeps it on time.",
+        "<b>Log by noon the next day.</b> Changes after that still record, and off-plan food still counts, but they can't add points; lowering something still lowers them. Correcting a step total you reported on time keeps it on time.",
         "Until noon, the app reminds you if yesterday isn't logged."
       ]);
     } },
@@ -1686,7 +1752,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         "A different meal costs its calories minus the plan meal it replaced (" + meals + "). Extras cost their full calories.",
         "A smaller meal than the plan costs nothing but earns nothing either.",
         "<b>Posted calories</b> means a chain menu, an app or a label. Unchecked adds 25%, since big meals are easy to underestimate.",
-        "<b>Favorites</b>: name an entry and tap Save favorite. Tap a favorite to add it; Edit removes one.",
+        "<b>Favorites</b>: name an entry and tap Save favorite. Pick one from <b>Add a favorite</b> to add it; Edit lists them so you can remove any.",
         "Drinking night: eat dinner first. The late-night food costs more than the drinks."
       ]);
     } },
@@ -1721,6 +1787,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     weigh: { title: "Weigh-ins and progress", html: function () {
       return ul([
         "Weigh every morning after the bathroom, before eating or drinking. Daily swings of 1–4 lb are water, so the app goes by your 7-day average.",
+        "The weigh-in follows the day picked on the strip, so pick an earlier day to fix its weight.",
         "Your point values follow that average and step down on their own as you lose.",
         "<b>Weekly pace</b> compares this week's average with last week's. It shows after about two weeks of weigh-ins, 3 or more a week.",
         "<b>On track</b> means you're within 0.5 lb a week of what your logs predict, or faster but under 1% a week. Weeks 1–2 run fast from water, so judge from week 3.",
@@ -1742,7 +1809,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         ["Big bank", "The bank passes " + fmt(BIG_BANK) + ".", "Fine for an event. Regular cheats are easier to bounce back from."],
         ["Losing too fast", "Your 7-day average drops more than 1% a week after week 2.", "Eat more: spend points, or add back your plan's last trims."],
         ["Slower than predicted", "Your pace runs 0.5 lb a week or more under what your logs predict.", "Measure portions and check off-plan calories. Three weeks of this: switch to Tight."],
-        ["Reported late", "You log something after noon the next day.", "It records, but it earns nothing."]
+        ["Logged late", "You add or raise activity after noon the next day.", "It records, but the added activity earns nothing."]
       ];
       return "<p>The app never blocks or caps anything. It explains instead.</p><dl class=\"wl\">" + list.map(function (x) {
         return "<div><dt>" + x[0] + "</dt><dd><span>When</span>" + x[1] + "</dd><dd><span>Do</span>" + x[2] + "</dd></div>";
@@ -1929,37 +1996,73 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   }
   function saveFavorite(f) {
     var items = favorites().filter(function (x) { return favKey(x.name) !== favKey(f.name); });
-    items.unshift({ id: Date.now().toString(36), name: f.name.trim().slice(0, 40), kcal: Math.round(f.kcal), posted: f.posted, meal: f.meal });
-    return write("favorites", { kind: "favorites", items: items.slice(0, 30), ts: Date.now() });
+    items.unshift({ id: Date.now().toString(36), name: f.name.trim().slice(0, 40), kcal: Math.round(num(f.kcal)), posted: f.posted !== false, meal: f.meal });
+    return write("favorites", { kind: "favorites", items: items.slice(0, FAV_LIMIT), ts: Date.now() });
   }
   function removeFavorite(id) {
     var items = favorites().filter(function (x) { return x.id !== id; });
     return write("favorites", { kind: "favorites", items: items, ts: Date.now() });
   }
+  function sortedFavorites() {
+    return favorites().slice().sort(function (a, b) { var x = favKey(a.name), y = favKey(b.name); return x < y ? -1 : x > y ? 1 : 0; });
+  }
+  function favLabel(fv) { return fv.name + " · " + fmt(fv.kcal) + (fv.posted === false ? " +25%" : ""); }
+  // Favorites live in a dropdown, so a long list stays one line.
   function renderFavs() {
-    var favs = favorites();
+    var favs = sortedFavorites();
     $("favs").hidden = !favs.length;
-    if (!favs.length) state.favEdit = false;
-    $("favEdit").textContent = state.favEdit ? "Done" : "Edit";
-    var wrap = $("favChips");
-    wrap.textContent = "";
+    var sel = $("favPick");
+    sel.textContent = "";
+    var first = el("option", null, "Add a favorite…");
+    first.value = "";
+    sel.appendChild(first);
     favs.forEach(function (fv) {
-      var c = el("button", "chip" + (state.favEdit ? " del" : ""));
-      c.type = "button";
-      c.disabled = state.readOnly;
-      c.appendChild(document.createTextNode((state.favEdit ? "Remove " : "") + fv.name + " "));
-      c.appendChild(el("small", null, fmt(fv.kcal) + (fv.posted === false ? " +25%" : "")));
-      c.addEventListener("click", function () {
-        if (state.favEdit) { removeFavorite(fv.id).then(function (ok) { if (ok) toast("Removed " + fv.name); }); return; }
-        var entry = { meal: MEAL_INFO[fv.meal] ? fv.meal : "extra", kcal: fv.kcal, posted: fv.posted !== false, name: fv.name };
-        var empty = -1;
-        state.food.forEach(function (x, i) { if (!x.kcal) empty = i; });
-        if (empty >= 0) state.food[empty] = entry; else state.food.push(entry);
-        renderFoodList();
-        updatePreview();
-      });
-      wrap.appendChild(c);
+      var o = el("option", null, favLabel(fv));
+      o.value = fv.id;
+      sel.appendChild(o);
     });
+    sel.value = "";
+    sel.disabled = state.readOnly;
+    if (favSheetDraw) favSheetDraw();
+  }
+  function addFavorite(id) {
+    var fv = favorites().filter(function (x) { return x.id === id; })[0];
+    if (!fv) return;
+    var entry = { meal: MEAL_INFO[fv.meal] ? fv.meal : "extra", kcal: fv.kcal, posted: fv.posted !== false, name: fv.name };
+    var empty = -1;
+    state.food.forEach(function (x, i) { if (!num(x.kcal) && empty < 0) empty = i; });
+    if (empty >= 0) state.food[empty] = entry; else state.food.push(entry);
+    renderFoodList();
+    updatePreview();
+  }
+  var favSheetDraw = null;
+  function openFavManager() {
+    var body = el("div", "help");
+    var list = el("ul", "favlist");
+    body.appendChild(list);
+    favSheetDraw = function () {
+      list.textContent = "";
+      var favs = sortedFavorites();
+      if (!favs.length) { list.appendChild(el("li", null, "No favorites yet. Name a food entry and tap Save favorite.")); return; }
+      favs.forEach(function (fv) {
+        var li = el("li");
+        var t = el("span", "fn");
+        t.appendChild(el("b", null, fv.name));
+        t.appendChild(el("span", "fk", fmt(fv.kcal) + " cal" + (fv.posted === false ? " +25%" : "") + " · " + (MEAL_INFO[fv.meal] || MEAL_INFO.extra).label));
+        li.appendChild(t);
+        var rm = button("linkbtn", "Remove", function () {
+          var before = state.docs.get("favorites");
+          removeFavorite(fv.id).then(function (ok) {
+            if (ok) snack("Removed " + fv.name, function () { write("favorites", before); });
+          });
+        });
+        rm.disabled = state.readOnly;
+        li.appendChild(rm);
+        list.appendChild(li);
+      });
+    };
+    favSheetDraw();
+    openSheet("Favorites", body, [button("btn ghost", "Done", closeSheet)], { onClose: function () { favSheetDraw = null; } });
   }
 
   // ---------- Off-plan food in the report ----------
@@ -2049,37 +2152,123 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     renderAccess();
   }
 
-  // ---------- The report being entered ----------
-  function readReport() {
-    var food = [];
-    if (picked("plan") === "no") {
-      state.food.forEach(function (x) {
-        if (!x.kcal) return;
-        var base = mealKcal(x.meal);
-        var entry = { meal: x.meal, kcal: Math.round(x.kcal), posted: x.posted, name: (x.name || "").trim().slice(0, 40) };
-        entry.base = base;
-        entry.est = foodEst(entry);
-        entry.cost = Math.max(0, entry.est - base);
-        food.push(entry);
-      });
-    }
+  // ---------- The day's form ----------
+  // The form always shows the picked day: what's saved for it, or your unsaved changes, which are kept per
+  // day (on this device) until you save or discard them.
+  function blankForm() {
+    return { plan: "", food: [], lift: "", liftMin: "", steps: "", cardioMin: "", ckind: "tread", otherMin: "", olevel: "moderate", otherName: "" };
+  }
+  function formFromDay(day) {
+    var f = blankForm();
+    if (!day) return f;
+    f.plan = day.food.length ? "no" : "yes";
+    f.food = day.food.map(function (x) {
+      return { meal: MEAL_INFO[x.meal] ? x.meal : "extra", kcal: +x.kcal || 0, posted: x.posted !== false, name: x.name || "", base: foodBase(x), bmeal: x.meal };
+    });
+    var w = collapse(day.workouts);
+    if (w) { f.lift = day.workouts[0].type; f.liftMin = w.min; }
+    if (day.steps) f.steps = day.steps.total;
+    var c = collapse(day.cardio);
+    if (c) { f.cardioMin = c.min; f.ckind = day.cardio[0].tread ? "tread" : "bike"; }
+    var o = collapse(day.other);
+    if (o) { f.otherMin = o.min; f.olevel = day.other[0].level || "moderate"; f.otherName = day.other[0].name || ""; }
+    return f;
+  }
+  function savedForm(date) { return formFromDay(getDay(date)); }
+  function captureForm() {
     return {
-      date: state.logDate,
       plan: picked("plan"),
-      food: food,
+      food: state.food.map(function (x) { return { meal: x.meal, kcal: x.kcal || "", posted: x.posted !== false, name: x.name || "", base: x.base, bmeal: x.bmeal }; }),
       lift: picked("lift"),
-      liftMin: num($("liftMin").value),
-      steps: num($("steps").value),
-      cardioMin: num($("cardioMin").value),
-      cardioSteps: picked("ckind") !== "bike",
-      otherMin: num($("otherMin").value),
-      otherLevel: picked("olevel") || "moderate",
-      otherName: $("otherName").value.trim().slice(0, 40)
+      liftMin: $("liftMin").value,
+      steps: $("steps").value,
+      cardioMin: $("cardioMin").value,
+      ckind: picked("ckind") || "tread",
+      otherMin: $("otherMin").value,
+      olevel: picked("olevel") || "moderate",
+      otherName: $("otherName").value
     };
   }
-  function formHasInput() {
-    var r = readReport();
-    return !!(r.plan || r.lift || hasReport(r) || state.food.some(function (f) { return f.kcal || f.name; }));
+  function applyForm(f) {
+    setPicked("plan", f.plan || "");
+    state.food = (f.food || []).map(function (x) { return clone(x); });
+    state.armedFood = -1;
+    renderFoodList();
+    setPicked("lift", f.lift || "");
+    state.liftSel = f.lift || "";
+    $("liftMin").value = num(f.liftMin) ? f.liftMin : "";
+    $("steps").value = num(f.steps) ? f.steps : "";
+    $("cardioMin").value = num(f.cardioMin) ? f.cardioMin : "";
+    setPicked("ckind", f.ckind || "tread");
+    $("otherMin").value = num(f.otherMin) ? f.otherMin : "";
+    setPicked("olevel", f.olevel || "moderate");
+    $("otherName").value = f.otherName || "";
+    $("planQ").classList.remove("ask");
+  }
+  // Two forms that would save the same day compare equal.
+  function canonForm(f) {
+    var lm = Math.round(num(f.liftMin)), cm = Math.round(num(f.cardioMin)), om = Math.round(num(f.otherMin));
+    var food = f.plan === "no" ? (f.food || []).filter(function (x) { return num(x.kcal) > 0; }).map(function (x) {
+      return [x.meal, Math.round(num(x.kcal)), x.posted !== false, String(x.name || "").trim()];
+    }) : [];
+    return JSON.stringify([f.plan || "", food, f.lift && lm ? f.lift : "", f.lift ? lm : 0, Math.round(num(f.steps)),
+      cm, cm ? f.ckind : "", om, om ? f.olevel : "", om ? String(f.otherName || "").trim() : ""]);
+  }
+  function isDirty(date, f) { return canonForm(f) !== canonForm(savedForm(date)); }
+  function loadDrafts() {
+    try {
+      var o = JSON.parse(window.localStorage.getItem(DRAFT_KEY) || "{}");
+      if (!o || typeof o !== "object") return {};
+      var oldest = addDays(today(), -STRIP_DAYS - 7), out = {};
+      Object.keys(o).forEach(function (k) { if (validDate(k) && k >= oldest && o[k] && typeof o[k] === "object") out[k] = o[k]; });
+      return out;
+    } catch (e) { return {}; }
+  }
+  function saveDrafts() { try { window.localStorage.setItem(DRAFT_KEY, JSON.stringify(state.drafts)); } catch (e) { /* drafts are a convenience */ } }
+  function hasDraft(date) { var d = state.drafts[date]; return !!(d && (d.form || d.wlb != null)); }
+  function setDraft(date, d) {
+    var had = hasDraft(date);
+    if (d && (d.form || d.wlb != null)) state.drafts[date] = d; else delete state.drafts[date];
+    saveDrafts();
+    if (had !== hasDraft(date)) markDraft(date);
+  }
+  // Called after every change to the form: remember it for this day, or forget it if it matches what's saved.
+  function noteDraft() {
+    if (!state.loaded) return;
+    var date = state.logDate, f = captureForm(), d = Object.assign({}, state.drafts[date] || {});
+    if (isDirty(date, f)) d.form = f; else delete d.form;
+    setDraft(date, d);
+  }
+  // Saved data changed underneath (sync, restore, undo): show it, unless you have unsaved changes for the day.
+  function refreshForm() {
+    var d = state.drafts[state.logDate];
+    if (d && d.form) return;
+    var sf = savedForm(state.logDate);
+    if (canonForm(captureForm()) !== canonForm(sf)) applyForm(sf);
+  }
+  function inStrip(date) { var t = today(); return validDate(date) && date <= t && date >= addDays(t, -STRIP_DAYS); }
+  // Pick the day the whole Today page shows.
+  function selectDay(date, opts) {
+    if (!inStrip(date)) date = today();
+    state.logDate = date;
+    state.armedDay = false;
+    var d = state.drafts[date];
+    applyForm(d && d.form ? d.form : savedForm(date));
+    renderWeighToday(true);
+    updatePreview();
+    renderStrip(opts && opts.scroll ? opts.scroll : "sel");
+    renderTally();
+    renderDayLabels();
+  }
+  function dayName(date) {
+    var t = today();
+    return date === t ? "Today" : date === addDays(t, -1) ? "Yesterday" : fmtDay(date);
+  }
+  function renderDayLabels() {
+    var date = state.logDate, past = date !== today(), name = dayName(date);
+    ["weighDay", "logDay"].forEach(function (id) { $(id).textContent = name; $(id).classList.toggle("past", past); });
+    $("viewing").hidden = !past;
+    $("viewingTxt").textContent = "Showing " + fmtDay(date);
   }
   function suggestLift(date) {
     var prior = null;
@@ -2090,34 +2279,6 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     if (prior.date === date) return "";
     var last = prior.workouts[prior.workouts.length - 1].type;
     return ROTATION[(ROTATION.indexOf(last) + 1) % ROTATION.length];
-  }
-  function clearReport() {
-    setPicked("plan", "");
-    state.food = [];
-    state.armedFood = -1;
-    renderFoodList();
-    setPicked("lift", "");
-    state.liftSel = "";
-    $("liftMin").value = "";
-    $("steps").value = "";
-    $("cardioMin").value = "";
-    setPicked("ckind", "tread");
-    $("otherMin").value = "";
-    setPicked("olevel", "moderate");
-    $("otherName").value = "";
-    $("planQ").classList.remove("ask");
-  }
-  function loadDay(date) {
-    var t = today();
-    if (!validDate(date) || date > t) date = t;
-    state.logDate = date;
-    state.armedDay = false;
-    state.armedItem = "";
-    $("logDate").value = date;
-    clearReport();
-    updatePreview();
-    renderWeek();
-    renderTally();
   }
   function renderTally() {
     var date = state.logDate, cur = state.docs.get("t-" + date), a = cur && cur.kind === "tally" ? cur.a : "";
@@ -2137,195 +2298,170 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     if (cur && cur.kind === "tally" && cur.a === a) remove(id);
     else write(id, { kind: "tally", date: date, a: a, ts: Date.now() });
   }
-  function setPts(id, v, late) {
+  // A field's points: what it will earn, "late" when it would earn but it's past the deadline.
+  function setPts(id, pts, fresh) {
     var o = $(id);
-    o.textContent = late && v > 0 ? "late" : plus(v);
-    o.classList.toggle("zero", v <= 0 || !!late);
-  }
-  function itemValue(pts, late) { return late ? ["late", "late"] : [plus(pts), "earn"]; }
-  function renderSoFar(day) {
-    var box = $("sofar"), list = $("sofarList");
-    box.hidden = !day;
-    list.textContent = "";
-    if (!day) return;
-    var rows = [];
-    day.workouts.forEach(function (w, i) { rows.push({ key: "w" + i, text: LIFT_NAMES[w.type] + " " + w.min + " min", val: itemValue(w.pts, w.late) }); });
-    if (day.steps) rows.push({ key: "s", text: fmt(day.steps.total) + " steps", val: itemValue(day.steps.pts, day.steps.late) });
-    day.cardio.forEach(function (c, i) { rows.push({ key: "c" + i, text: (c.tread ? "Treadmill " : "Bike or elliptical ") + c.min + " min", val: itemValue(c.pts, c.late) }); });
-    day.other.forEach(function (o, i) { rows.push({ key: "o" + i, text: (o.name || "Other activity") + " " + o.min + " min, " + o.level, val: itemValue(o.pts, o.late) }); });
-    day.food.forEach(function (f, i) {
-      var c = foodCost(f);
-      rows.push({ key: "f" + i, text: (f.name || (MEAL_INFO[f.meal] || MEAL_INFO.extra).label) + ", " + fmt(f.kcal) + " cal", val: [c ? "−" + fmt(c) : "0", "spend"] });
-    });
-    if (day.bonus) rows.push({ key: "", text: "On-plan bonus", val: [plus(day.bonus), "earn"] });
-    else if (day.onPlan && day.late) rows.push({ key: "", text: "On plan, logged late", val: ["late", "late"] });
-    if (!rows.length) rows.push({ key: "", text: "On plan", val: ["0", "late"] });
-    rows.forEach(function (r) {
-      var li = el("li");
-      li.appendChild(el("span", "t", r.text));
-      li.appendChild(el("span", "v " + r.val[1], r.val[0]));
-      if (r.key && !state.readOnly) {
-        var armed = state.armedItem === r.key;
-        li.appendChild(button("linkbtn" + (armed ? " armed" : ""), armed ? "Tap again" : "Remove", function () { removeItem(r.key); }));
-      } else {
-        li.appendChild(el("span"));
-      }
-      list.appendChild(li);
-    });
-    var del = $("deleteDay");
-    del.hidden = state.readOnly;
-    del.textContent = state.armedDay ? "Tap again to delete this day" : "Delete this day";
-    del.classList.toggle("armed", state.armedDay);
-  }
-  function removeItem(key) {
-    if (state.armedItem !== key) {
-      state.armedItem = key;
-      renderSoFar(getDay(state.logDate));
-      setTimeout(function () { if (state.armedItem === key) { state.armedItem = ""; renderSoFar(getDay(state.logDate)); } }, 4000);
-      return;
-    }
-    state.armedItem = "";
-    var cur = getDay(state.logDate);
-    if (!cur) return;
-    var id = "day-" + cur.date, prevDoc = state.docs.get(id);
-    var day = clone(cur);
-    var kind = key.charAt(0), i = +key.slice(1);
-    if (kind === "w") day.workouts.splice(i, 1);
-    else if (kind === "s") day.steps = null;
-    else if (kind === "c") day.cardio.splice(i, 1);
-    else if (kind === "o") day.other.splice(i, 1);
-    else if (kind === "f") day.food.splice(i, 1);
-    day.ts = Date.now();
-    write(id, finalizeDay(day)).then(function (ok) {
-      if (ok) snack("Removed", function () { write(id, prevDoc).then(function (ok2) { if (ok2) toast("Put back"); }); });
-    });
+    o.textContent = pts > 0 ? plus(pts) : fresh > 0 ? "late" : "0";
+    o.classList.toggle("zero", pts <= 0);
   }
   function updatePreview() {
-    var r = readReport();
-    var existing = getDay(state.logDate);
-    var now = Date.now();
-    var basis = existing ? { weight: existing.weight, tight: existing.tight } : settings();
+    var date = state.logDate, f = captureForm(), prev = getDay(date), now = Date.now();
+    var basis = prev ? { weight: prev.weight, tight: prev.tight } : settings();
     var b = bandFor(basis.weight || 250), k = rateK(basis.tight);
-    var lateNow = now > deadline(state.logDate);
+    var lateNow = now > deadline(date);
     $("segL").textContent = fmt(b.L * k);
     $("segU").textContent = fmt(b.U * k);
     $("segC").textContent = fmt(b.C * k);
     $("segOL").textContent = fmt(b.o.light * k) + " / 10 min";
     $("segOM").textContent = fmt(b.o.moderate * k) + " / 10 min";
     $("segOH").textContent = fmt(b.o.hard * k) + " / 10 min";
-    var next = r.lift ? "" : suggestLift(state.logDate);
+    var next = f.lift ? "" : suggestLift(date);
     $("nextHint").textContent = next ? "Next in your rotation: " + LIFT_NAMES[next] + ". Tap a workout again to clear it." : "";
 
-    renderSoFar(existing);
-
-    var off = r.plan === "no";
+    var off = f.plan === "no";
     $("food").hidden = !off;
-    renderFavs();
     if (off) {
       state.food.forEach(function (fd, i) {
         var els = state.foodEls[i];
         if (!els) return;
-        var c = foodCost(fd);
-        els.cost.textContent = fd.kcal ? (c ? "−" + fmt(c) : "0") : "";
+        var c = formFoodCost(fd), kc = num(fd.kcal), base = formFoodBase(fd);
+        els.cost.textContent = kc ? (c ? "−" + fmt(c) : "0") : "";
         els.cost.classList.toggle("zero", !c);
-        var mk = mealKcal(fd.meal);
-        els.how.textContent = fd.kcal && (!fd.posted || mk)
-          ? fmt(fd.kcal) + (fd.posted ? "" : " + 25%") + (mk ? " − " + fmt(mk) + " plan " + MEAL_INFO[fd.meal].short : "")
+        els.how.textContent = kc && (fd.posted === false || base)
+          ? fmt(kc) + (fd.posted === false ? " + 25%" : "") + (base ? " − " + fmt(base) + " plan " + MEAL_INFO[fd.meal].short : "")
           : "";
-        var saved = fd.kcal && fd.name.trim() && isFavorite(fd);
+        var saved = kc && String(fd.name || "").trim() && isFavorite({ name: fd.name, kcal: Math.round(kc), meal: fd.meal, posted: fd.posted !== false });
         els.fav.textContent = saved ? "★ Favorite" : "Save favorite";
         els.fav.classList.toggle("done", !!saved);
-        els.fav.disabled = state.readOnly || !fd.kcal || !fd.name.trim();
+        els.fav.disabled = state.readOnly || !kc || !String(fd.name || "").trim();
       });
     }
 
-    // Points for what's being entered now.
-    $("liftMinRow").hidden = !r.lift;
-    $("cardioKind").hidden = !r.cardioMin;
-    $("otherMore").hidden = !r.otherMin;
-    var stepsLate = existing && existing.steps ? !!existing.steps.late : lateNow;
-    setPts("liftPts", r.lift ? liftPts(b, k, r.lift, r.liftMin) : 0, lateNow);
-    setPts("stepPts", stepPts(b, k, r.steps), stepsLate);
-    setPts("cardioPts", cardioPts(b, k, r.cardioMin, r.cardioSteps), lateNow);
-    setPts("otherPts", otherPts(b, k, r.otherMin, r.otherLevel), lateNow);
+    // The day as it would be saved.
+    var day = buildDay(prev, f, date, now);
+    if (f.plan !== "yes") { day.bonus = 0; day.pts = day.activityPts; }
+    var fresh = freshPts(f, basis);
+    $("liftMinRow").hidden = !f.lift;
+    $("cardioKind").hidden = !num(f.cardioMin);
+    $("otherMore").hidden = !num(f.otherMin);
+    setPts("liftPts", day.workouts.length ? day.workouts[0].pts : 0, fresh.lift);
+    setPts("stepPts", day.steps ? day.steps.pts : 0, fresh.steps);
+    setPts("cardioPts", day.cardio.length ? day.cardio[0].pts : 0, fresh.cardio);
+    setPts("otherPts", day.other.length ? day.other[0].pts : 0, fresh.other);
 
-    // The whole day after this report.
-    var merged = applyReport(existing, r, now);
-    var shown = !!existing || !!r.plan || hasReport(r);
-    if (!existing && r.plan !== "yes") { merged.bonus = 0; merged.pts = merged.activityPts; }
-    $("sumEarn").textContent = plus(merged.activityPts);
-    $("sumBonusRow").hidden = !merged.bonus;
-    $("sumBonus").textContent = plus(merged.bonus);
-    $("sumFoodRow").hidden = !merged.spent;
-    $("sumFood").textContent = merged.spent ? "−" + fmt(merged.spent) : "0";
-    var net = shown ? merged.pts - merged.spent : 0;
+    var dirty = isDirty(date, f);
+    var shown = !!prev || !!f.plan;
+    $("sumEarn").textContent = plus(day.activityPts);
+    $("sumBonusRow").hidden = !day.bonus;
+    $("sumBonus").textContent = plus(day.bonus);
+    $("sumFoodRow").hidden = !day.spent;
+    $("sumFood").textContent = day.spent ? "−" + fmt(day.spent) : "0";
+    var net = shown ? day.pts - day.spent : 0;
     var dt = $("dayTotal");
     dt.textContent = signed(net);
     dt.classList.toggle("neg", net < 0);
-    $("bankAfter").textContent = "Bank after saving: " + money(bankWith(state.logDate, shown ? merged : existing));
+    $("bankAfter").textContent = dirty && shown ? "Bank after saving: " + money(bankWith(date, day)) : "";
 
     var warns = [];
-    if (lateNow && hasReport(r)) warns.push({ kind: "info", text: "Reported late, so new activity earns nothing. Off-plan food still counts.", help: "logging" });
-    if (ready()) {
+    var lostLate = lateNow && (fresh.lift + fresh.steps + fresh.cardio + fresh.other) > day.activityPts;
+    if (lostLate) warns.push({ kind: "info", text: "It's past noon the day after, so added activity earns nothing. Off-plan food still counts.", help: "logging" });
+    if (ready() && shown) {
       var W = basis.weight;
-      var std = stdActivity(merged);
-      var intake = planKcal() + intakeDelta(merged, 0);
+      var std = stdActivity(day);
+      var intake = planKcal() + intakeDelta(day, 0);
       var deficit = maintenance(W) + BURN_PER_PT * std - intake;
       if (std > BIG_DAY) warns.push({ kind: "warn", text: "Big activity day. That's fine now and then, but long sessions are where burn estimates run high, and joints need time to adapt. Work up to days like this.", help: "warnings" });
       if (deficit > DEFICIT_PER_LB * W) warns.push({ kind: "warn", text: "Estimated deficit is about " + fmt(near50(deficit)) + " today, past the 1%-a-week pace of about " + fmt(near50(5 * W)) + " a day. Eating some of today's points is fine.", help: "warnings" });
-      if (merged.food.length && intake < floorKcal()) warns.push({ kind: "warn", text: "Estimated intake is about " + fmt(near50(intake)) + ", under the " + fmt(floorKcal()) + " floor. Eat the rest of your plan meals.", help: "warnings" });
-      if (merged.spent > BIG_FOOD) warns.push({ kind: "info", text: "Over " + fmt(BIG_FOOD) + " off plan today. Expect the scale to jump 2–5 lb from water for a few days. Get right back on plan tomorrow.", help: "warnings" });
+      if (day.food.length && intake < floorKcal()) warns.push({ kind: "warn", text: "Estimated intake is about " + fmt(near50(intake)) + ", under the " + fmt(floorKcal()) + " floor. Eat the rest of your plan meals.", help: "warnings" });
+      if (day.spent > BIG_FOOD) warns.push({ kind: "info", text: "Over " + fmt(BIG_FOOD) + " off plan today. Expect the scale to jump 2–5 lb from water for a few days. Get right back on plan tomorrow.", help: "warnings" });
     }
     renderNoteList($("dayWarns"), warns);
 
-    $("saveDay").textContent = (existing ? "Add to " : "Save ") + fmtShort(state.logDate);
+    var btn = $("saveDay");
+    if (prev && !dirty) { btn.textContent = "Saved"; btn.disabled = true; }
+    else { btn.textContent = (prev ? "Update " : "Save ") + fmtShort(date); btn.disabled = state.readOnly; }
+    $("saveState").textContent = dirty ? "Unsaved changes" : "";
+    $("saveState").classList.toggle("dirty", dirty);
+    $("discardDay").hidden = state.readOnly || !(state.drafts[date] && state.drafts[date].form);
+    var del = $("deleteDay");
+    del.hidden = state.readOnly || !prev;
+    del.textContent = state.armedDay ? "Tap again to delete this day" : "Delete this day";
+    del.classList.toggle("armed", state.armedDay);
+    noteDraft();
   }
   function saveDay() {
     if (!ready()) { openSetup(); return; }
-    var r = readReport();
-    var id = "day-" + r.date;
-    var prevDoc = state.docs.get(id);
-    var existing = getDay(r.date);
-    if (!r.plan) {
+    var date = state.logDate, f = captureForm(), id = "day-" + date;
+    var prevDoc = state.docs.get(id), prev = getDay(date);
+    if (!f.plan) {
       $("planQ").classList.add("ask");
       $("planQ").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
       toast("Did you stick to the meal plan? Pick Yes or No.");
       return;
     }
-    if (r.plan === "no" && !r.food.length) { toast("Enter the calories for what you ate, or pick Yes."); return; }
-    if (r.lift && !r.liftMin) { toast("Enter your workout minutes, or tap the workout again to clear it."); return; }
-    if (existing && !hasReport(r)) { toast("Nothing new to add. Enter activity or off-plan food."); return; }
+    var food = f.plan === "no" ? f.food.filter(function (x) { return num(x.kcal) > 0; }) : [];
+    if (f.plan === "no" && !food.length) { toast("Enter the calories for what you ate, or pick Yes."); return; }
+    if (f.lift && !num(f.liftMin)) { toast("Enter your workout minutes, or tap the workout again to clear it."); return; }
+    if (prev && !isDirty(date, f)) { toast("No changes to save."); return; }
     var now = Date.now();
-    var before = existing ? existing.pts - existing.spent : 0;
-    var day = applyReport(existing, r, now);
+    var before = prev ? prev.pts - prev.spent : 0;
+    var day = buildDay(prev, f, date, now);
+    var fresh = freshPts(f, prev ? { weight: prev.weight, tight: prev.tight } : settings());
+    var late = now > deadline(date) && (fresh.lift + fresh.steps + fresh.cardio + fresh.other) > day.activityPts;
     var btn = $("saveDay");
     btn.disabled = true;
     write(id, day).then(function (ok) {
       btn.disabled = state.readOnly;
       if (!ok) return;
+      var d = Object.assign({}, state.drafts[date] || {});
+      delete d.form;
+      setDraft(date, d);
       buzz();
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
       var change = day.pts - day.spent - before;
-      var late = now > deadline(r.date) && hasReport(r);
-      snack((existing ? "Added to " : "Saved ") + fmtShort(r.date) + ": " + signed(change) + (late ? " (late)" : ""), function () {
-        (prevDoc ? write(id, prevDoc) : remove(id)).then(function (ok2) { if (ok2) { toast("Undone"); loadDay(r.date); } });
+      snack((prev ? "Updated " : "Saved ") + fmtShort(date) + ": " + signed(change) + (late ? " (late)" : ""), function () {
+        (prevDoc ? write(id, prevDoc) : remove(id)).then(function (ok2) {
+          if (!ok2) return;
+          var d2 = Object.assign({}, state.drafts[date] || {});
+          d2.form = f;
+          setDraft(date, d2);
+          toast("Undone");
+          if (state.logDate === date) selectDay(date, { scroll: "none" });
+        });
       });
-      loadDay(r.date);
+      if (state.logDate === date) selectDay(date, { scroll: "none" });
+    });
+  }
+  function discardDraft() {
+    var date = state.logDate, d = Object.assign({}, state.drafts[date] || {}), old = d.form;
+    delete d.form;
+    setDraft(date, d);
+    selectDay(date, { scroll: "none" });
+    if (old) snack("Changes discarded", function () {
+      var d2 = Object.assign({}, state.drafts[date] || {});
+      d2.form = old;
+      setDraft(date, d2);
+      if (state.logDate === date) selectDay(date, { scroll: "none" });
     });
   }
   function deleteDay() {
     if (!state.armedDay) {
       state.armedDay = true;
-      renderSoFar(getDay(state.logDate));
-      setTimeout(function () { if (state.armedDay) { state.armedDay = false; renderSoFar(getDay(state.logDate)); } }, 4000);
+      updatePreview();
+      setTimeout(function () { if (state.armedDay) { state.armedDay = false; updatePreview(); } }, 4000);
       return;
     }
     var date = state.logDate, id = "day-" + date, prevDoc = state.docs.get(id);
     state.armedDay = false;
     remove(id).then(function (ok) {
       if (!ok) return;
-      loadDay(date);
-      snack("Deleted " + fmtShort(date), function () { write(id, prevDoc).then(function (ok2) { if (ok2) { toast("Put back"); loadDay(date); } }); });
+      var d = Object.assign({}, state.drafts[date] || {});
+      delete d.form;
+      setDraft(date, d);
+      if (state.logDate === date) selectDay(date, { scroll: "none" });
+      snack("Deleted " + fmtShort(date), function () {
+        write(id, prevDoc).then(function (ok2) { if (ok2) { toast("Put back"); if (state.logDate === date) selectDay(date, { scroll: "none" }); } });
+      });
     });
   }
   function scrollToLog() {
@@ -2390,32 +2526,75 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       $("goalMeter").setAttribute("aria-valuenow", String(Math.round(pct)));
       $("goalEta").textContent = goalEta(g, bank);
     }
-    renderWeek();
+    renderStrip("none");
   }
-  function renderWeek() {
-    var t = today(), ws = weekStart(t);
-    var nets = netByDate();
-    var wrap = $("week");
+  // A day's net, short enough for its tile: 1,000 and up shows as 1.2k.
+  function tileNum(n) {
+    var a = Math.abs(n), s = a >= 1000 ? (Math.round(a / 100) / 10).toFixed(1).replace(/\.0$/, "") + "k" : fmt(a);
+    return (n < 0 ? "−" : "") + s;
+  }
+  function chainSVG(kind) {
+    var links = kind === "n"
+      ? '<rect x="1.5" y="12" width="12" height="6.4" rx="3.2" transform="rotate(-45 7.5 15.2)"/>' +
+        '<rect x="9.3" y="5.4" width="12" height="6.4" rx="3.2" transform="rotate(-45 15.3 8.6)"/>'
+      : '<rect x="-1" y="15.2" width="10.5" height="6.2" rx="3.1" transform="rotate(-45 4.25 18.3)"/>' +
+        '<rect x="13.5" y="2.6" width="10.5" height="6.2" rx="3.1" transform="rotate(-45 18.75 5.7)"/>' +
+        '<path d="M9.4 11.2l-1.9-.7M12.8 14.6l.7 1.9M11.3 12.7l1.4-1.4"/>';
+    return '<svg class="chain ' + kind + '" viewBox="0 0 24 24" aria-hidden="true">' + links + "</svg>";
+  }
+  function markDraft(date) {
+    var tile = $("week").querySelector('[data-date="' + date + '"]');
+    if (!tile) return;
+    var dot = tile.querySelector(".draftdot");
+    if (hasDraft(date) && !dot) tile.appendChild(el("span", "draftdot"));
+    if (!hasDraft(date) && dot) dot.remove();
+  }
+  function stripFades() {
+    var w = $("week"), max = w.scrollWidth - w.clientWidth;
+    w.classList.toggle("more-left", w.scrollLeft > 2);
+    w.classList.toggle("more-right", w.scrollLeft < max - 2);
+  }
+  // The day strip: 30 days back to today. mode: "sel" keeps the picked day in view, "end" shows today,
+  // "none" leaves the scroll where it is.
+  function renderStrip(mode) {
+    var wrap = $("week"), t = today(), nets = netByDate(), marks = tallyState().marks;
+    var left = wrap.scrollLeft, atEnd = left >= wrap.scrollWidth - wrap.clientWidth - 4;
+    var first = !wrap.getAttribute("data-ready");
     wrap.textContent = "";
-    var letters = ["M", "T", "W", "T", "F", "S", "S"];
-    for (var i = 0; i < 7; i++) {
-      (function (date, letter) {
+    for (var i = STRIP_DAYS; i >= 0; i--) {
+      (function (date, oldest) {
+        var dd = parseISO(date);
         var has = Object.prototype.hasOwnProperty.call(nets, date);
-        var b = el("button", "day" + (has ? " has" : "") + (date === t ? " today" : "") + (date === state.logDate ? " sel" : ""));
+        var picked = date === state.logDate;
+        var b = el("button", "day" + (has ? " has" : "") + (date === t ? " today" : "") + (picked ? " sel" : ""));
         b.type = "button";
-        b.disabled = date > t;
-        b.setAttribute("aria-label", fmtDay(date) + (has ? ", net " + signed(nets[date]) + " points" : ", not logged"));
-        b.appendChild(el("span", "dl", letter));
-        b.appendChild(el("span", "dp" + (has && nets[date] < 0 ? " neg" : ""), has ? money(nets[date]) : "·"));
-        b.addEventListener("click", function () {
-          if (state.tab !== "today") showTab("today");
-          loadDay(date);
-          var log = $("log");
-          if (log.getBoundingClientRect().top > window.innerHeight * 0.6) scrollToLog();
-        });
+        b.setAttribute("data-date", date);
+        b.setAttribute("aria-pressed", picked ? "true" : "false");
+        b.setAttribute("aria-label", fmtDay(date) + (has ? ", net " + signed(nets[date]) + " points" : ", not logged") + (hasDraft(date) ? ", unsaved changes" : ""));
+        b.appendChild(el("span", "dl", "SMTWTFS".charAt(dd.getDay())));
+        b.appendChild(el("span", "dd", oldest || dd.getDate() === 1 ? fmtShort(date) : String(dd.getDate())));
+        var v = has ? tileNum(nets[date]) : "·";
+        var len = v.replace(/[^0-9.k−]/g, "").length;
+        b.appendChild(el("span", "dp" + (has && nets[date] < 0 ? " neg" : "") + (len >= 5 ? " l5" : len === 4 ? " l4" : ""), v));
+        if (marks[date]) b.insertAdjacentHTML("beforeend", chainSVG(marks[date]));
+        if (hasDraft(date)) b.appendChild(el("span", "draftdot"));
+        b.addEventListener("click", function () { selectDay(date, { scroll: "sel" }); });
         wrap.appendChild(b);
-      })(addDays(ws, i), letters[i]);
+      })(addDays(t, -i), i === STRIP_DAYS);
     }
+    wrap.setAttribute("data-ready", "1");
+    if (!wrap.clientWidth) return;   // hidden on another tab; showTab redraws it
+    if (first || mode === "end" || (mode !== "sel" && atEnd)) wrap.scrollLeft = wrap.scrollWidth;
+    else wrap.scrollLeft = left;
+    if (mode === "sel") {
+      var tile = wrap.querySelector(".day.sel");
+      if (tile) {
+        var wr = wrap.getBoundingClientRect(), tr = tile.getBoundingClientRect();
+        if (tr.left < wr.left + 12) wrap.scrollLeft += tr.left - wr.left - 12;
+        else if (tr.right > wr.right - 8) wrap.scrollLeft += tr.right - wr.right + 8;
+      }
+    }
+    stripFades();
   }
   // Activity in the last 7 days vs. the 14 days before it, in standard points.
   function rampUp() {
@@ -2465,7 +2644,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     }
     var y = addDays(today(), -1);
     if (hasAnyDays() && !state.docs.get("day-" + y) && Date.now() < deadline(y)) {
-      notes.push({ kind: "info", text: "Yesterday isn't logged. Log it by noon to earn its points.", action: { label: "Log it", fn: function () { showTab("today"); loadDay(y); scrollToLog(); } } });
+      notes.push({ kind: "info", text: "Yesterday isn't logged. Log it by noon to earn its points.", action: { label: "Log it", fn: function () { showTab("today"); selectDay(y); scrollToLog(); } } });
     }
     if (state.mode === "local" && IS_PWA) {
       var due = backupDue();
@@ -2490,17 +2669,23 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 
   // ---------- Weigh-in (Today) ----------
   function paceText(p) { return (p >= 0 ? "−" : "+") + lbStr(Math.abs(p)) + " lb/wk"; }
-  function renderWeighToday() {
+  // The weigh-in shows the picked day: its saved weight, or what you typed and haven't saved.
+  function renderWeighToday(force) {
     var w = weighStatus();
     var parts = [];
     if (w.avg != null) parts.push("7-day average " + lbStr(w.avg) + " lb");
     if (w.pace != null) parts.push(paceText(w.pace));
     $("wLine").textContent = parts.join(" · ");
     $("toProgress").hidden = !weighIns().length;
-    var date = $("wDate").value || today();
-    var existing = state.docs.get("w-" + date);
+    var date = state.logDate, existing = state.docs.get("w-" + date), d = state.drafts[date];
     $("wSave").textContent = existing ? "Update" : "Save";
-    if (document.activeElement !== $("wLb") && !$("wLb").dataset.dirty) $("wLb").value = existing ? existing.lb : "";
+    if (force || document.activeElement !== $("wLb")) $("wLb").value = d && d.wlb != null ? d.wlb : existing ? existing.lb : "";
+  }
+  function noteWeighDraft() {
+    var date = state.logDate, v = $("wLb").value.trim(), saved = state.docs.get("w-" + date);
+    var d = Object.assign({}, state.drafts[date] || {});
+    if (v !== "" && !(saved && Math.abs(num(v) - saved.lb) < 0.05)) d.wlb = v; else delete d.wlb;
+    setDraft(date, d);
   }
   function followWeight(date, lb) {
     var t = today(), start = addDays(t, -6);
@@ -2512,16 +2697,19 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     return null;
   }
   function saveWeigh() {
-    var date = $("wDate").value;
-    if (!validDate(date) || date > today()) date = today();
+    var date = state.logDate;
+    if (!inStrip(date)) date = today();
     var lb = parseFloat($("wLb").value);
     if (!isFinite(lb) || lb < 80 || lb > 700) { toast("Enter your weight in pounds."); return; }
     lb = round1(lb);
     var id = "w-" + date, prevW = state.docs.get(id), prevS = state.docs.get("settings");
     write(id, { kind: "weigh", date: date, lb: lb, ts: Date.now() }).then(function (ok) {
       if (!ok) return;
-      delete $("wLb").dataset.dirty;
+      var d = Object.assign({}, state.drafts[date] || {});
+      delete d.wlb;
+      setDraft(date, d);
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      if (state.logDate === date) renderWeighToday(true);
       var avg = followWeight(date, lb);
       buzz();
       snack("Saved " + lbStr(lb) + " lb" + (avg != null ? ". Points use " + lbStr(avg) + " lb" : ""), function () {
@@ -2781,20 +2969,23 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       var li = el("li");
       if (it.kind === "day") {
         var net = it.pts - it.spent;
-        var row = el("button", "hrow");
-        row.type = "button";
-        row.disabled = state.readOnly;
-        row.setAttribute("aria-label", "Open " + fmtDay(it.date));
+        // Days on the strip open on Today; older days are read-only here.
+        var open = inStrip(it.date);
+        var row = el(open ? "button" : "div", "hrow" + (open ? "" : " static"));
+        if (open) {
+          row.type = "button";
+          row.setAttribute("aria-label", "Open " + fmtDay(it.date));
+          row.addEventListener("click", function () {
+            showTab("today", { keepScroll: true });
+            selectDay(it.date);
+            scrollToLog();
+          });
+        }
         row.appendChild(el("span", "when", fmtDay(it.date)));
         row.appendChild(el("span", "what", describeDay(it)));
         var foodLine = describeFood(it);
         if (foodLine) row.appendChild(el("span", "what off", foodLine));
         row.appendChild(el("span", "amt " + (net < 0 ? "spend" : "earn"), signed(net)));
-        row.addEventListener("click", function () {
-          showTab("today", { keepScroll: true });
-          loadDay(it.date);
-          scrollToLog();
-        });
         li.appendChild(row);
       } else {
         var srow = el("div", "srow");
@@ -2894,7 +3085,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       saveSettings({ weight: res.weight, profile: res.profile }).then(function (ok) {
         if (!ok) return;
         closeSheet();
-        loadDay(today());
+        selectDay(today(), { scroll: "end" });
         toast("You're set. Log your first day.");
       });
     });
@@ -3119,7 +3310,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     setMeta({ lastBackup: isNaN(when) ? Date.now() : when });
     closeSheet();
     requestPersist();
-    loadDay(today());
+    if (!merge) { state.drafts = {}; saveDrafts(); }
+    selectDay(today(), { scroll: "end" });
     renderAll();
     var sm = summarize(docs);
     toast("Restored " + sm.days + " day" + (sm.days === 1 ? "" : "s") + " and " + sm.weighs + " weigh-in" + (sm.weighs === 1 ? "" : "s"));
@@ -3176,8 +3368,10 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       saveLocal();
       setMeta({ lastBackup: 0 });
       state.welcomed = false;
+      state.drafts = {};
+      saveDrafts();
       closeSheet();
-      loadDay(today());
+      selectDay(today(), { scroll: "end" });
       renderAll();
       showTab("today");
       toast("Erased");
@@ -3245,6 +3439,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     Array.prototype.forEach.call(document.querySelectorAll(".tabbtn"), function (b) {
       if (b.getAttribute("data-tab") === name) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
     });
+    if (name === "today") renderStrip("sel");
     if (name === "progress") renderProgress();
     if (name === "guide") renderGuide(opts && opts.topic);
     if (name === "settings") renderSettingsTab(true);
@@ -3252,7 +3447,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   }
   function renderAccess() {
     var ro = state.readOnly;
-    ["logDate", "liftMin", "steps", "cardioMin", "otherMin", "otherName", "saveDay", "addFood", "weight", "wDate", "wLb", "wSave", "favEdit",
+    ["liftMin", "steps", "cardioMin", "otherMin", "otherName", "addFood", "weight", "wLb", "wSave", "favPick",
       "pfSave", "goalNameIn", "goalPtsIn", "goalSave", "goalClear", "restoreBtn", "eraseBtn", "tYes", "tNo"]
       .forEach(function (id) { var e = $(id); if (e) e.disabled = ro; });
     radios("plan").concat(radios("lift"), radios("ckind"), radios("olevel"), radios("rate")).forEach(function (r) { r.disabled = ro; });
@@ -3262,8 +3457,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     renderBoard();
     renderNotes();
     renderWeighToday();
+    renderFavs();
+    refreshForm();
     updatePreview();
     renderTally();
+    renderDayLabels();
     if (state.tab === "progress") renderProgress();
     if (state.tab === "settings") renderSettingsTab(false);
     renderAccess();
@@ -3276,17 +3474,15 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     if (t === shownDay) { if (state.loaded) { renderNotes(); renderBoard(); } return; }
     var old = shownDay;
     shownDay = t;
-    $("logDate").max = t;
-    $("wDate").max = t;
-    if ($("wDate").value === old && !$("wLb").dataset.dirty) { $("wDate").value = t; $("wLb").value = ""; }
-    if (state.logDate === old && !formHasInput()) loadDay(t);
+    // Past midnight: move to the new day unless you're mid-typing (your changes stay with the old day either way).
+    if ((state.logDate === old && !isTypingField(document.activeElement)) || !inStrip(state.logDate)) selectDay(t, { scroll: "end" });
     renderAll();
   }
   function handleGo() {
     var go = "";
     try { go = new URLSearchParams(window.location.search).get("go") || ""; } catch (e) { go = ""; }
-    if (go === "weigh") setTimeout(function () { $("weigh").scrollIntoView({ block: "start" }); $("wLb").focus(); }, 80);
-    else if (go === "log") setTimeout(scrollToLog, 80);
+    if (go === "weigh") { selectDay(today(), { scroll: "end" }); setTimeout(function () { $("weigh").scrollIntoView({ block: "start" }); $("wLb").focus(); }, 80); }
+    else if (go === "log") { selectDay(today(), { scroll: "end" }); setTimeout(scrollToLog, 80); }
     else if (TABS.indexOf(go) >= 0) showTab(go);
   }
 
@@ -3330,7 +3526,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var kc = $("foodKcal" + (state.food.length - 1));
     if (kc) kc.focus();
   });
-  $("favEdit").addEventListener("click", function () { state.favEdit = !state.favEdit; renderFavs(); });
+  $("favEdit").addEventListener("click", openFavManager);
+  $("favPick").addEventListener("change", function () { var id = $("favPick").value; $("favPick").value = ""; if (id) addFavorite(id); });
   // Workout chips: tap the selected one again to clear it.
   radios("lift").forEach(function (r) {
     r.addEventListener("click", function () {
@@ -3343,22 +3540,18 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   });
   radios("ckind").concat(radios("olevel")).forEach(function (r) { r.addEventListener("change", updatePreview); });
   ["liftMin", "steps", "cardioMin", "otherMin", "otherName"].forEach(function (id) { $(id).addEventListener("input", updatePreview); });
-  $("logDate").addEventListener("change", function () { loadDay($("logDate").value); });
   $("saveDay").addEventListener("click", saveDay);
   $("deleteDay").addEventListener("click", deleteDay);
+  $("discardDay").addEventListener("click", discardDraft);
+  $("toToday").addEventListener("click", function () { selectDay(today(), { scroll: "end" }); });
+  $("week").addEventListener("scroll", stripFades, { passive: true });
   $("tYes").addEventListener("click", function () { setTally("y"); });
   $("tNo").addEventListener("click", function () { setTally("n"); });
   $("histMore").addEventListener("click", function () { state.histAll = !state.histAll; renderHistory(); });
   $("weeksMore").addEventListener("click", function () { state.weeksAll = !state.weeksAll; renderWeeks(); });
   $("toProgress").addEventListener("click", function () { showTab("progress"); });
 
-  $("wDate").addEventListener("change", function () {
-    var d = $("wDate").value;
-    if (!validDate(d) || d > today()) $("wDate").value = today();
-    delete $("wLb").dataset.dirty;
-    renderWeighToday();
-  });
-  $("wLb").addEventListener("input", function () { $("wLb").dataset.dirty = "1"; });
+  $("wLb").addEventListener("input", noteWeighDraft);
   $("wSave").addEventListener("click", saveWeigh);
 
   radios("crange").forEach(function (r) {
@@ -3413,6 +3606,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   window.addEventListener("focus", checkRollover);
   // Another tab or window changed the saved data: pick it up.
   window.addEventListener("storage", function (e) {
+    if (e.key === DRAFT_KEY) { state.drafts = loadDrafts(); renderStrip("none"); return; }
     if (e.key !== LS_KEY || state.mode !== "local") return;
     loadLocal();
     normCache = new WeakMap();
@@ -3428,10 +3622,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   setInterval(checkRollover, 60 * 1000);
 
   // ---------- Start ----------
-  $("logDate").max = today();
-  $("wDate").max = today();
-  $("wDate").value = today();
-  loadDay(today());
+  state.drafts = loadDrafts();
+  selectDay(today(), { scroll: "end" });
   renderAll();
 
   function afterLoad() {
@@ -3444,7 +3636,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     state.storageOK = storageWorks();
     loadLocal();
     state.loaded = true;
-    loadDay(state.logDate);
+    selectDay(state.logDate, { scroll: "end" });
     renderAll();
     $("sync").textContent = msg || "";
     initServiceWorker();
