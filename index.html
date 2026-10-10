@@ -394,11 +394,12 @@ h2 {
 .day.has { background: var(--board-cell); }
 .day.today { border-color: var(--accent); box-shadow: 0 0 10px var(--glow-cyan); }
 .day.sel { box-shadow: inset 0 0 0 2px var(--accent), 0 0 10px var(--glow-cyan); }
+.chain rect, .chain path { fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; }
+.chain.n { color: #7fd6ff; filter: drop-shadow(0 0 2px rgba(127, 214, 255, 0.9)); }
+.chain.spent { color: #5cf2a1; filter: drop-shadow(0 0 2px rgba(92, 242, 161, 0.85)); }
+.chain.hit { color: #ff5c7a; filter: drop-shadow(0 0 2px rgba(255, 92, 122, 0.85)); }
+.chain.off { color: var(--muted); opacity: 0.3; filter: none; }
 .day .chain { position: absolute; top: -8px; left: -8px; width: 22px; height: 22px; overflow: visible; pointer-events: none; }
-.day .chain rect, .day .chain path { fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; }
-.day .chain.n { color: #7fd6ff; filter: drop-shadow(0 0 2px rgba(127, 214, 255, 0.9)); }
-.day .chain.spent { color: #5cf2a1; filter: drop-shadow(0 0 2px rgba(92, 242, 161, 0.85)); }
-.day .chain.hit { color: #ff5c7a; filter: drop-shadow(0 0 2px rgba(255, 92, 122, 0.85)); }
 .day .draftdot { position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--glow-cyan); }
 .viewing { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: -4px; font-size: 0.86rem; font-weight: 600; color: var(--board-dim); }
 .viewing .linkbtn { color: var(--accent); }
@@ -540,6 +541,8 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
   border-top: 1px dashed var(--line);
 }
 .tally-q { display: flex; align-items: center; gap: 6px; }
+.tmark { display: inline-grid; place-items: center; width: 30px; height: 30px; margin-right: 2px; }
+.tmark .chain { width: 26px; height: 26px; overflow: visible; }
 .tbtn {
   appearance: none;
   min-width: 54px;
@@ -606,6 +609,11 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .fitem.flash { box-shadow: 0 0 0 2px var(--accent), 0 0 18px var(--glow-cyan); transition: box-shadow 0.3s ease; }
 .fitem { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5); }
 .frow { display: grid; grid-template-columns: minmax(0, 1fr) 7.2em; gap: 8px; }
+.frow3 { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.qty { display: flex; align-items: center; height: 44px; border: 1px solid var(--line); border-radius: 10px; background: var(--field); overflow: hidden; }
+.qbtn { appearance: none; width: 40px; height: 100%; border: 0; background: rgba(21, 32, 105, 0.45); color: var(--accent); font: 400 1.5rem/1 var(--display); cursor: pointer; }
+.qbtn:disabled { color: var(--dim); cursor: default; }
+.qv { min-width: 2.2ch; padding: 0 6px; text-align: center; font: 400 1.5rem/1 var(--display); color: var(--ink); }
 .frow2 { display: flex; align-items: center; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; }
 .fright { display: flex; align-items: baseline; gap: 12px; margin-left: auto; }
 .fcost { font-family: var(--display); font-weight: 400; font-size: 1.6rem; color: var(--spend); }
@@ -990,6 +998,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 
     <div class="tally" role="group" aria-label="Daily yes or no">
       <div class="tally-q">
+        <span class="tmark" id="tMark" aria-hidden="true"></span>
         <button type="button" class="tbtn" id="tYes" aria-pressed="false">Yes</button>
         <button type="button" class="tbtn" id="tNo" aria-pressed="false">No</button>
         <span class="tdate" id="tDate" hidden></span>
@@ -1168,7 +1177,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.10.1","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.10.2","profile":null};</script>
 <script>
 (function () {
   "use strict";
@@ -1365,7 +1374,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   }
   // Saved entries keep the numbers they were saved with, so editing your plan later never rewrites history.
   function foodBase(f) { return isNum(f.base) ? f.base : mealKcal(f.meal); }
-  function foodEst(f) { return isNum(f.est) ? f.est : Math.round(f.posted === false ? (+f.kcal || 0) * NO_LABEL : (+f.kcal || 0)); }
+  function foodEst(f) { var kc = (+f.kcal || 0) * Math.max(1, Math.round(+f.qty || 1)); return isNum(f.est) ? f.est : Math.round(f.posted === false ? kc * NO_LABEL : kc); }
   function foodDelta(f) { return foodEst(f) - foodBase(f); }
   function foodCost(f) { return isNum(f.cost) ? f.cost : Math.max(0, foodDelta(f)); }
 
@@ -1428,7 +1437,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   }
   // A food line keeps the plan-meal value it was saved with unless its meal is changed.
   function formFoodBase(x) { return isNum(x.base) && x.bmeal === x.meal ? x.base : mealKcal(x.meal); }
-  function formFoodEst(x) { var kc = Math.round(num(x.kcal)); return Math.round(x.posted === false ? kc * NO_LABEL : kc); }
+  function formFoodEst(x) { var kc = Math.round(num(x.kcal)) * qtyOf(x); return Math.round(x.posted === false ? kc * NO_LABEL : kc); }
   function formFoodCost(x) { return Math.max(0, formFoodEst(x) - formFoodBase(x)); }
   // The day as it would be saved from form f, given the saved day prev (or none).
   function buildDay(prev, f, date, now) {
@@ -1461,7 +1470,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     if (f.plan === "no") (f.food || []).forEach(function (x) {
       var kc = Math.round(num(x.kcal));
       if (!kc) return;
-      var entry = { meal: MEAL_INFO[x.meal] ? x.meal : "extra", kcal: kc, posted: x.posted !== false, name: String(x.name || "").trim().slice(0, 40) };
+      var entry = { meal: MEAL_INFO[x.meal] ? x.meal : "extra", kcal: kc, qty: qtyOf(x), posted: x.posted !== false, name: String(x.name || "").trim().slice(0, 40) };
       entry.base = formFoodBase(x);
       entry.est = formFoodEst(x);
       entry.cost = Math.max(0, entry.est - entry.base);
@@ -2119,7 +2128,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   function addFavorite(id) {
     var fv = favorites().filter(function (x) { return x.id === id; })[0];
     if (!fv) return -1;
-    var entry = { meal: "", kcal: fv.kcal, posted: fv.posted !== false, name: fv.name };
+    var entry = { meal: "", kcal: fv.kcal, qty: 1, posted: fv.posted !== false, name: fv.name };
     var at = -1;
     state.food.forEach(function (x, i) { if (!num(x.kcal) && at < 0) at = i; });
     if (at >= 0) state.food[at] = entry; else { state.food.push(entry); at = state.food.length - 1; }
@@ -2225,7 +2234,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 
   // ---------- Off-plan food in the report ----------
   // New entries start with no meal picked, so you always choose which meal it replaced (or Extra).
-  function newFood() { return { meal: "", kcal: 0, posted: true, name: "" }; }
+  function newFood() { return { meal: "", kcal: 0, qty: 1, posted: true, name: "" }; }
+  var QTY_MAX = 99;
+  function qtyOf(x) { var q = Math.round(+x.qty || 1); return Math.max(1, Math.min(QTY_MAX, q)); }
   function renderFoodList() {
     var list = $("foodList");
     list.textContent = "";
@@ -2255,7 +2266,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       kc.min = "0";
       kc.step = "10";
       kc.placeholder = "Calories";
-      kc.setAttribute("aria-label", "Calories");
+      kc.setAttribute("aria-label", "Calories each");
       kc.value = f.kcal ? f.kcal : "";
       row.appendChild(sel);
       row.appendChild(kc);
@@ -2266,6 +2277,26 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       nm.placeholder = "What was it? (optional)";
       nm.setAttribute("aria-label", "What it was");
       nm.value = f.name || "";
+      // Quantity: how many of it. Calories are for one; favorites keep the one.
+      f.qty = qtyOf(f);
+      var nrow = el("div", "frow3");
+      var qbox = el("div", "qty");
+      qbox.setAttribute("role", "group");
+      qbox.setAttribute("aria-label", "Quantity");
+      var minus = button("qbtn", "−");
+      minus.setAttribute("aria-label", "One fewer");
+      var qv = el("output", "qv", String(f.qty));
+      qv.id = "foodQty" + i;
+      qv.setAttribute("aria-live", "polite");
+      var plus = button("qbtn", "+");
+      plus.setAttribute("aria-label", "One more");
+      minus.disabled = f.qty <= 1;
+      plus.disabled = f.qty >= QTY_MAX;
+      qbox.appendChild(minus);
+      qbox.appendChild(qv);
+      qbox.appendChild(plus);
+      nrow.appendChild(nm);
+      nrow.appendChild(qbox);
       var row2 = el("div", "frow2");
       var chk = el("label", "check");
       var cb = el("input");
@@ -2285,7 +2316,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       row2.appendChild(right);
       var how = el("div", "fhow");
       li.appendChild(row);
-      li.appendChild(nm);
+      li.appendChild(nrow);
       li.appendChild(row2);
       li.appendChild(how);
       list.appendChild(li);
@@ -2295,6 +2326,16 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       kc.addEventListener("input", function () { f.kcal = num(kc.value); updatePreview(); });
       nm.addEventListener("input", function () { f.name = nm.value; updatePreview(); });
       cb.addEventListener("change", function () { f.posted = cb.checked; updatePreview(); });
+      function setQty(q) {
+        f.qty = Math.max(1, Math.min(QTY_MAX, q));
+        qv.textContent = String(f.qty);
+        minus.disabled = state.readOnly || f.qty <= 1;
+        plus.disabled = state.readOnly || f.qty >= QTY_MAX;
+        buzz();
+        updatePreview();
+      }
+      minus.addEventListener("click", function () { setQty(f.qty - 1); });
+      plus.addEventListener("click", function () { setQty(f.qty + 1); });
       fav.addEventListener("click", function () {
         if (!f.kcal || !f.name.trim() || isFavorite(f)) return;
         saveFavorite(f).then(function (ok) { if (ok) { toast("Saved " + f.name.trim() + " to favorites"); updatePreview(); } });
@@ -2328,7 +2369,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     if (!day) return f;
     f.plan = day.food.length ? "no" : "yes";
     f.food = day.food.map(function (x) {
-      return { meal: MEAL_INFO[x.meal] ? x.meal : "extra", kcal: +x.kcal || 0, posted: x.posted !== false, name: x.name || "", base: foodBase(x), bmeal: x.meal };
+      return { meal: MEAL_INFO[x.meal] ? x.meal : "extra", kcal: +x.kcal || 0, qty: qtyOf(x), posted: x.posted !== false, name: x.name || "", base: foodBase(x), bmeal: x.meal };
     });
     var w = collapse(day.workouts);
     if (w) { f.lift = day.workouts[0].type; f.liftMin = w.min; }
@@ -2343,7 +2384,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   function captureForm() {
     return {
       plan: picked("plan"),
-      food: state.food.map(function (x) { return { meal: x.meal, kcal: x.kcal || "", posted: x.posted !== false, name: x.name || "", base: x.base, bmeal: x.bmeal }; }),
+      food: state.food.map(function (x) { return { meal: x.meal, kcal: x.kcal || "", qty: qtyOf(x), posted: x.posted !== false, name: x.name || "", base: x.base, bmeal: x.bmeal }; }),
       lift: picked("lift"),
       liftMin: $("liftMin").value,
       steps: $("steps").value,
@@ -2374,7 +2415,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   function canonForm(f) {
     var lm = Math.round(num(f.liftMin)), cm = Math.round(num(f.cardioMin)), om = Math.round(num(f.otherMin));
     var food = f.plan === "no" ? (f.food || []).filter(function (x) { return num(x.kcal) > 0; }).map(function (x) {
-      return [x.meal, Math.round(num(x.kcal)), x.posted !== false, String(x.name || "").trim()];
+      return [x.meal, Math.round(num(x.kcal)), qtyOf(x), x.posted !== false, String(x.name || "").trim()];
     }) : [];
     return JSON.stringify([f.plan || "", food, f.lift && lm ? f.lift : "", f.lift ? lm : 0, Math.round(num(f.steps)),
       cm, cm ? f.ckind : "", om, om ? f.olevel : "", om ? String(f.otherName || "").trim() : ""]);
@@ -2448,6 +2489,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   function renderTally() {
     var date = state.logDate, cur = state.docs.get("t-" + date), a = cur && cur.kind === "tally" ? cur.a : "";
     var ts = tallyState();
+    var mark = a ? ts.marks[date] : "";
+    $("tMark").innerHTML = chainSVG(mark || "n").replace('class="chain n"', mark ? 'class="chain n"' : 'class="chain n off"');
     $("tYes").setAttribute("aria-pressed", a === "y" ? "true" : "false");
     $("tNo").setAttribute("aria-pressed", a === "n" ? "true" : "false");
     $("tDate").hidden = date === today();
@@ -2493,8 +2536,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         // The cost depends on the meal it replaced, so it waits until one is picked.
         els.cost.textContent = kc && fd.meal ? (c ? "−" + fmt(c) : "0") : "";
         els.cost.classList.toggle("zero", !c);
-        els.how.textContent = kc && fd.meal && (fd.posted === false || base)
-          ? fmt(kc) + (fd.posted === false ? " + 25%" : "") + (base ? " − " + fmt(base) + " plan " + MEAL_INFO[fd.meal].short : "")
+        var q = qtyOf(fd);
+        els.how.textContent = kc && fd.meal && (q > 1 || fd.posted === false || base)
+          ? (q > 1 ? q + " × " + fmt(kc) : fmt(kc)) + (fd.posted === false ? " + 25%" : "") + (base ? " − " + fmt(base) + " plan " + MEAL_INFO[fd.meal].short : "")
           : "";
         var saved = kc && String(fd.name || "").trim() && isFavorite({ name: fd.name, kcal: Math.round(kc), meal: fd.meal, posted: fd.posted !== false });
         els.fav.textContent = saved ? "★ Favorite" : "Save favorite";
@@ -3122,7 +3166,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   function describeFood(d) {
     if (!d.food.length) return "";
     return "Off plan: " + d.food.map(function (f) {
-      return (f.name || (MEAL_INFO[f.meal] || MEAL_INFO.extra).short) + " " + fmt(f.kcal || 0) + " cal";
+      var q = Math.max(1, Math.round(+f.qty || 1));
+      return (q > 1 ? q + " × " : "") + (f.name || (MEAL_INFO[f.meal] || MEAL_INFO.extra).short) + " " + fmt((f.kcal || 0) * q) + " cal";
     }).join(", ") + " (−" + fmt(d.spent) + ")";
   }
   function renderHistory() {
@@ -3514,7 +3559,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       while (hi < hits.length && hits[hi] <= date) { bank -= TALLY_HIT; hi++; }
       if (logged) bank += earned - spent;
       var food = [], offCal = 0;
-      if (d) d.food.forEach(function (f) { food.push((f.name || (MEAL_INFO[f.meal] || MEAL_INFO.extra).label) + " " + (f.kcal || 0)); offCal += foodEst(f); });
+      if (d) d.food.forEach(function (f) {
+        var q = Math.max(1, Math.round(+f.qty || 1));
+        food.push((q > 1 ? q + " × " : "") + (f.name || (MEAL_INFO[f.meal] || MEAL_INFO.extra).label) + " " + (f.kcal || 0));
+        offCal += foodEst(f);
+      });
       e.spends.forEach(function (s) { food.push((MEAL_INFO[s.meal] || MEAL_INFO.extra).label + " " + (s.kcal || 0)); offCal += s.est || s.kcal || 0; });
       var row = [
         [date], [e.weigh ? e.weigh.lb : ""], [d ? (d.onPlan ? "Yes" : "No") : ""], [food.join("; "), true], [offCal || ""],
