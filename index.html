@@ -639,8 +639,23 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .sum .after { margin-bottom: 6px; color: var(--muted); font-size: 0.88rem; text-align: right; }
 
 /* ---------- Progress ---------- */
-.range { min-width: 210px; }
-.range span { min-height: 36px !important; font-size: 0.84rem !important; }
+/* Plain buttons (not a fieldset) so desktop browsers can't clip or stretch them. */
+.rangebar { display: inline-flex; flex: none; gap: 5px; margin-left: auto; }
+.rangebar button {
+  appearance: none;
+  height: 36px;
+  min-width: 0;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(7, 10, 44, 0.75);
+  color: var(--ink);
+  font: 600 0.84rem/1 var(--body);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.rangebar button[aria-checked="true"] { background: linear-gradient(180deg, #6f8bff 0%, #3b55e8 100%); border-color: #b4c3ff; box-shadow: 0 0 14px var(--glow); }
+.rangebar button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .chart-key { margin: -4px 0 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; color: var(--muted); font-size: 0.84rem; }
 .k-line { display: inline-block; width: 18px; height: 2px; border-radius: 2px; background: var(--earn); box-shadow: 0 0 6px var(--glow-cyan); }
 .k-dot { display: inline-block; width: 8px; height: 8px; margin-left: 10px; border-radius: 50%; background: rgba(185, 195, 255, 0.75); }
@@ -875,6 +890,27 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 .afoot .fhow:empty { display: block; }
 .ahow { display: flex; align-items: flex-start; gap: 2px; min-width: 0; }
 .ahow .qm-sm { flex: none; margin-top: 1px; }
+
+/* ---------- Activity rows: min / kcal tabs ---------- */
+.minorbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mtabs { display: grid; grid-template-columns: 1fr 1fr; height: 30px; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: var(--field); }
+.mtab { appearance: none; border: 0; background: none; color: var(--muted); font: 600 0.8rem/1 var(--body); letter-spacing: 0.03em; cursor: pointer; padding: 0; }
+.mtab + .mtab { border-left: 1px solid var(--line); }
+.mtab[aria-checked="true"] { background: linear-gradient(180deg, #6f8bff 0%, #3b55e8 100%); color: #ffffff; }
+.mtab:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.flabel.small { font-size: 0.86rem; color: var(--muted); font-weight: 500; }
+.aitem input[type="text"] { min-height: 40px; }
+.afoot .fright { margin-left: 0; justify-content: flex-end; }
+
+/* ---------- Activities page ---------- */
+.actman h4.actman-h { margin: 14px 0 6px; font: 600 0.78rem/1.2 var(--body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+.help ul.actlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.actcard { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.acthead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.actkcal { font-family: var(--display); font-size: 1.1rem; color: var(--earn); white-space: nowrap; }
+.actctl { display: grid; gap: 8px; }
+.actfoot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.actadd { display: grid; gap: 8px; margin-top: 6px; padding-top: 4px; }
 </style>
 <div class="statusfill" aria-hidden="true"></div>
 <main class="wrap" id="main">
@@ -950,10 +986,12 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         <button type="button" class="btn ghost" id="addFood">Add another</button>
       </div>
 
-      <p class="minor">Activity<button type="button" class="qm" data-help="workouts" aria-label="Help: workouts">?</button></p>
+      <div class="minorbar">
+        <p class="minor">Activity<button type="button" class="qm" data-help="workouts" aria-label="Help: workouts">?</button></p>
+        <button type="button" class="linkbtn" id="actEdit">Edit activities</button>
+      </div>
       <p class="hint" id="nextHint" hidden><span id="nextTxt"></span> <button type="button" class="linkbtn" id="nextAdd">Add it</button></p>
       <ul class="food-list act-list" id="actList"></ul>
-      <datalist id="actNames"></datalist>
       <button type="button" class="btn ghost" id="addAct">Add a workout</button>
       <div class="field">
         <span class="flab"><label for="steps">Steps today</label><button type="button" class="qm" data-help="steps" aria-label="Help: steps">?</button></span>
@@ -1014,14 +1052,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     <section class="block first" aria-labelledby="trendH">
       <div class="block-h">
         <h2 id="trendH">Weight<button type="button" class="qm" data-help="weigh" aria-label="Help: weigh-ins and the chart">?</button></h2>
-        <fieldset class="seg three mini range">
-          <legend class="sr">Chart range</legend>
-          <div class="opts">
-            <label><input type="radio" name="crange" value="30"><span>30 days</span></label>
-            <label><input type="radio" name="crange" value="90" checked><span>90 days</span></label>
-            <label><input type="radio" name="crange" value="all"><span>All</span></label>
-          </div>
-        </fieldset>
+        <div class="rangebar" role="radiogroup" aria-label="Chart range">
+          <button type="button" role="radio" data-range="30" aria-checked="false">30 days</button>
+          <button type="button" role="radio" data-range="90" aria-checked="true">90 days</button>
+          <button type="button" role="radio" data-range="all" aria-checked="false">All</button>
+        </div>
       </div>
       <p class="chart-key" id="chartKey" hidden><span class="k-line"></span>7-day average<span class="k-dot"></span>Daily weigh-in</p>
       <div class="chart" id="chart"></div>
@@ -1083,6 +1118,12 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         <input id="weight" type="number" inputmode="decimal" min="80" max="700" step="0.1" placeholder="0.0">
       </div>
       <p class="hint">Follows your 7-day weigh-in average.</p>
+    </section>
+
+    <section class="block" aria-labelledby="actH">
+      <h2 id="actH">Activities<button type="button" class="qm" data-help="workouts" aria-label="Help: workouts and activities">?</button></h2>
+      <p class="hint" id="actSummary"></p>
+      <div class="btns"><button type="button" class="btn ghost" id="actEdit2">Edit activities</button></div>
     </section>
 
     <section class="block" aria-labelledby="goalH">
@@ -1180,7 +1221,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.10.6","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.10.7","profile":null};</script>
 <script>
 (function () {
   "use strict";
@@ -1225,27 +1266,35 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     extra: { label: "Extra food or drinks", short: "extra" }
   };
   var MEAL_ORDER = ["breakfast", "lunch", "dinner", "extra"];
-  var LIFT_NAMES = { L: "Lower", U: "Upper", C: "Core" };
-  var ROTATION = ["L", "U", "C"];
   var EFFORTS = [
     { id: "light", name: "Light", feel: "Easy breathing.", ex: "Bowling, golf with a cart, an easy bike ride, light yard work." },
     { id: "moderate", name: "Moderate", feel: "You can talk but not sing.", ex: "Doubles tennis, pickleball, hiking, golf on foot, swimming, mowing." },
     { id: "hard", name: "Hard", feel: "Only a few words at a time.", ex: "Singles tennis, a basketball game, soccer, hiking uphill with a pack." }
   ];
-  // Workout types. Your plan's workouts use the app's estimates by minutes. Custom is anything else: minutes and
-  // effort, or the calories a machine's screen shows.
-  var ACT_TYPES = [
-    { id: "L", label: "Lower day", group: 0 }, { id: "U", label: "Upper day", group: 0 }, { id: "C", label: "Core day", group: 0 },
-    { id: "tread", label: "Treadmill", group: 1 }, { id: "ellip", label: "Elliptical", group: 1 },
-    { id: "rower", label: "Rower", group: 1 }, { id: "bike", label: "Bike", group: 1 },
-    { id: "custom", label: "Custom", group: 2 }
+  // Activities. The built-in ones carry the app's estimates; you can move any of them between My plan and Other
+  // activities, and add your own, priced by effort. Strength days in My plan rotate in list order.
+  var GROUPS = [
+    { id: "strength", label: "My plan: strength" },
+    { id: "cardio", label: "My plan: cardio" },
+    { id: "other", label: "Other activities" }
   ];
-  var ACT_INFO = {};
-  ACT_TYPES.forEach(function (t) { ACT_INFO[t.id] = t; });
+  var GROUP_IDS = { strength: 1, cardio: 1, other: 1 };
+  var BUILTIN_ACTS = [
+    { id: "L", name: "Lower day", group: "strength", rate: "L", steps: false },
+    { id: "U", name: "Upper day", group: "strength", rate: "U", steps: false },
+    { id: "C", name: "Core day", group: "strength", rate: "C", steps: false },
+    { id: "tread", name: "Treadmill", group: "cardio", rate: "tread", steps: true },
+    { id: "ellip", name: "Elliptical", group: "cardio", rate: "cardio", steps: false },
+    { id: "rower", name: "Rower", group: "cardio", rate: "cardio", steps: false },
+    { id: "bike", name: "Bike", group: "cardio", rate: "cardio", steps: false }
+  ];
+  var BUILTIN_IDS = {};
+  BUILTIN_ACTS.forEach(function (a) { BUILTIN_IDS[a.id] = a; });
+  var ACT_LIMIT = 100;        // activities you can add
   var SCREEN_SHARE = 0.4;     // points per screen calorie: half, less 20%, since screens count resting burn and read high
   var TABS = ["today", "redeem", "progress", "guide", "settings"];
   var LS_KEY = "cheat-points-v1", META_KEY = "cheat-points-meta", DRAFT_KEY = "cheat-points-drafts";
-  var ID_RE = /^(settings|favorites|day-\d{4}-\d{2}-\d{2}|w-\d{4}-\d{2}-\d{2}|t-\d{4}-\d{2}-\d{2}|spend-[A-Za-z0-9_-]{1,60})$/;
+  var ID_RE = /^(settings|favorites|activities|day-\d{4}-\d{2}-\d{2}|w-\d{4}-\d{2}-\d{2}|t-\d{4}-\d{2}-\d{2}|spend-[A-Za-z0-9_-]{1,60})$/;
 
   // ---------- Small helpers ----------
   function pad(n) { return (n < 10 ? "0" : "") + n; }
@@ -1315,6 +1364,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     actEls: [],
     armedAct: -1,
     nextLift: "",
+    shownActs: null,        // the activity list the rows were drawn with
     food: [],
     foodEls: [],
     armedSpend: null,
@@ -1375,6 +1425,21 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   function liftPts(b, k, type, min) { return Math.round(b[type] * Math.min(Math.max(+min || 0, 0), LIFT_MAX) / LIFT_STD * k); }
   function stepPts(b, k, total) { return Math.round(Math.max(0, (+total || 0) - STEP_BASE) / 1000 * b.s * k); }
   function cardioPts(b, k, min, tread) { return Math.round(Math.max(0, +min || 0) / 10 * (tread ? b.cs : b.c) * k); }
+  // Points for minutes of an activity at its rate. Steps your phone or watch counted already earn through your
+  // step total, so an activity that counts steps pays that much less (Treadmill's rate has it built in).
+  function ratePts(b, k, rate, min, steps) {
+    min = Math.max(0, +min || 0);
+    if (rate === "L" || rate === "U" || rate === "C") return liftPts(b, k, rate, min);
+    if (rate === "tread") return cardioPts(b, k, min, true);
+    var per10 = (rate === "cardio" ? b.c : b.o[rate] || b.o.moderate) - (steps ? b.s : 0);
+    return Math.max(0, Math.round(min / 10 * per10 * k));
+  }
+  // Net calories a minute that an estimate stands for (points are half of them).
+  function rateKcalMin(b, rate, steps) {
+    if (rate === "L" || rate === "U" || rate === "C") return b[rate] * 2 / LIFT_STD;
+    if (rate === "tread") return b.cs * 2 / 10;
+    return Math.max(0, (rate === "cardio" ? b.c : b.o[rate] || b.o.moderate) - (steps ? b.s : 0)) * 2 / 10;
+  }
   function screenPts(b, k, kcal, stepMin) { return Math.max(0, Math.round(((+kcal || 0) * SCREEN_SHARE - Math.max(0, +stepMin || 0) / 10 * b.s) * k)); }
   function otherPts(b, k, min, level) { return Math.round(Math.max(0, +min || 0) / 10 * (b.o[level] || b.o.moderate) * k); }
   function kg(lb) { return lb * 0.45359237; }
@@ -1404,19 +1469,35 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   function deadline(date) { var d = parseISO(date); return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 12, 0, 0).getTime(); }
   function finalizeDay(day) {
     day.food = day.food || [];
-    day.workouts = day.workouts || [];
-    day.cardio = day.cardio || [];
-    day.other = day.other || [];
+    if (!Array.isArray(day.acts)) day.acts = legacyActs(day);
     day.onPlan = day.food.length === 0;
-    day.activityPts = sum(day.workouts, function (x) { return x.pts || 0; }) + (day.steps ? day.steps.pts || 0 : 0) +
-      sum(day.cardio, function (x) { return x.pts || 0; }) + sum(day.other, function (x) { return x.pts || 0; });
+    day.activityPts = sum(day.acts, function (x) { return x.pts || 0; }) + (day.steps ? day.steps.pts || 0 : 0);
     day.bonus = day.onPlan && !day.late ? Math.round(ON_PLAN_BONUS * rateK(day.tight)) : 0;
     day.spent = sum(day.food, foodCost);
     day.pts = day.activityPts + day.bonus;
     return day;
   }
   function blankDay(date, basis, late) {
-    return { kind: "day", v: 2, date: date, weight: basis.weight, tight: basis.tight, late: late, food: [], workouts: [], steps: null, cardio: [], other: [], ts: 0 };
+    return { kind: "day", v: 2, date: date, weight: basis.weight, tight: basis.tight, late: late, food: [], acts: [], steps: null, ts: 0 };
+  }
+  // Days saved before the activity list kept workouts, cardio and other activity in separate lists.
+  // Each entry keeps the name, rate and points it was saved with.
+  function legacyActs(src) {
+    var out = [];
+    (src.workouts || []).forEach(function (w) {
+      if (!BUILTIN_IDS[w.type]) return;
+      out.push({ act: w.type, name: BUILTIN_IDS[w.type].name, rate: w.type, steps: false, mode: "min", min: +w.min || 0, kcal: 0, late: !!w.late, pts: w.pts || 0 });
+    });
+    (src.cardio || []).forEach(function (c) {
+      var id = c.kind && BUILTIN_IDS[c.kind] ? c.kind : c.tread ? "tread" : "ellip";
+      out.push({ act: id, name: BUILTIN_IDS[id].name, rate: BUILTIN_IDS[id].rate, steps: id === "tread", mode: "min", min: +c.min || 0, kcal: 0, late: !!c.late, pts: c.pts || 0 });
+    });
+    (src.other || []).forEach(function (o) {
+      var kc = o.mode === "kcal";
+      out.push({ act: "", name: String(o.name || "").trim() || "Other activity", rate: levelOf(o.level), steps: kc && !!o.steps, mode: kc ? "kcal" : "min",
+        min: kc ? (o.steps ? +o.min || 0 : 0) : +o.min || 0, kcal: kc ? +o.kcal || 0 : 0, late: !!o.late, pts: o.pts || 0 });
+    });
+    return out;
   }
   // Reads every saved shape (the first versions stored one value per field) as the current one.
   function migrateV1(d) {
@@ -1424,10 +1505,12 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var late = d.late === true;
     var day = blankDay(d.date, basis, late);
     var b = bandFor(basis.weight), k = rateK(basis.tight);
-    if (d.lift && d.liftMin) day.workouts.push({ type: d.lift, min: d.liftMin, late: late, pts: late ? 0 : liftPts(b, k, d.lift, d.liftMin) });
+    var old = { workouts: [], cardio: [], other: [] };
+    if (d.lift && d.liftMin) old.workouts.push({ type: d.lift, min: d.liftMin, late: late, pts: late ? 0 : liftPts(b, k, d.lift, d.liftMin) });
     if (d.steps) day.steps = { total: d.steps, late: late, pts: late ? 0 : stepPts(b, k, d.steps) };
-    if (d.cardioMin) day.cardio.push({ min: d.cardioMin, tread: !!d.cardioSteps, late: late, pts: late ? 0 : cardioPts(b, k, d.cardioMin, d.cardioSteps) });
-    if (d.otherMin) day.other.push({ min: d.otherMin, level: d.otherLevel || "moderate", name: d.otherName || "", late: late, pts: late ? 0 : otherPts(b, k, d.otherMin, d.otherLevel) });
+    if (d.cardioMin) old.cardio.push({ min: d.cardioMin, tread: !!d.cardioSteps, late: late, pts: late ? 0 : cardioPts(b, k, d.cardioMin, d.cardioSteps) });
+    if (d.otherMin) old.other.push({ min: d.otherMin, level: d.otherLevel || "moderate", name: d.otherName || "", late: late, pts: late ? 0 : otherPts(b, k, d.otherMin, d.otherLevel) });
+    day.acts = legacyActs(old);
     if (d.onPlan === false && Array.isArray(d.food)) day.food = d.food.map(function (f) { return Object.assign({}, f); });
     day.ts = d.ts || 0;
     return finalizeDay(day);
@@ -1463,18 +1546,13 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       var es = earnFor(prev && prev.steps, stepPts(b, k, st), lateNow, true);
       day.steps = { total: st, late: es.late, pts: es.pts };
     }
-    var acts = formActs(f), sc = scoreActs(prev, acts, b, k, lateNow);
-    sc.order.forEach(function (i) {
-      var a = acts[i], r = sc.res[i];
-      if (!r) return;
-      var m = Math.round(num(a.min));
-      if (ACT_INFO[a.t].group === 0) day.workouts.push({ type: a.t, min: m, late: r.late, pts: r.pts });
-      else if (ACT_INFO[a.t].group === 1) day.cardio.push({ kind: a.t, tread: a.t === "tread", min: m, late: r.late, pts: r.pts });
-      else {
-        var nm = String(a.name || "").trim().slice(0, 40);
-        if (a.mode === "kcal") day.other.push({ mode: "kcal", name: nm, kcal: Math.round(num(a.kcal)), steps: !!a.steps, min: a.steps ? m : 0, late: r.late, pts: r.pts });
-        else day.other.push({ min: m, level: levelOf(a.level), name: nm, late: r.late, pts: r.pts });
-      }
+    var rows = formActs(f), sc = scoreActs(prev, rows, b, k, lateNow);
+    rows.forEach(function (a, i) {
+      var r = sc[i], d = rowDef(a);
+      if (!r || !d) return;
+      var m = Math.round(num(a.min)), kc = a.mode === "kcal";
+      day.acts.push({ act: d.id, name: d.name, rate: d.rate, steps: d.steps, mode: kc ? "kcal" : "min",
+        min: !kc || d.steps ? m : 0, kcal: kc ? Math.round(num(a.kcal)) : 0, late: r.late, pts: r.pts });
     });
     if (f.plan === "no") (f.food || []).forEach(function (x) {
       var kc = Math.round(num(x.kcal));
@@ -1494,56 +1572,94 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var cm = Math.round(num(f.cardioMin));
     return f.ckind === "bike" ? { tread: 0, bike: cm } : { tread: cm, bike: 0 };
   }
-  // ---------- Workouts in the form ----------
-  function newAct(t) { return { t: t || "", min: "", mode: "min", level: "moderate", name: "", kcal: "", steps: false }; }
+  // ---------- Activities ----------
   function levelOf(l) { return EFFORTS.some(function (e) { return e.id === l; }) ? l : "moderate"; }
-  // A saved cardio entry's machine (entries from before the list only said treadmill or not).
-  function cardioKindOf(x) { return x.kind && ACT_INFO[x.kind] && ACT_INFO[x.kind].group === 1 ? x.kind : x.tread ? "tread" : "ellip"; }
-  // The form's workouts. Drafts from before the list had a box per kind.
-  function formActs(f) {
-    if (Array.isArray(f.acts)) return f.acts;
-    var acts = [], cc = cardioOf(f);
-    if (f.lift && num(f.liftMin)) acts.push(Object.assign(newAct(f.lift), { min: f.liftMin }));
-    if (cc.tread) acts.push(Object.assign(newAct("tread"), { min: cc.tread }));
-    if (cc.bike) acts.push(Object.assign(newAct("ellip"), { min: cc.bike }));
-    if (num(f.otherMin)) acts.push(Object.assign(newAct("custom"), { min: f.otherMin, level: levelOf(f.olevel), name: f.otherName || "" }));
-    return acts;
-  }
-  function actGroup(a) { return ACT_INFO[a.t] ? ACT_INFO[a.t].group : 3; }
-  // What a workout was logged with: minutes, or screen calories. 0 means it isn't filled in.
-  function actAmount(a) {
-    if (!ACT_INFO[a.t]) return 0;
-    return Math.round(num(a.t === "custom" && a.mode === "kcal" ? a.kcal : a.min));
-  }
-  function actPts(a, b, k) {
-    var m = Math.round(num(a.min)), g = actGroup(a);
-    if (g === 0) return liftPts(b, k, a.t, m);
-    if (g === 1) return cardioPts(b, k, m, a.t === "tread");
-    if (g === 2) return a.mode === "kcal" ? screenPts(b, k, num(a.kcal), a.steps ? m : 0) : otherPts(b, k, m, levelOf(a.level));
-    return 0;
-  }
-  // Points for each workout in acts, in saving order (strength, cardio, custom). Past the deadline, each type
-  // can earn up to what that type earned on time before, and a type that wasn't logged on time earns nothing.
-  function scoreActs(prev, acts, b, k, lateNow) {
-    var budget = {};
-    if (prev && lateNow) {
-      prev.workouts.forEach(function (x) { if (!x.late) budget[x.type] = (budget[x.type] || 0) + (x.pts || 0); });
-      prev.cardio.forEach(function (x) { if (!x.late) budget[cardioKindOf(x)] = (budget[cardioKindOf(x)] || 0) + (x.pts || 0); });
-      prev.other.forEach(function (x) { if (!x.late) budget.custom = (budget.custom || 0) + (x.pts || 0); });
-    }
-    var order = acts.map(function (a, i) { return i; }).sort(function (x, y) { return actGroup(acts[x]) - actGroup(acts[y]) || x - y; });
-    var res = acts.map(function () { return null; });
-    order.forEach(function (i) {
-      var a = acts[i];
-      if (!actAmount(a)) return;
-      var fresh = actPts(a, b, k), pts = fresh, late = false;
-      if (lateNow) {
-        if (budget[a.t] == null) { pts = 0; late = true; }
-        else { pts = Math.min(fresh, budget[a.t]); budget[a.t] -= pts; }
-      }
-      res[i] = { fresh: fresh, pts: pts, late: late };
+  function effortName(l) { return EFFORTS.filter(function (e) { return e.id === levelOf(l); })[0].name; }
+  var actCache = { doc: null, list: null };
+  // The list: built-ins (with your group and steps changes), then the ones you added, in the order added.
+  function activities() {
+    var doc = state.docs.get("activities");
+    if (actCache.list && actCache.doc === doc) return actCache.list;
+    var saved = doc && doc.kind === "activities" && Array.isArray(doc.items) ? doc.items : [];
+    var byId = {};
+    saved.forEach(function (x) { if (x && typeof x.id === "string") byId[x.id] = x; });
+    var list = BUILTIN_ACTS.map(function (a) {
+      var o = byId[a.id] || {};
+      return { id: a.id, name: a.name, group: GROUP_IDS[o.group] ? o.group : a.group, rate: a.rate, steps: typeof o.steps === "boolean" ? o.steps : a.steps, builtin: true };
     });
-    return { order: order, res: res };
+    saved.forEach(function (x) {
+      if (!x || typeof x.id !== "string" || BUILTIN_IDS[x.id]) return;
+      var name = String(x.name || "").trim().slice(0, 40);
+      if (name) list.push({ id: x.id, name: name, group: GROUP_IDS[x.group] ? x.group : "other", rate: levelOf(x.rate), steps: !!x.steps, builtin: false });
+    });
+    actCache = { doc: doc, list: list };
+    return list;
+  }
+  function actById(id) { return activities().filter(function (a) { return a.id === id; })[0] || null; }
+  function actByName(name) {
+    var key = String(name || "").trim().toLowerCase();
+    return activities().filter(function (a) { return a.name.toLowerCase() === key; })[0] || null;
+  }
+  function saveActivities(list) {
+    var items = list.map(function (a) {
+      return a.builtin ? { id: a.id, group: a.group, steps: !!a.steps } : { id: a.id, name: a.name, group: a.group, rate: levelOf(a.rate), steps: !!a.steps };
+    });
+    return write("activities", { kind: "activities", items: items, ts: Date.now() });
+  }
+  function newActId() { return "a" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+
+  // ---------- Workouts in the form ----------
+  // A row is { act, mode, min, kcal } for an activity on the list, logged by minutes or by screen calories.
+  // act "new" is a one-off you name and price by effort; Save activity adds it to the list. keepId holds the
+  // activity a saved one-off came from, if it was deleted from the list since.
+  function newRow(act) { return { act: act || "", mode: "min", min: "", kcal: "", name: "", rate: "moderate", steps: false, keepId: "" }; }
+  function rowDef(a) {
+    if (a.act === "new") return { id: a.keepId || "", name: String(a.name || "").trim().slice(0, 40) || "Other activity", rate: levelOf(a.rate), steps: !!a.steps, group: "other" };
+    var x = a.act ? actById(a.act) : null;
+    return x ? { id: x.id, name: x.name, rate: x.rate, steps: x.steps, group: x.group } : null;
+  }
+  // The form's rows. Drafts from older versions had a box per kind, or rows with a type (t).
+  function formActs(f) {
+    if (Array.isArray(f.acts)) return f.acts.map(upRow);
+    var rows = [], cc = cardioOf(f);
+    if (f.lift && num(f.liftMin)) rows.push(Object.assign(newRow(f.lift), { min: f.liftMin }));
+    if (cc.tread) rows.push(Object.assign(newRow("tread"), { min: cc.tread }));
+    if (cc.bike) rows.push(Object.assign(newRow("ellip"), { min: cc.bike }));
+    if (num(f.otherMin)) rows.push(Object.assign(newRow("new"), { min: f.otherMin, rate: levelOf(f.olevel), name: f.otherName || "" }));
+    return rows;
+  }
+  function upRow(a) {
+    if (!a || typeof a !== "object") return newRow();
+    if (a.act != null || a.t == null) return Object.assign(newRow(), a);
+    if (a.t === "custom") return Object.assign(newRow("new"), { mode: a.mode === "kcal" ? "kcal" : "min", min: a.min || "", kcal: a.kcal || "", name: a.name || "", rate: levelOf(a.level), steps: a.mode === "kcal" && !!a.steps });
+    return Object.assign(newRow(BUILTIN_IDS[a.t] ? a.t : ""), { min: a.min || "" });
+  }
+  // What a row was logged with: minutes, or screen calories. 0 means it isn't filled in.
+  function actAmount(a) { return rowDef(a) ? Math.round(num(a.mode === "kcal" ? a.kcal : a.min)) : 0; }
+  function actPts(a, b, k) {
+    var d = rowDef(a), m = Math.round(num(a.min));
+    if (!d) return 0;
+    return a.mode === "kcal" ? screenPts(b, k, num(a.kcal), d.steps ? m : 0) : ratePts(b, k, d.rate, m, d.steps);
+  }
+  function entryKey(id, name) { return id || "name:" + String(name || "").trim().toLowerCase(); }
+  // Points for each row. Past the deadline, each activity can earn up to what it earned on time before, and one
+  // that wasn't logged on time earns nothing.
+  function scoreActs(prev, rows, b, k, lateNow) {
+    var budget = {};
+    if (prev && lateNow) prev.acts.forEach(function (e) {
+      if (e.late) return;
+      var key = entryKey(e.act, e.name);
+      budget[key] = (budget[key] || 0) + (e.pts || 0);
+    });
+    return rows.map(function (a) {
+      if (!actAmount(a)) return null;
+      var d = rowDef(a), key = entryKey(d.id, d.name), fresh = actPts(a, b, k), pts = fresh, late = false;
+      if (lateNow) {
+        if (budget[key] == null) { pts = 0; late = true; }
+        else { pts = Math.min(fresh, budget[key]); budget[key] -= pts; }
+      }
+      return { fresh: fresh, pts: pts, late: late };
+    });
   }
   // Full points for form f with no deadline, to show what late changes would have earned.
   function freshPts(f, basis) {
@@ -1556,9 +1672,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   function stdActivity(day) {
     if (!day) return 0;
     var b = bandFor(day.weight);
-    return sum(day.workouts, function (x) { return liftPts(b, 1, x.type, x.min); }) + (day.steps ? stepPts(b, 1, day.steps.total) : 0) +
-      sum(day.cardio, function (x) { return cardioPts(b, 1, x.min, cardioKindOf(x) === "tread"); }) +
-      sum(day.other, function (x) { return x.mode === "kcal" ? screenPts(b, 1, x.kcal, x.steps ? x.min : 0) : otherPts(b, 1, x.min, x.level); });
+    return (day.steps ? stepPts(b, 1, day.steps.total) : 0) + sum(day.acts, function (e) {
+      return e.mode === "kcal" ? screenPts(b, 1, e.kcal, e.steps ? e.min : 0) : ratePts(b, 1, e.rate, e.min, e.steps);
+    });
   }
   function ledger(days, spends) {
     return sum(days, function (d) { return (d.pts || 0) - (d.spent || 0); }) - sum(spends, function (s) { return s.cost || 0; });
@@ -1910,22 +2026,23 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         "Drinking night: eat dinner first. The late-night food costs more than the drinks."
       ]);
     } },
-    workouts: { title: "Workouts", html: function (c) {
+    workouts: { title: "Workouts and activities", html: function (c) {
       var rows = BANDS.map(function (b) { return [bandLabel(b, c), fmt(b.L * c.k), fmt(b.U * c.k), fmt(b.C * c.k)]; });
       return ul([
-          "Tap <b>Add a workout</b> for each thing you did, pick its type, and enter the minutes. Did Core and Upper, or a StairMaster and the rower? Add one for each.",
-          "<b>Your plan</b> (Lower, Upper, Core, Treadmill, Elliptical, Rower, Bike) earns the app's estimates by minutes, not the machine's screen.",
-          "<b>Custom</b> is anything else. Log it by minutes and effort, or by the calories the machine's screen shows. See Custom workouts.",
-          "Above the list, <b>Next in your rotation</b> shows which strength day is next. <b>Add it</b> adds that day."
+          "Tap <b>Add a workout</b> for each thing you did and pick it from the list. Did Core and Upper, or a StairMaster and the rower? Add one for each.",
+          "Under the amount, <b>min</b> and <b>kcal</b> switch between minutes and the calories a machine's screen or your watch showed. Minutes use the app's estimate. Calories earn " + Math.round(SCREEN_SHARE * 100) + "% of the number: half, less 20%, because screens count what you'd burn at rest and usually read high.",
+          "The list has three parts: <b>My plan: strength</b>, <b>My plan: cardio</b> and <b>Other activities</b>. <b>Edit activities</b> shows every activity with its estimated calories a minute. Move any of them between parts as your plan changes, or add your own.",
+          "<b>Something else…</b> logs a one-off. Name it, pick the effort, and tap <b>Save activity</b> to add it to Other activities.",
+          "Above the list, <b>Next in your rotation</b> shows the next strength day in My plan, in list order. <b>Add it</b> adds that day."
         ]) +
-        "<p>Strength days are priced for 45 minutes and scale with time, up to 60:</p>" +
+        "<p>Lower, Upper and Core days are priced for 45 minutes and scale with time, up to 60:</p>" +
         tableHTML(["lb", "Lower", "Upper", "Core"], rows, [1, 2, 3], BANDS.indexOf(c.b)) +
         (c.s.tight ? "<p class=\"fine\">Shown at the Tight rate.</p>" : "");
     } },
     steps: { title: "Steps", html: function (c) {
       return ul([
         "Enter your phone's total for the day. A new total replaces the old one, so update it whenever you like.",
-        "Only steps past 3,000 earn: <b>" + fmt(c.b.s * c.k) + "</b> per 1,000 at your weight. Your plan's daily-life allowance already covers a low-step day.",
+        "Only steps past 3,000 earn: <b>" + fmt(c.b.s * c.k) + "</b> per 1,000 at your weight. The daily-life allowance in your numbers already covers a low-step day.",
         "A 45-minute walk is about 5,000 steps, or about <b>" + fmt(5 * c.b.s * c.k) + "</b> points.",
         "Walked without your phone? Add about 1,100 steps for every 10 minutes."
       ]);
@@ -1935,18 +2052,17 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         "Moderate effort: you can talk but not sing.",
         "<b>Treadmill</b> pays " + fmt(c.b.cs * c.k) + " per 10 minutes. <b>Elliptical</b>, <b>Rower</b> and <b>Bike</b> pay " + fmt(c.b.c * c.k) + ". Treadmill pays less because its steps already count in your step total.",
         "Split a session? Add each machine as its own workout.",
-        "If your watch counts steps on the elliptical, log those minutes as Treadmill.",
-        "Any other machine, like a StairMaster: add it as Custom and use its screen calories."
+        "If your watch counts steps on the elliptical, turn on <b>Counts steps</b> for it in Edit activities.",
+        "Logging a machine that counts steps by <b>kcal</b> also asks for the minutes, so its steps aren't paid twice."
       ]);
     } },
-    other: { title: "Custom workouts", html: function (c) {
+    other: { title: "Other activities", html: function (c) {
       var rows = EFFORTS.map(function (e) { return ["<b>" + e.name + "</b>", e.feel + " " + e.ex, fmt(c.b.o[e.id] * c.k)]; });
-      return "<p>Anything that isn't on your plan. Name it (the app remembers names you've used) and log it one of two ways.</p>" +
-        "<p><b>Screen calories</b>, for a machine that shows them, like a StairMaster: it earns " + Math.round(SCREEN_SHARE * 100) + "% of the number, which is half less 20%, because screens count what you'd burn sitting still and usually read high. " +
-        "If your watch counted steps during it, check <b>Watch counted steps</b> and enter the minutes. That takes off " + fmt(c.b.s * c.k) + " per 10 minutes, what those steps already earned.</p>" +
-        "<p><b>Minutes</b>, for anything without a screen: tennis, a hike, a pickup game. Pick the effort you kept up for most of it, and count only the minutes you were moving.</p>" +
+      return "<p>Anything you add yourself, like a StairMaster, tennis or a hike. Each is priced by the effort you keep up for most of it. Count only the minutes you were moving.</p>" +
         tableHTML(["Effort", "How it feels", "Per 10 min"], rows, [2], -1) +
-        "<p>Steps you take during a minutes workout still count in your step total. Plain walking counts through steps only, so don't log it here.</p>";
+        "<p><b>Counts steps</b>: if your phone or watch counts steps during it, those steps already earn through your step total, so it pays " + fmt(c.b.s * c.k) + " less per 10 minutes, and logging it by kcal asks for the minutes too.</p>" +
+        "<p>By <b>kcal</b>, it earns " + Math.round(SCREEN_SHARE * 100) + "% of the screen's number, like everything else.</p>" +
+        "<p>Plain walking counts through steps only, so don't log it here.</p>";
     } },
     weigh: { title: "Weigh-ins and progress", html: function () {
       return ul([
@@ -2088,7 +2204,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     } },
     numbers: { title: "How the numbers were figured", html: function () {
       return "<p>Burns are net calories (above rest), using MET values from the Compendium of Physical Activities at the low end of each range: Lower day 4.0, Upper day 3.5, Core day 3.0 for 45 minutes; walking at about 3 mph 3.3 (about 46 calories per 1,000 steps at 295 lb); moderate cardio 5.0 (a moderate rower is 4.8, so it uses the same value); other activity 3.0 light, 4.5 moderate, 7.0 hard. Net burn = (MET − 1) × weight in kg × hours.</p>" +
-        "<p>Points are half of that, rounded to friendly numbers. Treadmill pays the cardio value minus what its steps already earn, about 1,070 steps per 10 minutes. Steps count past 3,000 because the daily-life allowance (1.2 × resting burn) already covers a low-step day. Screen calories from a custom workout earn " + Math.round(SCREEN_SHARE * 100) + "% of the number: half, less 20% for resting burn and screens that read high.</p>" +
+        "<p>Points are half of that, rounded to friendly numbers. Treadmill pays the cardio value minus what its steps already earn, about 1,070 steps per 10 minutes. Steps count past 3,000 because the daily-life allowance (1.2 × resting burn) already covers a low-step day. Calories logged by kcal earn " + Math.round(SCREEN_SHARE * 100) + "% of the number: half, less 20% for resting burn and screens that read high.</p>" +
         "<p>Resting burn uses the Mifflin-St Jeor equation. Warnings and predictions use 1.2 × resting burn plus about 2.3 calories per standard point (the middle of each range), minus your plan calories and any off-plan changes. 3,500 calories is about 1 lb of fat. Costs are recalculated each week as your weight drops and assume every point gets spent.</p>";
     } }
   };
@@ -2452,26 +2568,25 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   }
 
   // ---------- Workouts in the report ----------
-  // Like off-plan food: one row per workout. New rows start with no type picked.
-  function actHow(a, b, k) {
-    var g = actGroup(a);
-    if (g === 0) return fmt(b[a.t] * k) + " per 45 min, counted up to 60";
-    if (a.t === "tread") return fmt(b.cs * k) + " per 10 min. Its steps count in your step total.";
-    if (a.t === "bike") return fmt(b.c * k) + " per 10 min" + (settings().weight >= 280 ? ". Your plan skips the bike until about 280 lb." : "");
-    if (g === 1) return fmt(b.c * k) + " per 10 min";
-    if (g === 2 && a.mode === "kcal") return Math.round(SCREEN_SHARE * 100) + "% of the screen's calories" + (a.steps ? ", less " + fmt(b.s * k) + " per 10 min for steps already counted" : "");
-    if (g === 2) { var lv = levelOf(a.level); return EFFORTS.filter(function (e) { return e.id === lv; })[0].name + ": " + fmt(b.o[lv] * k) + " per 10 min"; }
-    return "";
+  // Like off-plan food: one row per workout. New rows start with no activity picked.
+  function rateText(b, k, rate, steps) {
+    if (rate === "L" || rate === "U" || rate === "C") return fmt(b[rate] * k) + " per 45 min, counted up to 60";
+    return fmt(ratePts(b, k, rate, 10, steps)) + " per 10 min" + (rate === "tread" || steps ? "; its steps count separately" : "");
   }
-  function customNames() {
-    var seen = {}, out = [];
-    allDays().slice().sort(function (x, y) { return x.date < y.date ? 1 : -1; }).forEach(function (d) {
-      d.other.forEach(function (o) {
-        var n = String(o.name || "").trim(), key = n.toLowerCase();
-        if (n && !seen[key] && out.length < 30) { seen[key] = 1; out.push(n); }
-      });
-    });
-    return out;
+  function kcalText(b, rate, steps) {
+    var v = rateKcalMin(b, rate, steps);
+    return "≈" + (v < 10 ? (Math.round(v * 10) / 10).toFixed(1).replace(/\.0$/, "") : String(Math.round(v))) + " cal/min" + (steps || rate === "tread" ? " + steps" : "");
+  }
+  function ptsLine(b, k, x) {
+    var lift = x.rate === "L" || x.rate === "U" || x.rate === "C";
+    var p = lift ? fmt(b[x.rate] * k) + " pts per 45 min, counted up to 60" : fmt(ratePts(b, k, x.rate, 10, x.steps)) + " pts per 10 min";
+    return (x.builtin ? "" : effortName(x.rate) + " effort · ") + p;
+  }
+  function actHow(a, b, k) {
+    var d = rowDef(a);
+    if (!d) return "";
+    if (a.mode === "kcal") return Math.round(SCREEN_SHARE * 100) + "% of the screen's calories" + (d.steps ? ", less " + fmt(b.s * k) + " per 10 min for its steps" : "");
+    return (a.act === "new" ? effortName(d.rate) + ": " : "") + rateText(b, k, d.rate, d.steps);
   }
   function numInput(id, ph, label, value, step) {
     var x = el("input");
@@ -2487,8 +2602,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   }
   function segRadios(cls, name, legend, opts, value, onPick) {
     var fs = el("fieldset", "seg mini " + cls);
-    var lg = el("legend", "sr", legend);
-    fs.appendChild(lg);
+    fs.appendChild(el("legend", "sr", legend));
     var wrap = el("div", "opts");
     opts.forEach(function (o) {
       var lab = el("label");
@@ -2512,54 +2626,79 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       if (x && !state.readOnly) { try { x.focus({ preventScroll: true }); } catch (e) { x.focus(); } }
     }, 0);
   }
-  function addAct(t) {
-    state.acts.push(newAct(t));
+  function addAct(act) {
+    state.acts.push(newRow(act));
     renderActList();
     updatePreview();
     var i = state.acts.length - 1, li = $("actList").children[i];
     if (li) li.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
-    if (t) focusAct(i);
+    if (act) focusAct(i);
+  }
+  // Save activity on a one-off row: add it to Other activities (or link the one with that name).
+  function saveRowActivity(a) {
+    var name = String(a.name || "").trim().slice(0, 40);
+    if (!name) { toast("Name it first."); return; }
+    var hit = actByName(name);
+    if (hit) {
+      a.act = hit.id;
+      renderActList();
+      updatePreview();
+      toast(hit.name + " is already on your list");
+      return;
+    }
+    var list = activities().slice();
+    if (list.length - BUILTIN_ACTS.length >= ACT_LIMIT) { toast("Your list is full. Delete one first."); return; }
+    var item = { id: newActId(), name: name, group: "other", rate: levelOf(a.rate), steps: !!a.steps, builtin: false };
+    list.push(item);
+    saveActivities(list).then(function (ok) {
+      if (!ok) return;
+      a.act = item.id;
+      renderActList();
+      updatePreview();
+      toast("Saved " + name + " to Other activities");
+    });
+  }
+  function actSelect(id, value, extra) {
+    var sel = el("select");
+    sel.id = id;
+    var ph = el("option", null, "Select an option");
+    ph.value = "";
+    ph.disabled = true;
+    sel.appendChild(ph);
+    var list = activities();
+    GROUPS.forEach(function (g) {
+      var og = document.createElement("optgroup");
+      og.label = g.label;
+      list.forEach(function (x) {
+        if (x.group !== g.id) return;
+        var o = el("option", null, x.name);
+        o.value = x.id;
+        og.appendChild(o);
+      });
+      if (g.id === "other" && extra) { var n = el("option", null, extra); n.value = "new"; og.appendChild(n); }
+      if (og.children.length) sel.appendChild(og);
+    });
+    if (value) sel.value = value; else ph.selected = true;
+    return sel;
   }
   function renderActList() {
     var list = $("actList");
     list.textContent = "";
     state.actEls = [];
-    var dl = $("actNames");
-    if (dl) {
-      dl.textContent = "";
-      customNames().forEach(function (n) { var o = el("option"); o.value = n; dl.appendChild(o); });
-    }
     state.acts.forEach(function (a, i) {
-      if (!ACT_INFO[a.t]) a.t = "";
+      if (a.act && a.act !== "new" && !actById(a.act)) a.act = "";
       if (a.mode !== "kcal") a.mode = "min";
-      a.level = levelOf(a.level);
+      a.rate = levelOf(a.rate);
+      var d = rowDef(a), kcalMode = a.mode === "kcal", isNew = a.act === "new";
       var li = el("li", "aitem");
       var row = el("div", "arow");
-      var sel = el("select");
-      sel.id = "actType" + i;
-      sel.setAttribute("aria-label", "Type of workout");
-      var ph = el("option", null, "Select an option");
-      ph.value = "";
-      ph.disabled = true;
-      sel.appendChild(ph);
-      [["Your plan: strength", 0], ["Your plan: cardio", 1], ["Anything else", 2]].forEach(function (g) {
-        var og = document.createElement("optgroup");
-        og.label = g[0];
-        ACT_TYPES.forEach(function (t) {
-          if (t.group !== g[1]) return;
-          var o = el("option", null, t.label);
-          o.value = t.id;
-          og.appendChild(o);
-        });
-        sel.appendChild(og);
-      });
-      if (a.t) sel.value = a.t; else ph.selected = true;
-      sel.classList.toggle("need", !a.t);
-      if (!a.t) sel.classList.add("wide");
+      var sel = actSelect("actType" + i, a.act, "Something else…");
+      sel.setAttribute("aria-label", "Activity");
+      sel.classList.toggle("need", !a.act);
+      if (!a.act) sel.classList.add("wide");
       row.appendChild(sel);
-      var kcalMode = a.t === "custom" && a.mode === "kcal";
       var amt = null;
-      if (a.t) {
+      if (a.act) {
         amt = kcalMode ? numInput("actAmt" + i, "Calories", "Calories on the screen", a.kcal, "10") : numInput("actAmt" + i, "Minutes", "Minutes", a.min, "5");
         row.appendChild(amt);
       }
@@ -2568,79 +2707,95 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       row.appendChild(pts);
       li.appendChild(row);
 
-      if (a.t === "custom") {
-        var nm = el("input");
-        nm.type = "text";
-        nm.id = "actName" + i;
-        nm.maxLength = 40;
-        nm.placeholder = "What was it? (StairMaster, tennis…)";
-        nm.setAttribute("aria-label", "What it was");
-        nm.setAttribute("list", "actNames");
-        nm.autocomplete = "off";
-        nm.value = a.name || "";
-        nm.addEventListener("input", function () { a.name = nm.value; updatePreview(); });
-        li.appendChild(nm);
-        li.appendChild(segRadios("two", "actMode" + i, "Log it by", [["min", "Minutes"], ["kcal", "Screen calories"]], a.mode, function (v) {
-          a.mode = v;
-          renderActList();
-          updatePreview();
-          focusAct(i);
-        }));
-        if (kcalMode) {
-          var srow = el("div", "arow");
-          var chk = el("label", "check");
-          var cb = el("input");
-          cb.type = "checkbox";
-          cb.id = "actSteps" + i;
-          cb.checked = !!a.steps;
-          chk.appendChild(cb);
-          chk.appendChild(el("span", null, "Watch counted steps"));
-          srow.appendChild(chk);
-          cb.addEventListener("change", function () {
-            a.steps = cb.checked;
+      if (a.act) {
+        // Under the amount: switch between minutes and the calories a screen or watch showed.
+        var row2 = el("div", "arow");
+        if (isNew) {
+          var nm = el("input");
+          nm.type = "text";
+          nm.id = "actName" + i;
+          nm.maxLength = 40;
+          nm.placeholder = "What was it?";
+          nm.setAttribute("aria-label", "What it was");
+          nm.autocomplete = "off";
+          nm.value = a.name || "";
+          nm.addEventListener("input", function () { a.name = nm.value; updatePreview(); });
+          row2.appendChild(nm);
+        } else row2.appendChild(el("span"));
+        var tabs = el("div", "mtabs");
+        tabs.setAttribute("role", "radiogroup");
+        tabs.setAttribute("aria-label", "Log it by");
+        [["min", "min"], ["kcal", "kcal"]].forEach(function (m) {
+          var t = button("mtab", m[1], function () {
+            if (a.mode === m[0]) return;
+            a.mode = m[0];
             renderActList();
             updatePreview();
-            if (a.steps) focusAct(i, "actMin");
+            focusAct(i);
           });
-          if (a.steps) {
-            var mi = numInput("actMin" + i, "Minutes", "Minutes", a.min, "5");
-            mi.addEventListener("input", function () { a.min = mi.value; updatePreview(); });
-            srow.appendChild(mi);
-            srow.appendChild(el("span", "unit", "min"));
-          }
-          li.appendChild(srow);
-        } else {
-          li.appendChild(segRadios("three", "actLvl" + i, "Effort", EFFORTS.map(function (e) { return [e.id, e.name]; }), a.level, function (v) {
-            a.level = v;
-            updatePreview();
-          }));
-        }
+          t.id = "actMode" + i + "-" + m[0];
+          t.setAttribute("role", "radio");
+          t.setAttribute("aria-checked", a.mode === m[0] ? "true" : "false");
+          t.setAttribute("aria-label", m[0] === "min" ? "Minutes" : "Calories");
+          tabs.appendChild(t);
+        });
+        row2.appendChild(tabs);
+        li.appendChild(row2);
+      }
+      if (isNew) {
+        li.appendChild(segRadios("three", "actLvl" + i, "Effort", EFFORTS.map(function (e) { return [e.id, e.name]; }), a.rate, function (v) {
+          a.rate = v;
+          updatePreview();
+        }));
+        var chk = el("label", "check");
+        var cb = el("input");
+        cb.type = "checkbox";
+        cb.id = "actSteps" + i;
+        cb.checked = !!a.steps;
+        chk.appendChild(cb);
+        chk.appendChild(el("span", null, "My phone or watch counts its steps"));
+        cb.addEventListener("change", function () { a.steps = cb.checked; renderActList(); updatePreview(); });
+        li.appendChild(chk);
+      }
+      if (a.act && kcalMode && d && d.steps) {
+        var srow = el("div", "arow");
+        srow.appendChild(el("span", "flabel small", "Minutes, for its steps"));
+        var mi = numInput("actMin" + i, "Minutes", "Minutes", a.min, "5");
+        mi.addEventListener("input", function () { a.min = mi.value; updatePreview(); });
+        srow.appendChild(mi);
+        srow.appendChild(el("span", "unit", "min"));
+        li.appendChild(srow);
       }
       var foot = el("div", "afoot");
       var left = el("div", "ahow");
       var how = el("span", "fhow");
       left.appendChild(how);
-      if (a.t) {
-        var topic = a.t === "custom" ? "other" : ACT_INFO[a.t].group === 1 ? "cardio" : "workouts";
+      if (a.act) {
+        var topic = isNew || (d && d.group === "other") ? "other" : d && d.group === "cardio" ? "cardio" : "workouts";
         var qm = button("qm qm-sm", "?");
         qm.setAttribute("data-help", topic);
         qm.setAttribute("aria-label", "Help: " + HELP[topic].title.toLowerCase());
         left.appendChild(qm);
       }
+      var right = el("div", "fright");
+      var save = null;
+      if (isNew) {
+        save = button("linkbtn", "Save activity", function () { saveRowActivity(a); });
+        right.appendChild(save);
+      }
       var rm = button("linkbtn" + (state.armedAct === i ? " armed" : ""), state.armedAct === i ? "Tap again" : "Remove");
+      right.appendChild(rm);
       foot.appendChild(left);
-      foot.appendChild(rm);
+      foot.appendChild(right);
       li.appendChild(foot);
       list.appendChild(li);
-      state.actEls.push({ pts: pts, how: how });
+      state.actEls.push({ pts: pts, how: how, save: save });
 
       sel.addEventListener("change", function () {
-        var was = a.t;
-        a.t = sel.value;
-        if (a.t === "custom" && was !== "custom") a.mode = "min";
+        a.act = sel.value;
         renderActList();
         updatePreview();
-        focusAct(i);
+        focusAct(i, a.act === "new" ? "actName" : "actAmt");
       });
       if (amt) amt.addEventListener("input", function () {
         if (kcalMode) a.kcal = amt.value; else a.min = amt.value;
@@ -2660,7 +2815,140 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         setTimeout(function () { if (state.armedAct === i) { state.armedAct = -1; renderActList(); updatePreview(); } }, 4000);
       });
     });
+    state.shownActs = activities();
     renderAccess();
+  }
+
+  // ---------- Activities page ----------
+  // Every activity with its estimated burn, and which part of the list it shows in.
+  function openActManager() {
+    var body = el("div", "help actman");
+    var armed = "";
+    function update(fn, msg) {
+      var before = activities().map(function (x) { return Object.assign({}, x); });
+      var list = before.map(function (x) { return Object.assign({}, x); });
+      if (fn(list) === false) return;
+      saveActivities(list).then(function (ok) {
+        if (!ok) return;
+        draw();
+        if (msg) snack(msg, function () { saveActivities(before).then(function () { draw(); }); });
+      });
+    }
+    function card(x, b, k) {
+      var li = el("li", "actcard");
+      var head = el("div", "acthead");
+      head.appendChild(el("b", null, x.name));
+      head.appendChild(el("span", "actkcal", kcalText(b, x.rate, x.steps)));
+      li.appendChild(head);
+      li.appendChild(el("div", "fhow", ptsLine(b, k, x)));
+      var ctl = el("div", "actctl");
+      var gs = el("select");
+      gs.setAttribute("aria-label", "Where " + x.name + " shows");
+      GROUPS.forEach(function (g) { var o = el("option", null, g.label); o.value = g.id; gs.appendChild(o); });
+      gs.value = x.group;
+      gs.addEventListener("change", function () {
+        var v = gs.value;
+        update(function (list) { list.forEach(function (y) { if (y.id === x.id) y.group = v; }); });
+      });
+      ctl.appendChild(gs);
+      if (!x.builtin) {
+        var es = el("select");
+        es.setAttribute("aria-label", "Effort for " + x.name);
+        EFFORTS.forEach(function (e) { var o = el("option", null, e.name + " effort"); o.value = e.id; es.appendChild(o); });
+        es.value = x.rate;
+        es.addEventListener("change", function () {
+          var v = es.value;
+          update(function (list) { list.forEach(function (y) { if (y.id === x.id) y.rate = v; }); });
+        });
+        ctl.appendChild(es);
+      }
+      li.appendChild(ctl);
+      var foot = el("div", "actfoot");
+      var chk = el("label", "check");
+      var cb = el("input");
+      cb.type = "checkbox";
+      cb.checked = !!x.steps;
+      cb.disabled = x.rate === "tread";
+      chk.appendChild(cb);
+      chk.appendChild(el("span", null, "Counts steps"));
+      cb.addEventListener("change", function () {
+        var v = cb.checked;
+        update(function (list) { list.forEach(function (y) { if (y.id === x.id) y.steps = v; }); });
+      });
+      foot.appendChild(chk);
+      if (!x.builtin) {
+        var del = button("linkbtn" + (armed === x.id ? " armed" : ""), armed === x.id ? "Tap again" : "Delete", function () {
+          if (armed !== x.id) { armed = x.id; draw(); setTimeout(function () { if (armed === x.id) { armed = ""; draw(); } }, 4000); return; }
+          armed = "";
+          update(function (list) { for (var i = list.length - 1; i >= 0; i--) if (list[i].id === x.id) list.splice(i, 1); }, "Deleted " + x.name);
+        });
+        foot.appendChild(del);
+      }
+      li.appendChild(foot);
+      return li;
+    }
+    function draw() {
+      if (!$("sheet").open || $("sheetBody").firstChild !== body) return;
+      var top = $("sheetBody").scrollTop;
+      body.textContent = "";
+      var s = settings(), b = bandFor(s.weight || 250), k = rateK(s.tight);
+      body.appendChild(el("p", "fine", "Calories are what each estimate counts at your weight, above what you'd burn at rest. Points are half. Strength days in My plan rotate in this order."));
+      var list = activities();
+      GROUPS.forEach(function (g) {
+        body.appendChild(el("h4", "actman-h", g.label));
+        var items = list.filter(function (x) { return x.group === g.id; });
+        if (!items.length) { body.appendChild(el("p", "fine", "Nothing here yet.")); return; }
+        var ul = el("ul", "actlist");
+        items.forEach(function (x) { ul.appendChild(card(x, b, k)); });
+        body.appendChild(ul);
+      });
+      // Add one
+      var add = el("div", "actadd");
+      add.appendChild(el("h4", "actman-h", "Add an activity"));
+      var nm = el("input");
+      nm.type = "text";
+      nm.id = "newActName";
+      nm.maxLength = 40;
+      nm.placeholder = "Name, like StairMaster";
+      nm.setAttribute("aria-label", "Activity name");
+      nm.autocomplete = "off";
+      add.appendChild(nm);
+      var ctl = el("div", "actctl");
+      var es = el("select");
+      es.id = "newActEffort";
+      es.setAttribute("aria-label", "Effort");
+      EFFORTS.forEach(function (e) { var o = el("option", null, e.name + " effort"); o.value = e.id; es.appendChild(o); });
+      es.value = "moderate";
+      var gs = el("select");
+      gs.id = "newActGroup";
+      gs.setAttribute("aria-label", "Where it shows");
+      GROUPS.forEach(function (g) { var o = el("option", null, g.label); o.value = g.id; gs.appendChild(o); });
+      gs.value = "other";
+      ctl.appendChild(es);
+      ctl.appendChild(gs);
+      add.appendChild(ctl);
+      var chk = el("label", "check");
+      var cb = el("input");
+      cb.type = "checkbox";
+      cb.id = "newActSteps";
+      chk.appendChild(cb);
+      chk.appendChild(el("span", null, "My phone or watch counts its steps"));
+      add.appendChild(chk);
+      add.appendChild(el("p", "fine", EFFORTS.map(function (e) { return e.name + " " + kcalText(b, e.id, false); }).join(" · ") + ". " + EFFORTS.map(function (e) { return e.name + ": " + e.feel.toLowerCase().replace(/\.$/, ""); }).join("; ") + "."));
+      add.appendChild(button("btn primary", "Add activity", function () {
+        var name = nm.value.trim().slice(0, 40);
+        if (!name) { toast("Name the activity."); return; }
+        if (actByName(name)) { toast(name + " is already on the list."); return; }
+        if (activities().length - BUILTIN_ACTS.length >= ACT_LIMIT) { toast("Your list is full. Delete one first."); return; }
+        var item = { id: newActId(), name: name, group: gs.value, rate: es.value, steps: cb.checked, builtin: false };
+        update(function (list) { list.push(item); });
+        toast("Added " + name);
+      }));
+      body.appendChild(add);
+      $("sheetBody").scrollTop = top;
+    }
+    openSheet("Activities", body, [button("btn ghost", "Done", closeSheet)]);
+    draw();
   }
 
   // ---------- The day's form ----------
@@ -2677,12 +2965,13 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       return { meal: MEAL_INFO[x.meal] ? x.meal : "extra", kcal: +x.kcal || 0, qty: qtyOf(x), posted: x.posted !== false, name: x.name || "", base: foodBase(x), bmeal: x.meal };
     });
     if (day.steps) f.steps = day.steps.total;
-    day.workouts.forEach(function (w) { if (ACT_INFO[w.type]) f.acts.push(Object.assign(newAct(w.type), { min: w.min })); });
-    day.cardio.forEach(function (c) { f.acts.push(Object.assign(newAct(cardioKindOf(c)), { min: c.min })); });
-    day.other.forEach(function (o) {
-      f.acts.push(o.mode === "kcal"
-        ? Object.assign(newAct("custom"), { mode: "kcal", kcal: o.kcal, steps: !!o.steps, min: o.steps && o.min ? o.min : "", name: o.name || "" })
-        : Object.assign(newAct("custom"), { min: o.min, level: levelOf(o.level), name: o.name || "" }));
+    day.acts.forEach(function (e) {
+      // An entry for an activity still on the list shows as that activity; anything else as a one-off.
+      var row = e.act && actById(e.act) ? newRow(e.act) : Object.assign(newRow("new"), { name: e.name || "", rate: levelOf(e.rate), steps: !!e.steps, keepId: e.act || "" });
+      row.mode = e.mode === "kcal" ? "kcal" : "min";
+      row.min = e.min || "";
+      row.kcal = e.kcal || "";
+      f.acts.push(row);
     });
     return f;
   }
@@ -2700,7 +2989,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     state.food = (f.food || []).map(function (x) { return clone(x); });
     state.armedFood = -1;
     renderFoodList();
-    state.acts = formActs(f).map(function (a) { return Object.assign(newAct(), a); });
+    state.acts = formActs(f);
     state.armedAct = -1;
     renderActList();
     $("steps").value = num(f.steps) ? f.steps : "";
@@ -2711,13 +3000,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var food = f.plan === "no" ? (f.food || []).filter(function (x) { return num(x.kcal) > 0; }).map(function (x) {
       return [x.meal, Math.round(num(x.kcal)), qtyOf(x), x.posted !== false, String(x.name || "").trim()];
     }) : [];
-    var acts = formActs(f), order = acts.map(function (a, i) { return i; }).filter(function (i) { return actAmount(acts[i]) > 0; })
-      .sort(function (x, y) { return actGroup(acts[x]) - actGroup(acts[y]) || x - y; });
-    var aw = order.map(function (i) {
-      var a = acts[i], m = Math.round(num(a.min));
-      if (a.t !== "custom") return [a.t, m];
-      var nm = String(a.name || "").trim();
-      return a.mode === "kcal" ? [a.t, "kcal", Math.round(num(a.kcal)), !!a.steps, a.steps ? m : 0, nm] : [a.t, "min", m, levelOf(a.level), nm];
+    var aw = formActs(f).filter(function (a) { return actAmount(a) > 0; }).map(function (a) {
+      var d = rowDef(a), kc = a.mode === "kcal", m = Math.round(num(a.min));
+      var w = [a.act === "new" ? "new:" + (a.keepId || "") : a.act, kc ? "kcal" : "min", kc ? Math.round(num(a.kcal)) : m, kc && d.steps ? m : 0];
+      if (a.act === "new") w.push(d.name, d.rate, d.steps);
+      return w;
     });
     return JSON.stringify([f.plan || "", food, Math.round(num(f.steps)), aw]);
   }
@@ -2777,15 +3064,19 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     $("viewing").hidden = !past;
     $("viewingTxt").textContent = "Showing " + fmtDay(date);
   }
+  // The strength day after the last one logged, in My plan: strength order.
   function suggestLift(date) {
-    var prior = null;
+    var ids = activities().filter(function (a) { return a.group === "strength"; }).map(function (a) { return a.id; });
+    if (!ids.length) return "";
+    var prior = null, last = "";
     allDays().forEach(function (d) {
-      if (d.date <= date && d.workouts.length && (!prior || d.date > prior.date)) prior = d;
+      if (d.date > date) return;
+      var s = d.acts.filter(function (e) { return ids.indexOf(e.act) >= 0; });
+      if (s.length && (!prior || d.date > prior.date)) { prior = d; last = s[s.length - 1].act; }
     });
-    if (!prior) return "L";
+    if (!prior) return ids[0];
     if (prior.date === date) return "";
-    var last = prior.workouts[prior.workouts.length - 1].type;
-    return ROTATION[(ROTATION.indexOf(last) + 1) % ROTATION.length];
+    return ids[(ids.indexOf(last) + 1) % ids.length];
   }
   function renderTally() {
     var date = state.logDate, cur = state.docs.get("t-" + date), a = cur && cur.kind === "tally" ? cur.a : "";
@@ -2819,11 +3110,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var basis = prev ? { weight: prev.weight, tight: prev.tight } : settings();
     var b = bandFor(basis.weight || 250), k = rateK(basis.tight);
     var lateNow = now > deadline(date);
-    var hasLift = state.acts.some(function (a) { return actGroup(a) === 0; });
+    var hasLift = state.acts.some(function (a) { var d = rowDef(a); return !!d && d.group === "strength"; });
     var next = hasLift ? "" : suggestLift(date);
     state.nextLift = next;
     $("nextHint").hidden = !next || state.readOnly;
-    $("nextTxt").textContent = next ? "Next in your rotation: " + ACT_INFO[next].label + "." : "";
+    $("nextTxt").textContent = next ? "Next in your rotation: " + actById(next).name + "." : "";
 
     var off = f.plan === "no";
     $("food").hidden = !off;
@@ -2854,10 +3145,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     setPts("stepPts", day.steps ? day.steps.pts : 0, fresh.steps);
     var sc = scoreActs(prev, f.acts, b, k, lateNow);
     state.acts.forEach(function (a, i) {
-      var els = state.actEls[i], r = sc.res[i];
+      var els = state.actEls[i], r = sc[i];
       if (!els) return;
       setPts(els.pts, r ? r.pts : 0, r ? r.fresh : 0);
       els.how.textContent = actHow(a, b, k);
+      if (els.save) els.save.disabled = state.readOnly || !String(a.name || "").trim();
     });
 
     var dirty = isDirty(date, f);
@@ -2922,10 +3214,10 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     }
     var gap = -1, gapMsg = "";
     state.acts.forEach(function (a, i) {
-      if (gap >= 0 || !a.t) return;
-      var label = a.t === "custom" ? (String(a.name || "").trim() || "Custom") : ACT_INFO[a.t].label;
-      if (!actAmount(a)) { gap = i; gapMsg = label + ": enter the " + (a.t === "custom" && a.mode === "kcal" ? "calories" : "minutes") + ", or remove it."; }
-      else if (a.t === "custom" && a.mode === "kcal" && a.steps && !num(a.min)) { gap = i; gapMsg = label + ": enter the minutes too, so the steps your watch counted aren't paid twice."; }
+      var d = rowDef(a);
+      if (gap >= 0 || !d) return;
+      if (!actAmount(a)) { gap = i; gapMsg = d.name + ": enter the " + (a.mode === "kcal" ? "calories" : "minutes") + ", or remove it."; }
+      else if (a.mode === "kcal" && d.steps && !num(a.min)) { gap = i; gapMsg = d.name + ": enter the minutes too, so its steps aren't paid twice."; }
     });
     if (gap >= 0) {
       var gl = $("actList").children[gap];
@@ -3321,7 +3613,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     box.onkeydown = null;
     box.removeAttribute("tabindex");
     var all = weighIns(), t = today(), range = chartRange();
-    setPicked("crange", range);
+    Array.prototype.forEach.call(document.querySelectorAll(".rangebar button"), function (b) {
+      b.setAttribute("aria-checked", b.getAttribute("data-range") === range ? "true" : "false");
+    });
     var start = range === "all" ? (all.length ? all[0].date : t) : addDays(t, -(+range - 1));
     var series = all.filter(function (w) { return w.date >= start && w.date <= t; }).map(function (w) {
       return { date: w.date, lb: w.lb, avg: avgWindow(all, w.date, 1) };
@@ -3469,10 +3763,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   }
   function describeDay(d) {
     var parts = [];
-    d.workouts.forEach(function (w) { parts.push(LIFT_NAMES[w.type] + " " + w.min + " min"); });
+    d.acts.forEach(function (e) { parts.push(e.name + " " + (e.mode === "kcal" ? fmt(e.kcal) + " cal" : e.min + " min")); });
     if (d.steps) parts.push(fmt(d.steps.total) + " steps");
-    d.cardio.forEach(function (c) { parts.push(ACT_INFO[cardioKindOf(c)].label.toLowerCase() + " " + c.min + " min"); });
-    d.other.forEach(function (o) { parts.push(o.mode === "kcal" ? (o.name || "custom") + " " + fmt(o.kcal) + " cal" : (o.name || o.level + " activity") + " " + o.min + " min"); });
     if (!parts.length) parts.push(d.onPlan ? "On plan" : "No activity");
     if (d.late) parts.push("logged late");
     return parts.join(" · ");
@@ -3679,6 +3971,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     $("rateTight").checked = s.tight;
     if (document.activeElement !== $("weight")) $("weight").value = s.weight ? round1(s.weight) : "";
     $("goalClear").hidden = !s.goal;
+    var al = activities();
+    $("actSummary").textContent = GROUPS.map(function (g) {
+      var names = al.filter(function (x) { return x.group === g.id; }).map(function (x) { return x.name; });
+      return g.label + ": " + (names.length ? names.join(", ") : "none");
+    }).join(". ") + ".";
     var local = state.mode === "local";
     $("restoreBtn").hidden = !local;
     $("eraseBlock").hidden = !local;
@@ -3776,7 +4073,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     Object.keys(obj.docs).forEach(function (id) {
       var d = obj.docs[id];
       if (!ID_RE.test(id) || !d || typeof d !== "object" || Array.isArray(d)) return;
-      var kind = id === "settings" ? "settings" : id === "favorites" ? "favorites" : id.indexOf("day-") === 0 ? "day" :
+      var kind = id === "settings" ? "settings" : id === "favorites" ? "favorites" : id === "activities" ? "activities" : id.indexOf("day-") === 0 ? "day" :
         id.indexOf("w-") === 0 ? "weigh" : id.indexOf("t-") === 0 ? "tally" : "spend";
       if (d.kind !== kind) return;
       if ((kind === "day" || kind === "weigh" || kind === "spend" || kind === "tally") && !validDate(d.date)) return;
@@ -3871,8 +4168,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     allDays().forEach(function (d) { slot(d.date).day = d; });
     allOf("spend").forEach(function (s) { slot(s.date).spends.push(s); });
     weighIns().forEach(function (w) { slot(w.date).weigh = w; });
-    var header = ["Date", "Weight (lb)", "Stuck to plan", "Off-plan food", "Off-plan calories", "Workout", "Steps", "Cardio",
-      "Custom workouts", "Activity points", "On-plan bonus", "Points spent", "Net", "Bank after", "Logged late"];
+    var header = ["Date", "Weight (lb)", "Stuck to plan", "Off-plan food", "Off-plan calories", "Activities", "Steps",
+      "Activity points", "On-plan bonus", "Points spent", "Net", "Bank after", "Logged late"];
     var lines = [header.map(function (h) { return csvCell(h); }).join(",")];
     var bank = 0, hits = tallyState().hits, hi = 0;
     Object.keys(byDate).sort().forEach(function (date) {
@@ -3891,10 +4188,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       e.spends.forEach(function (s) { food.push((MEAL_INFO[s.meal] || MEAL_INFO.extra).label + " " + (s.kcal || 0)); offCal += s.est || s.kcal || 0; });
       var row = [
         [date], [e.weigh ? e.weigh.lb : ""], [d ? (d.onPlan ? "Yes" : "No") : ""], [food.join("; "), true], [offCal || ""],
-        [d ? d.workouts.map(function (w) { return LIFT_NAMES[w.type] + " " + w.min + " min"; }).join("; ") : ""],
+        [d ? d.acts.map(function (e) { return e.name + " " + (e.mode === "kcal" ? e.kcal + " cal" + (e.min ? ", " + e.min + " min" : "") : e.min + " min"); }).join("; ") : "", true],
         [d && d.steps ? d.steps.total : ""],
-        [d ? d.cardio.map(function (c) { return ACT_INFO[cardioKindOf(c)].label + " " + c.min + " min"; }).join("; ") : ""],
-        [d ? d.other.map(function (o) { return o.mode === "kcal" ? (o.name || "Custom") + " " + o.kcal + " screen cal" + (o.steps ? ", " + o.min + " min" : "") : (o.name || "Other") + " " + o.min + " min (" + o.level + ")"; }).join("; ") : "", true],
         [d ? d.activityPts : ""], [d ? d.bonus : ""], [logged ? spent : ""], [logged ? earned - spent : ""], [logged ? bank : ""],
         [d ? (d.late ? "Yes" : "No") : ""]
       ];
@@ -4357,13 +4652,14 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   }
   function renderAccess() {
     var ro = state.readOnly;
-    ["steps", "addAct", "nextAdd", "addFood", "weight", "wLb", "wSave", "favPick",
+    ["steps", "addAct", "nextAdd", "actEdit", "actEdit2", "addFood", "weight", "wLb", "wSave", "favPick",
       "pfSave", "goalNameIn", "goalPtsIn", "goalSave", "goalClear", "restoreBtn", "eraseBtn", "tYes", "tNo"]
       .forEach(function (id) { var e = $(id); if (e) e.disabled = ro; });
     radios("plan").concat(radios("rate")).forEach(function (r) { r.disabled = ro; });
     Array.prototype.forEach.call(document.querySelectorAll("#foodList input, #foodList select, #foodList button, #actList input, #actList select, #actList button, #pfForm input"), function (c) { if (ro) c.disabled = true; });
   }
   function renderAll() {
+    if (state.shownActs !== activities()) renderActList();
     renderBoard();
     renderNotes();
     renderWeighToday();
@@ -4440,6 +4736,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   $("favPick").addEventListener("change", function () { var id = $("favPick").value; $("favPick").value = ""; if (id) addFavorite(id); });
   $("addAct").addEventListener("click", function () { addAct(""); });
   $("nextAdd").addEventListener("click", function () { if (state.nextLift) addAct(state.nextLift); });
+  $("actEdit").addEventListener("click", openActManager);
+  $("actEdit2").addEventListener("click", openActManager);
   $("steps").addEventListener("input", updatePreview);
   $("saveDay").addEventListener("click", saveDay);
   $("deleteDay").addEventListener("click", deleteDay);
@@ -4455,8 +4753,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   $("wLb").addEventListener("input", noteWeighDraft);
   $("wSave").addEventListener("click", saveWeigh);
 
-  radios("crange").forEach(function (r) {
-    r.addEventListener("change", function () { setMeta({ chartRange: r.value }); renderChart(); });
+  Array.prototype.forEach.call(document.querySelectorAll(".rangebar button"), function (b) {
+    b.addEventListener("click", function () { setMeta({ chartRange: b.getAttribute("data-range") }); renderChart(); });
   });
   var resizeTimer = null;
   window.addEventListener("resize", function () {
