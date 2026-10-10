@@ -1,4 +1,4 @@
-Cheat Points, version 2026.10.10.3
+Cheat Points, version 2026.10.10.6
 
 This folder is the whole app. Put every file here online together (same folder),
 then open the link on your phone and add it to your home screen.
@@ -13,4 +13,5 @@ Files
   favicon-32.png          browser tab icon
   splash-*.png            iPhone launch screens (one per screen size)
 
-Your logs are never stored in these files. They stay on your phone.
+Your logs are never stored in these files. They stay on your phone, and in your own
+private GitHub repository if you turn on Sync (Settings > Sync).

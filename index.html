@@ -467,6 +467,7 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .field label, .flabel { font-weight: 600; }
 .flab { display: flex; align-items: center; min-width: 0; }
 .pts { text-align: right; font-family: var(--display); font-weight: 400; font-size: 1.6rem; color: var(--earn); }
+.pts.late { font-size: 1.15rem; }
 .pts.zero { color: var(--dim); }
 
 .seg { border: 0; margin: 0; padding: 0; min-width: 0; }
@@ -611,7 +612,7 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .food-list select.need { border-color: #ff5c7a; color: #ff9aac; box-shadow: 0 0 10px rgba(255, 92, 122, 0.35); }
 .food-list select option { color: #ffffff; }
 .fitem.flash { box-shadow: 0 0 0 2px var(--accent), 0 0 18px var(--glow-cyan); transition: box-shadow 0.3s ease; }
-.fitem { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5); }
+.fitem, .aitem { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5); }
 .frow { display: grid; grid-template-columns: minmax(0, 1fr) 7.2em; gap: 8px; }
 .frow3 { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .qty { display: flex; align-items: center; height: 44px; border: 1px solid var(--line); border-radius: 10px; background: var(--field); overflow: hidden; }
@@ -858,6 +859,22 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   .snack, .meter-fill, .topic { transition: none; }
   dialog.sheet[open] { animation: none; }
 }
+
+/* ---------- Workout rows ---------- */
+.arow { display: grid; grid-template-columns: minmax(0, 1fr) 6.4em 3.4em; gap: 8px; align-items: center; }
+.arow input[type="number"] { width: 100%; }
+.arow .pts { font-size: 1.45rem; }
+.arow .pts.late { font-size: 1.05rem; }
+.aitem .seg.mini span { min-height: 38px; font-size: 0.9rem; }
+.aitem .check { min-width: 0; }
+.arow select.wide { grid-column: span 2; }
+.arow .check { grid-column: 1; }
+.arow .unit { color: var(--muted); font-size: 0.9rem; }
+.afoot { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: start; }
+.afoot .linkbtn { justify-self: end; }
+.afoot .fhow:empty { display: block; }
+.ahow { display: flex; align-items: flex-start; gap: 2px; min-width: 0; }
+.ahow .qm-sm { flex: none; margin-top: 1px; }
 </style>
 <div class="statusfill" aria-hidden="true"></div>
 <main class="wrap" id="main">
@@ -934,52 +951,14 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       </div>
 
       <p class="minor">Activity<button type="button" class="qm" data-help="workouts" aria-label="Help: workouts">?</button></p>
-      <fieldset class="seg three">
-        <legend class="sr">Workout (tap again to clear)</legend>
-        <div class="opts">
-          <label><input type="radio" name="lift" id="liftL" value="L"><span>Lower<small id="segL">150</small></span></label>
-          <label><input type="radio" name="lift" id="liftU" value="U"><span>Upper<small id="segU">125</small></span></label>
-          <label><input type="radio" name="lift" id="liftC" value="C"><span>Core<small id="segC">100</small></span></label>
-        </div>
-      </fieldset>
-      <p class="hint" id="nextHint"></p>
-      <div class="field" id="liftMinRow" hidden>
-        <label for="liftMin">Workout minutes</label>
-        <input id="liftMin" type="number" inputmode="numeric" min="0" max="180" step="5" placeholder="0">
-        <output class="pts zero" id="liftPts" for="liftMin">0</output>
-      </div>
+      <p class="hint" id="nextHint" hidden><span id="nextTxt"></span> <button type="button" class="linkbtn" id="nextAdd">Add it</button></p>
+      <ul class="food-list act-list" id="actList"></ul>
+      <datalist id="actNames"></datalist>
+      <button type="button" class="btn ghost" id="addAct">Add a workout</button>
       <div class="field">
         <span class="flab"><label for="steps">Steps today</label><button type="button" class="qm" data-help="steps" aria-label="Help: steps">?</button></span>
         <input id="steps" type="number" inputmode="numeric" min="0" step="100" placeholder="0">
         <output class="pts zero" id="stepPts" for="steps">0</output>
-      </div>
-      <div class="field">
-        <span class="flab"><label for="cardioMin">Cardio minutes</label><button type="button" class="qm" data-help="cardio" aria-label="Help: cardio">?</button></span>
-        <input id="cardioMin" type="number" inputmode="numeric" min="0" step="5" placeholder="0">
-        <output class="pts zero" id="cardioPts" for="cardioMin">0</output>
-      </div>
-      <fieldset class="seg two mini" id="cardioKind" hidden>
-        <legend class="sr">Cardio type</legend>
-        <div class="opts">
-          <label><input type="radio" name="ckind" id="ckTread" value="tread" checked><span>Treadmill</span></label>
-          <label><input type="radio" name="ckind" id="ckBike" value="bike"><span>Bike or elliptical</span></label>
-        </div>
-      </fieldset>
-      <div class="field">
-        <span class="flab"><label for="otherMin">Other activity minutes</label><button type="button" class="qm" data-help="other" aria-label="Help: other activity">?</button></span>
-        <input id="otherMin" type="number" inputmode="numeric" min="0" step="5" placeholder="0">
-        <output class="pts zero" id="otherPts" for="otherMin">0</output>
-      </div>
-      <div id="otherMore" hidden>
-        <fieldset class="seg three mini">
-          <legend class="sr">Effort</legend>
-          <div class="opts">
-            <label><input type="radio" name="olevel" id="olLight" value="light"><span>Light<small id="segOL">20 / 10 min</small></span></label>
-            <label><input type="radio" name="olevel" id="olMod" value="moderate" checked><span>Moderate<small id="segOM">40 / 10 min</small></span></label>
-            <label><input type="radio" name="olevel" id="olHard" value="hard"><span>Hard<small id="segOH">65 / 10 min</small></span></label>
-          </div>
-        </fieldset>
-        <input id="otherName" type="text" maxlength="40" placeholder="What was it? (optional)" aria-label="Activity name" style="margin-top: 8px">
       </div>
 
       <div class="sum">
@@ -1201,7 +1180,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.10.4","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.10.6","profile":null};</script>
 <script>
 (function () {
   "use strict";
@@ -1253,6 +1232,17 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     { id: "moderate", name: "Moderate", feel: "You can talk but not sing.", ex: "Doubles tennis, pickleball, hiking, golf on foot, swimming, mowing." },
     { id: "hard", name: "Hard", feel: "Only a few words at a time.", ex: "Singles tennis, a basketball game, soccer, hiking uphill with a pack." }
   ];
+  // Workout types. Your plan's workouts use the app's estimates by minutes. Custom is anything else: minutes and
+  // effort, or the calories a machine's screen shows.
+  var ACT_TYPES = [
+    { id: "L", label: "Lower day", group: 0 }, { id: "U", label: "Upper day", group: 0 }, { id: "C", label: "Core day", group: 0 },
+    { id: "tread", label: "Treadmill", group: 1 }, { id: "ellip", label: "Elliptical", group: 1 },
+    { id: "rower", label: "Rower", group: 1 }, { id: "bike", label: "Bike", group: 1 },
+    { id: "custom", label: "Custom", group: 2 }
+  ];
+  var ACT_INFO = {};
+  ACT_TYPES.forEach(function (t) { ACT_INFO[t.id] = t; });
+  var SCREEN_SHARE = 0.4;     // points per screen calorie: half, less 20%, since screens count resting burn and read high
   var TABS = ["today", "redeem", "progress", "guide", "settings"];
   var LS_KEY = "cheat-points-v1", META_KEY = "cheat-points-meta", DRAFT_KEY = "cheat-points-drafts";
   var ID_RE = /^(settings|favorites|day-\d{4}-\d{2}-\d{2}|w-\d{4}-\d{2}-\d{2}|t-\d{4}-\d{2}-\d{2}|spend-[A-Za-z0-9_-]{1,60})$/;
@@ -1321,7 +1311,10 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     weeksAll: false,
     logDate: today(),       // the day picked on the strip; the whole Today page shows it
     drafts: {},             // unsaved changes by date: { form, wlb }
-    liftSel: "",
+    acts: [],               // the form's workouts
+    actEls: [],
+    armedAct: -1,
+    nextLift: "",
     food: [],
     foodEls: [],
     armedSpend: null,
@@ -1382,6 +1375,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   function liftPts(b, k, type, min) { return Math.round(b[type] * Math.min(Math.max(+min || 0, 0), LIFT_MAX) / LIFT_STD * k); }
   function stepPts(b, k, total) { return Math.round(Math.max(0, (+total || 0) - STEP_BASE) / 1000 * b.s * k); }
   function cardioPts(b, k, min, tread) { return Math.round(Math.max(0, +min || 0) / 10 * (tread ? b.cs : b.c) * k); }
+  function screenPts(b, k, kcal, stepMin) { return Math.max(0, Math.round(((+kcal || 0) * SCREEN_SHARE - Math.max(0, +stepMin || 0) / 10 * b.s) * k)); }
   function otherPts(b, k, min, level) { return Math.round(Math.max(0, +min || 0) / 10 * (b.o[level] || b.o.moderate) * k); }
   function kg(lb) { return lb * 0.45359237; }
   function bmr(lb) {
@@ -1448,11 +1442,6 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     return out;
   }
   function getDay(date) { return normDay(state.docs.get("day-" + date)); }
-  // Older versions could hold several entries of one kind; the form reads them as one.
-  function collapse(list) {
-    if (!list || !list.length) return null;
-    return { min: sum(list, function (x) { return +x.min || 0; }), pts: sum(list, function (x) { return x.pts || 0; }), late: list.every(function (x) { return !!x.late; }) };
-  }
   // What an entry earns when saved: before the deadline, its full value; after it, nothing new.
   function earnFor(prev, fresh, lateNow, keepOnTime) {
     if (!lateNow) return { pts: fresh, late: false };
@@ -1469,28 +1458,24 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var lateNow = now > deadline(date);
     var day = blankDay(date, basis, prev ? !!prev.late : lateNow);
     var b = bandFor(day.weight || 250), k = rateK(day.tight);
-    var lm = Math.round(num(f.liftMin));
-    if (f.lift && lm) {
-      var ew = earnFor(prev && collapse(prev.workouts), liftPts(b, k, f.lift, lm), lateNow);
-      day.workouts.push({ type: f.lift, min: lm, late: ew.late, pts: ew.pts });
-    }
     var st = Math.round(num(f.steps));
     if (st) {
       var es = earnFor(prev && prev.steps, stepPts(b, k, st), lateNow, true);
       day.steps = { total: st, late: es.late, pts: es.pts };
     }
-    var cm = Math.round(num(f.cardioMin));
-    if (cm) {
-      var tread = f.ckind !== "bike";
-      var ec = earnFor(prev && collapse(prev.cardio), cardioPts(b, k, cm, tread), lateNow);
-      day.cardio.push({ min: cm, tread: tread, late: ec.late, pts: ec.pts });
-    }
-    var om = Math.round(num(f.otherMin));
-    if (om) {
-      var lv = EFFORTS.some(function (e) { return e.id === f.olevel; }) ? f.olevel : "moderate";
-      var eo = earnFor(prev && collapse(prev.other), otherPts(b, k, om, lv), lateNow);
-      day.other.push({ min: om, level: lv, name: String(f.otherName || "").trim().slice(0, 40), late: eo.late, pts: eo.pts });
-    }
+    var acts = formActs(f), sc = scoreActs(prev, acts, b, k, lateNow);
+    sc.order.forEach(function (i) {
+      var a = acts[i], r = sc.res[i];
+      if (!r) return;
+      var m = Math.round(num(a.min));
+      if (ACT_INFO[a.t].group === 0) day.workouts.push({ type: a.t, min: m, late: r.late, pts: r.pts });
+      else if (ACT_INFO[a.t].group === 1) day.cardio.push({ kind: a.t, tread: a.t === "tread", min: m, late: r.late, pts: r.pts });
+      else {
+        var nm = String(a.name || "").trim().slice(0, 40);
+        if (a.mode === "kcal") day.other.push({ mode: "kcal", name: nm, kcal: Math.round(num(a.kcal)), steps: !!a.steps, min: a.steps ? m : 0, late: r.late, pts: r.pts });
+        else day.other.push({ min: m, level: levelOf(a.level), name: nm, late: r.late, pts: r.pts });
+      }
+    });
     if (f.plan === "no") (f.food || []).forEach(function (x) {
       var kc = Math.round(num(x.kcal));
       if (!kc) return;
@@ -1503,22 +1488,77 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     day.ts = now;
     return finalizeDay(day);
   }
+  // Cardio minutes in form f by kind. Drafts from before the split had one box and a type.
+  function cardioOf(f) {
+    if (f.treadMin != null || f.bikeMin != null) return { tread: Math.round(num(f.treadMin)), bike: Math.round(num(f.bikeMin)) };
+    var cm = Math.round(num(f.cardioMin));
+    return f.ckind === "bike" ? { tread: 0, bike: cm } : { tread: cm, bike: 0 };
+  }
+  // ---------- Workouts in the form ----------
+  function newAct(t) { return { t: t || "", min: "", mode: "min", level: "moderate", name: "", kcal: "", steps: false }; }
+  function levelOf(l) { return EFFORTS.some(function (e) { return e.id === l; }) ? l : "moderate"; }
+  // A saved cardio entry's machine (entries from before the list only said treadmill or not).
+  function cardioKindOf(x) { return x.kind && ACT_INFO[x.kind] && ACT_INFO[x.kind].group === 1 ? x.kind : x.tread ? "tread" : "ellip"; }
+  // The form's workouts. Drafts from before the list had a box per kind.
+  function formActs(f) {
+    if (Array.isArray(f.acts)) return f.acts;
+    var acts = [], cc = cardioOf(f);
+    if (f.lift && num(f.liftMin)) acts.push(Object.assign(newAct(f.lift), { min: f.liftMin }));
+    if (cc.tread) acts.push(Object.assign(newAct("tread"), { min: cc.tread }));
+    if (cc.bike) acts.push(Object.assign(newAct("ellip"), { min: cc.bike }));
+    if (num(f.otherMin)) acts.push(Object.assign(newAct("custom"), { min: f.otherMin, level: levelOf(f.olevel), name: f.otherName || "" }));
+    return acts;
+  }
+  function actGroup(a) { return ACT_INFO[a.t] ? ACT_INFO[a.t].group : 3; }
+  // What a workout was logged with: minutes, or screen calories. 0 means it isn't filled in.
+  function actAmount(a) {
+    if (!ACT_INFO[a.t]) return 0;
+    return Math.round(num(a.t === "custom" && a.mode === "kcal" ? a.kcal : a.min));
+  }
+  function actPts(a, b, k) {
+    var m = Math.round(num(a.min)), g = actGroup(a);
+    if (g === 0) return liftPts(b, k, a.t, m);
+    if (g === 1) return cardioPts(b, k, m, a.t === "tread");
+    if (g === 2) return a.mode === "kcal" ? screenPts(b, k, num(a.kcal), a.steps ? m : 0) : otherPts(b, k, m, levelOf(a.level));
+    return 0;
+  }
+  // Points for each workout in acts, in saving order (strength, cardio, custom). Past the deadline, each type
+  // can earn up to what that type earned on time before, and a type that wasn't logged on time earns nothing.
+  function scoreActs(prev, acts, b, k, lateNow) {
+    var budget = {};
+    if (prev && lateNow) {
+      prev.workouts.forEach(function (x) { if (!x.late) budget[x.type] = (budget[x.type] || 0) + (x.pts || 0); });
+      prev.cardio.forEach(function (x) { if (!x.late) budget[cardioKindOf(x)] = (budget[cardioKindOf(x)] || 0) + (x.pts || 0); });
+      prev.other.forEach(function (x) { if (!x.late) budget.custom = (budget.custom || 0) + (x.pts || 0); });
+    }
+    var order = acts.map(function (a, i) { return i; }).sort(function (x, y) { return actGroup(acts[x]) - actGroup(acts[y]) || x - y; });
+    var res = acts.map(function () { return null; });
+    order.forEach(function (i) {
+      var a = acts[i];
+      if (!actAmount(a)) return;
+      var fresh = actPts(a, b, k), pts = fresh, late = false;
+      if (lateNow) {
+        if (budget[a.t] == null) { pts = 0; late = true; }
+        else { pts = Math.min(fresh, budget[a.t]); budget[a.t] -= pts; }
+      }
+      res[i] = { fresh: fresh, pts: pts, late: late };
+    });
+    return { order: order, res: res };
+  }
   // Full points for form f with no deadline, to show what late changes would have earned.
   function freshPts(f, basis) {
     var b = bandFor(basis.weight || 250), k = rateK(basis.tight);
-    return {
-      lift: f.lift ? liftPts(b, k, f.lift, num(f.liftMin)) : 0,
-      steps: stepPts(b, k, num(f.steps)),
-      cardio: cardioPts(b, k, num(f.cardioMin), f.ckind !== "bike"),
-      other: otherPts(b, k, num(f.otherMin), f.olevel)
-    };
+    var st = stepPts(b, k, num(f.steps));
+    var ac = sum(formActs(f), function (a) { return actAmount(a) ? actPts(a, b, k) : 0; });
+    return { steps: st, acts: ac, total: st + ac };
   }
   // Activity in standard points (no Tight, no late rule), for burn estimates.
   function stdActivity(day) {
     if (!day) return 0;
     var b = bandFor(day.weight);
     return sum(day.workouts, function (x) { return liftPts(b, 1, x.type, x.min); }) + (day.steps ? stepPts(b, 1, day.steps.total) : 0) +
-      sum(day.cardio, function (x) { return cardioPts(b, 1, x.min, x.tread); }) + sum(day.other, function (x) { return otherPts(b, 1, x.min, x.level); });
+      sum(day.cardio, function (x) { return cardioPts(b, 1, x.min, cardioKindOf(x) === "tread"); }) +
+      sum(day.other, function (x) { return x.mode === "kcal" ? screenPts(b, 1, x.kcal, x.steps ? x.min : 0) : otherPts(b, 1, x.min, x.level); });
   }
   function ledger(days, spends) {
     return sum(days, function (d) { return (d.pts || 0) - (d.spent || 0); }) - sum(spends, function (s) { return s.cost || 0; });
@@ -1872,9 +1912,14 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     } },
     workouts: { title: "Workouts", html: function (c) {
       var rows = BANDS.map(function (b) { return [bandLabel(b, c), fmt(b.L * c.k), fmt(b.U * c.k), fmt(b.C * c.k)]; });
-      return "<p>Values are for 45 minutes and scale with time, up to 60. The app suggests the next day in your Lower, Upper, Core rotation; tap a selected workout again to clear it.</p>" +
+      return ul([
+          "Tap <b>Add a workout</b> for each thing you did, pick its type, and enter the minutes. Did Core and Upper, or a StairMaster and the rower? Add one for each.",
+          "<b>Your plan</b> (Lower, Upper, Core, Treadmill, Elliptical, Rower, Bike) earns the app's estimates by minutes, not the machine's screen.",
+          "<b>Custom</b> is anything else. Log it by minutes and effort, or by the calories the machine's screen shows. See Custom workouts.",
+          "Above the list, <b>Next in your rotation</b> shows which strength day is next. <b>Add it</b> adds that day."
+        ]) +
+        "<p>Strength days are priced for 45 minutes and scale with time, up to 60:</p>" +
         tableHTML(["lb", "Lower", "Upper", "Core"], rows, [1, 2, 3], BANDS.indexOf(c.b)) +
-        "<p>Use these values, not a watch or gym-machine readout. Your plan already counts your workouts, and machines usually show gross burn.</p>" +
         (c.s.tight ? "<p class=\"fine\">Shown at the Tight rate.</p>" : "");
     } },
     steps: { title: "Steps", html: function (c) {
@@ -1888,15 +1933,20 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     cardio: { title: "Cardio", html: function (c) {
       return ul([
         "Moderate effort: you can talk but not sing.",
-        "<b>Treadmill</b> pays " + fmt(c.b.cs * c.k) + " per 10 minutes; <b>bike or elliptical</b> pays " + fmt(c.b.c * c.k) + ". Treadmill pays less because its steps already count in your step total.",
-        "If your watch counts steps on the elliptical, log it as Treadmill."
+        "<b>Treadmill</b> pays " + fmt(c.b.cs * c.k) + " per 10 minutes. <b>Elliptical</b>, <b>Rower</b> and <b>Bike</b> pay " + fmt(c.b.c * c.k) + ". Treadmill pays less because its steps already count in your step total.",
+        "Split a session? Add each machine as its own workout.",
+        "If your watch counts steps on the elliptical, log those minutes as Treadmill.",
+        "Any other machine, like a StairMaster: add it as Custom and use its screen calories."
       ]);
     } },
-    other: { title: "Other activity", html: function (c) {
+    other: { title: "Custom workouts", html: function (c) {
       var rows = EFFORTS.map(function (e) { return ["<b>" + e.name + "</b>", e.feel + " " + e.ex, fmt(c.b.o[e.id] * c.k)]; });
-      return "<p>Anything fun outside your routine: tennis, a hike, a pickup game. Pick the effort you kept up for most of it, and count only the minutes you were moving.</p>" +
+      return "<p>Anything that isn't on your plan. Name it (the app remembers names you've used) and log it one of two ways.</p>" +
+        "<p><b>Screen calories</b>, for a machine that shows them, like a StairMaster: it earns " + Math.round(SCREEN_SHARE * 100) + "% of the number, which is half less 20%, because screens count what you'd burn sitting still and usually read high. " +
+        "If your watch counted steps during it, check <b>Watch counted steps</b> and enter the minutes. That takes off " + fmt(c.b.s * c.k) + " per 10 minutes, what those steps already earned.</p>" +
+        "<p><b>Minutes</b>, for anything without a screen: tennis, a hike, a pickup game. Pick the effort you kept up for most of it, and count only the minutes you were moving.</p>" +
         tableHTML(["Effort", "How it feels", "Per 10 min"], rows, [2], -1) +
-        "<p>Steps you take during it still count in your step total. Plain walking counts through steps only, so don't log it here.</p>";
+        "<p>Steps you take during a minutes workout still count in your step total. Plain walking counts through steps only, so don't log it here.</p>";
     } },
     weigh: { title: "Weigh-ins and progress", html: function () {
       return ul([
@@ -1941,7 +1991,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       var rows = BANDS.map(function (b) { return [bandLabel(b, c), fmt(b.L * c.k), fmt(b.U * c.k), fmt(b.C * c.k), fmt(b.s * c.k), fmt(b.cs * c.k) + "/" + fmt(b.c * c.k)]; });
       return "<p>A lighter body burns less doing the same thing, so point values come in four weight bands. This follows your 7-day weigh-in average. You can set it by hand if you haven't weighed in lately.</p>" +
         tableHTML(["lb", "Lower", "Upper", "Core", "Steps", "Cardio"], rows, [1, 2, 3, 4, 5], BANDS.indexOf(c.b)) +
-        "<p class=\"fine\">Workouts per 45 minutes. Steps per 1,000 past 3,000. Cardio per 10 minutes, treadmill/bike or elliptical." + (c.s.tight ? " Shown at the Tight rate." : "") + "</p>";
+        "<p class=\"fine\">Workouts per 45 minutes. Steps per 1,000 past 3,000. Cardio per 10 minutes: treadmill / elliptical, rower or bike." + (c.s.tight ? " Shown at the Tight rate." : "") + "</p>";
     } },
     goal: { title: "Savings goal and streak", html: function () {
       return ul([
@@ -2037,8 +2087,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         ]);
     } },
     numbers: { title: "How the numbers were figured", html: function () {
-      return "<p>Burns are net calories (above rest), using MET values from the Compendium of Physical Activities at the low end of each range: Lower day 4.0, Upper day 3.5, Core day 3.0 for 45 minutes; walking at about 3 mph 3.3 (about 46 calories per 1,000 steps at 295 lb); moderate cardio 5.0; other activity 3.0 light, 4.5 moderate, 7.0 hard. Net burn = (MET − 1) × weight in kg × hours.</p>" +
-        "<p>Points are half of that, rounded to friendly numbers. Treadmill pays the cardio value minus what its steps already earn, about 1,070 steps per 10 minutes. Steps count past 3,000 because the daily-life allowance (1.2 × resting burn) already covers a low-step day.</p>" +
+      return "<p>Burns are net calories (above rest), using MET values from the Compendium of Physical Activities at the low end of each range: Lower day 4.0, Upper day 3.5, Core day 3.0 for 45 minutes; walking at about 3 mph 3.3 (about 46 calories per 1,000 steps at 295 lb); moderate cardio 5.0 (a moderate rower is 4.8, so it uses the same value); other activity 3.0 light, 4.5 moderate, 7.0 hard. Net burn = (MET − 1) × weight in kg × hours.</p>" +
+        "<p>Points are half of that, rounded to friendly numbers. Treadmill pays the cardio value minus what its steps already earn, about 1,070 steps per 10 minutes. Steps count past 3,000 because the daily-life allowance (1.2 × resting burn) already covers a low-step day. Screen calories from a custom workout earn " + Math.round(SCREEN_SHARE * 100) + "% of the number: half, less 20% for resting burn and screens that read high.</p>" +
         "<p>Resting burn uses the Mifflin-St Jeor equation. Warnings and predictions use 1.2 × resting burn plus about 2.3 calories per standard point (the middle of each range), minus your plan calories and any off-plan changes. 3,500 calories is about 1 lb of fat. Costs are recalculated each week as your weight drops and assume every point gets spent.</p>";
     } }
   };
@@ -2401,11 +2451,223 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     renderAccess();
   }
 
+  // ---------- Workouts in the report ----------
+  // Like off-plan food: one row per workout. New rows start with no type picked.
+  function actHow(a, b, k) {
+    var g = actGroup(a);
+    if (g === 0) return fmt(b[a.t] * k) + " per 45 min, counted up to 60";
+    if (a.t === "tread") return fmt(b.cs * k) + " per 10 min. Its steps count in your step total.";
+    if (a.t === "bike") return fmt(b.c * k) + " per 10 min" + (settings().weight >= 280 ? ". Your plan skips the bike until about 280 lb." : "");
+    if (g === 1) return fmt(b.c * k) + " per 10 min";
+    if (g === 2 && a.mode === "kcal") return Math.round(SCREEN_SHARE * 100) + "% of the screen's calories" + (a.steps ? ", less " + fmt(b.s * k) + " per 10 min for steps already counted" : "");
+    if (g === 2) { var lv = levelOf(a.level); return EFFORTS.filter(function (e) { return e.id === lv; })[0].name + ": " + fmt(b.o[lv] * k) + " per 10 min"; }
+    return "";
+  }
+  function customNames() {
+    var seen = {}, out = [];
+    allDays().slice().sort(function (x, y) { return x.date < y.date ? 1 : -1; }).forEach(function (d) {
+      d.other.forEach(function (o) {
+        var n = String(o.name || "").trim(), key = n.toLowerCase();
+        if (n && !seen[key] && out.length < 30) { seen[key] = 1; out.push(n); }
+      });
+    });
+    return out;
+  }
+  function numInput(id, ph, label, value, step) {
+    var x = el("input");
+    x.type = "number";
+    x.id = id;
+    x.inputMode = "numeric";
+    x.min = "0";
+    x.step = step || "5";
+    x.placeholder = ph;
+    x.setAttribute("aria-label", label);
+    x.value = num(value) ? Math.round(num(value)) : "";
+    return x;
+  }
+  function segRadios(cls, name, legend, opts, value, onPick) {
+    var fs = el("fieldset", "seg mini " + cls);
+    var lg = el("legend", "sr", legend);
+    fs.appendChild(lg);
+    var wrap = el("div", "opts");
+    opts.forEach(function (o) {
+      var lab = el("label");
+      var r = el("input");
+      r.type = "radio";
+      r.name = name;
+      r.value = o[0];
+      r.id = name + "-" + o[0];
+      r.checked = value === o[0];
+      r.addEventListener("change", function () { if (r.checked) onPick(o[0]); });
+      lab.appendChild(r);
+      lab.appendChild(el("span", null, o[1]));
+      wrap.appendChild(lab);
+    });
+    fs.appendChild(wrap);
+    return fs;
+  }
+  function focusAct(i, which) {
+    setTimeout(function () {
+      var x = $((which || "actAmt") + i);
+      if (x && !state.readOnly) { try { x.focus({ preventScroll: true }); } catch (e) { x.focus(); } }
+    }, 0);
+  }
+  function addAct(t) {
+    state.acts.push(newAct(t));
+    renderActList();
+    updatePreview();
+    var i = state.acts.length - 1, li = $("actList").children[i];
+    if (li) li.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
+    if (t) focusAct(i);
+  }
+  function renderActList() {
+    var list = $("actList");
+    list.textContent = "";
+    state.actEls = [];
+    var dl = $("actNames");
+    if (dl) {
+      dl.textContent = "";
+      customNames().forEach(function (n) { var o = el("option"); o.value = n; dl.appendChild(o); });
+    }
+    state.acts.forEach(function (a, i) {
+      if (!ACT_INFO[a.t]) a.t = "";
+      if (a.mode !== "kcal") a.mode = "min";
+      a.level = levelOf(a.level);
+      var li = el("li", "aitem");
+      var row = el("div", "arow");
+      var sel = el("select");
+      sel.id = "actType" + i;
+      sel.setAttribute("aria-label", "Type of workout");
+      var ph = el("option", null, "Select an option");
+      ph.value = "";
+      ph.disabled = true;
+      sel.appendChild(ph);
+      [["Your plan: strength", 0], ["Your plan: cardio", 1], ["Anything else", 2]].forEach(function (g) {
+        var og = document.createElement("optgroup");
+        og.label = g[0];
+        ACT_TYPES.forEach(function (t) {
+          if (t.group !== g[1]) return;
+          var o = el("option", null, t.label);
+          o.value = t.id;
+          og.appendChild(o);
+        });
+        sel.appendChild(og);
+      });
+      if (a.t) sel.value = a.t; else ph.selected = true;
+      sel.classList.toggle("need", !a.t);
+      if (!a.t) sel.classList.add("wide");
+      row.appendChild(sel);
+      var kcalMode = a.t === "custom" && a.mode === "kcal";
+      var amt = null;
+      if (a.t) {
+        amt = kcalMode ? numInput("actAmt" + i, "Calories", "Calories on the screen", a.kcal, "10") : numInput("actAmt" + i, "Minutes", "Minutes", a.min, "5");
+        row.appendChild(amt);
+      }
+      var pts = el("output", "pts zero", "0");
+      pts.id = "actPts" + i;
+      row.appendChild(pts);
+      li.appendChild(row);
+
+      if (a.t === "custom") {
+        var nm = el("input");
+        nm.type = "text";
+        nm.id = "actName" + i;
+        nm.maxLength = 40;
+        nm.placeholder = "What was it? (StairMaster, tennis…)";
+        nm.setAttribute("aria-label", "What it was");
+        nm.setAttribute("list", "actNames");
+        nm.autocomplete = "off";
+        nm.value = a.name || "";
+        nm.addEventListener("input", function () { a.name = nm.value; updatePreview(); });
+        li.appendChild(nm);
+        li.appendChild(segRadios("two", "actMode" + i, "Log it by", [["min", "Minutes"], ["kcal", "Screen calories"]], a.mode, function (v) {
+          a.mode = v;
+          renderActList();
+          updatePreview();
+          focusAct(i);
+        }));
+        if (kcalMode) {
+          var srow = el("div", "arow");
+          var chk = el("label", "check");
+          var cb = el("input");
+          cb.type = "checkbox";
+          cb.id = "actSteps" + i;
+          cb.checked = !!a.steps;
+          chk.appendChild(cb);
+          chk.appendChild(el("span", null, "Watch counted steps"));
+          srow.appendChild(chk);
+          cb.addEventListener("change", function () {
+            a.steps = cb.checked;
+            renderActList();
+            updatePreview();
+            if (a.steps) focusAct(i, "actMin");
+          });
+          if (a.steps) {
+            var mi = numInput("actMin" + i, "Minutes", "Minutes", a.min, "5");
+            mi.addEventListener("input", function () { a.min = mi.value; updatePreview(); });
+            srow.appendChild(mi);
+            srow.appendChild(el("span", "unit", "min"));
+          }
+          li.appendChild(srow);
+        } else {
+          li.appendChild(segRadios("three", "actLvl" + i, "Effort", EFFORTS.map(function (e) { return [e.id, e.name]; }), a.level, function (v) {
+            a.level = v;
+            updatePreview();
+          }));
+        }
+      }
+      var foot = el("div", "afoot");
+      var left = el("div", "ahow");
+      var how = el("span", "fhow");
+      left.appendChild(how);
+      if (a.t) {
+        var topic = a.t === "custom" ? "other" : ACT_INFO[a.t].group === 1 ? "cardio" : "workouts";
+        var qm = button("qm qm-sm", "?");
+        qm.setAttribute("data-help", topic);
+        qm.setAttribute("aria-label", "Help: " + HELP[topic].title.toLowerCase());
+        left.appendChild(qm);
+      }
+      var rm = button("linkbtn" + (state.armedAct === i ? " armed" : ""), state.armedAct === i ? "Tap again" : "Remove");
+      foot.appendChild(left);
+      foot.appendChild(rm);
+      li.appendChild(foot);
+      list.appendChild(li);
+      state.actEls.push({ pts: pts, how: how });
+
+      sel.addEventListener("change", function () {
+        var was = a.t;
+        a.t = sel.value;
+        if (a.t === "custom" && was !== "custom") a.mode = "min";
+        renderActList();
+        updatePreview();
+        focusAct(i);
+      });
+      if (amt) amt.addEventListener("input", function () {
+        if (kcalMode) a.kcal = amt.value; else a.min = amt.value;
+        updatePreview();
+      });
+      rm.addEventListener("click", function () {
+        if (!actAmount(a) || state.armedAct === i) {
+          state.armedAct = -1;
+          state.acts.splice(i, 1);
+          renderActList();
+          updatePreview();
+          return;
+        }
+        state.armedAct = i;
+        renderActList();
+        updatePreview();
+        setTimeout(function () { if (state.armedAct === i) { state.armedAct = -1; renderActList(); updatePreview(); } }, 4000);
+      });
+    });
+    renderAccess();
+  }
+
   // ---------- The day's form ----------
   // The form always shows the picked day: what's saved for it, or your unsaved changes, which are kept per
   // day (on this device) until you save or discard them.
   function blankForm() {
-    return { plan: "", food: [], lift: "", liftMin: "", steps: "", cardioMin: "", ckind: "tread", otherMin: "", olevel: "moderate", otherName: "" };
+    return { plan: "", food: [], acts: [], steps: "" };
   }
   function formFromDay(day) {
     var f = blankForm();
@@ -2414,13 +2676,14 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     f.food = day.food.map(function (x) {
       return { meal: MEAL_INFO[x.meal] ? x.meal : "extra", kcal: +x.kcal || 0, qty: qtyOf(x), posted: x.posted !== false, name: x.name || "", base: foodBase(x), bmeal: x.meal };
     });
-    var w = collapse(day.workouts);
-    if (w) { f.lift = day.workouts[0].type; f.liftMin = w.min; }
     if (day.steps) f.steps = day.steps.total;
-    var c = collapse(day.cardio);
-    if (c) { f.cardioMin = c.min; f.ckind = day.cardio[0].tread ? "tread" : "bike"; }
-    var o = collapse(day.other);
-    if (o) { f.otherMin = o.min; f.olevel = day.other[0].level || "moderate"; f.otherName = day.other[0].name || ""; }
+    day.workouts.forEach(function (w) { if (ACT_INFO[w.type]) f.acts.push(Object.assign(newAct(w.type), { min: w.min })); });
+    day.cardio.forEach(function (c) { f.acts.push(Object.assign(newAct(cardioKindOf(c)), { min: c.min })); });
+    day.other.forEach(function (o) {
+      f.acts.push(o.mode === "kcal"
+        ? Object.assign(newAct("custom"), { mode: "kcal", kcal: o.kcal, steps: !!o.steps, min: o.steps && o.min ? o.min : "", name: o.name || "" })
+        : Object.assign(newAct("custom"), { min: o.min, level: levelOf(o.level), name: o.name || "" }));
+    });
     return f;
   }
   function savedForm(date) { return formFromDay(getDay(date)); }
@@ -2428,14 +2691,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     return {
       plan: picked("plan"),
       food: state.food.map(function (x) { return { meal: x.meal, kcal: x.kcal || "", qty: qtyOf(x), posted: x.posted !== false, name: x.name || "", base: x.base, bmeal: x.bmeal }; }),
-      lift: picked("lift"),
-      liftMin: $("liftMin").value,
-      steps: $("steps").value,
-      cardioMin: $("cardioMin").value,
-      ckind: picked("ckind") || "tread",
-      otherMin: $("otherMin").value,
-      olevel: picked("olevel") || "moderate",
-      otherName: $("otherName").value
+      acts: state.acts.map(function (a) { return Object.assign({}, a); }),
+      steps: $("steps").value
     };
   }
   function applyForm(f) {
@@ -2443,25 +2700,26 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     state.food = (f.food || []).map(function (x) { return clone(x); });
     state.armedFood = -1;
     renderFoodList();
-    setPicked("lift", f.lift || "");
-    state.liftSel = f.lift || "";
-    $("liftMin").value = num(f.liftMin) ? f.liftMin : "";
+    state.acts = formActs(f).map(function (a) { return Object.assign(newAct(), a); });
+    state.armedAct = -1;
+    renderActList();
     $("steps").value = num(f.steps) ? f.steps : "";
-    $("cardioMin").value = num(f.cardioMin) ? f.cardioMin : "";
-    setPicked("ckind", f.ckind || "tread");
-    $("otherMin").value = num(f.otherMin) ? f.otherMin : "";
-    setPicked("olevel", f.olevel || "moderate");
-    $("otherName").value = f.otherName || "";
     $("planQ").classList.remove("ask");
   }
   // Two forms that would save the same day compare equal.
   function canonForm(f) {
-    var lm = Math.round(num(f.liftMin)), cm = Math.round(num(f.cardioMin)), om = Math.round(num(f.otherMin));
     var food = f.plan === "no" ? (f.food || []).filter(function (x) { return num(x.kcal) > 0; }).map(function (x) {
       return [x.meal, Math.round(num(x.kcal)), qtyOf(x), x.posted !== false, String(x.name || "").trim()];
     }) : [];
-    return JSON.stringify([f.plan || "", food, f.lift && lm ? f.lift : "", f.lift ? lm : 0, Math.round(num(f.steps)),
-      cm, cm ? f.ckind : "", om, om ? f.olevel : "", om ? String(f.otherName || "").trim() : ""]);
+    var acts = formActs(f), order = acts.map(function (a, i) { return i; }).filter(function (i) { return actAmount(acts[i]) > 0; })
+      .sort(function (x, y) { return actGroup(acts[x]) - actGroup(acts[y]) || x - y; });
+    var aw = order.map(function (i) {
+      var a = acts[i], m = Math.round(num(a.min));
+      if (a.t !== "custom") return [a.t, m];
+      var nm = String(a.name || "").trim();
+      return a.mode === "kcal" ? [a.t, "kcal", Math.round(num(a.kcal)), !!a.steps, a.steps ? m : 0, nm] : [a.t, "min", m, levelOf(a.level), nm];
+    });
+    return JSON.stringify([f.plan || "", food, Math.round(num(f.steps)), aw]);
   }
   function isDirty(date, f) { return canonForm(f) !== canonForm(savedForm(date)); }
   function loadDrafts() {
@@ -2551,23 +2809,21 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   }
   // A field's points: what it will earn, "late" when it would earn but it's past the deadline.
   function setPts(id, pts, fresh) {
-    var o = $(id);
+    var o = typeof id === "string" ? $(id) : id;
     o.textContent = pts > 0 ? plus(pts) : fresh > 0 ? "late" : "0";
     o.classList.toggle("zero", pts <= 0);
+    o.classList.toggle("late", pts <= 0 && fresh > 0);
   }
   function updatePreview() {
     var date = state.logDate, f = captureForm(), prev = getDay(date), now = Date.now();
     var basis = prev ? { weight: prev.weight, tight: prev.tight } : settings();
     var b = bandFor(basis.weight || 250), k = rateK(basis.tight);
     var lateNow = now > deadline(date);
-    $("segL").textContent = fmt(b.L * k);
-    $("segU").textContent = fmt(b.U * k);
-    $("segC").textContent = fmt(b.C * k);
-    $("segOL").textContent = fmt(b.o.light * k) + " / 10 min";
-    $("segOM").textContent = fmt(b.o.moderate * k) + " / 10 min";
-    $("segOH").textContent = fmt(b.o.hard * k) + " / 10 min";
-    var next = f.lift ? "" : suggestLift(date);
-    $("nextHint").textContent = next ? "Next in your rotation: " + LIFT_NAMES[next] + ". Tap a workout again to clear it." : "";
+    var hasLift = state.acts.some(function (a) { return actGroup(a) === 0; });
+    var next = hasLift ? "" : suggestLift(date);
+    state.nextLift = next;
+    $("nextHint").hidden = !next || state.readOnly;
+    $("nextTxt").textContent = next ? "Next in your rotation: " + ACT_INFO[next].label + "." : "";
 
     var off = f.plan === "no";
     $("food").hidden = !off;
@@ -2595,13 +2851,14 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var day = buildDay(prev, fp, date, now);
     if (f.plan !== "yes") { day.bonus = 0; day.pts = day.activityPts; }
     var fresh = freshPts(f, basis);
-    $("liftMinRow").hidden = !f.lift;
-    $("cardioKind").hidden = !num(f.cardioMin);
-    $("otherMore").hidden = !num(f.otherMin);
-    setPts("liftPts", day.workouts.length ? day.workouts[0].pts : 0, fresh.lift);
     setPts("stepPts", day.steps ? day.steps.pts : 0, fresh.steps);
-    setPts("cardioPts", day.cardio.length ? day.cardio[0].pts : 0, fresh.cardio);
-    setPts("otherPts", day.other.length ? day.other[0].pts : 0, fresh.other);
+    var sc = scoreActs(prev, f.acts, b, k, lateNow);
+    state.acts.forEach(function (a, i) {
+      var els = state.actEls[i], r = sc.res[i];
+      if (!els) return;
+      setPts(els.pts, r ? r.pts : 0, r ? r.fresh : 0);
+      els.how.textContent = actHow(a, b, k);
+    });
 
     var dirty = isDirty(date, f);
     var shown = !!prev || !!f.plan;
@@ -2617,7 +2874,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     $("bankAfter").textContent = dirty && shown ? "Bank after saving: " + money(bankWith(date, day)) : "";
 
     var warns = [];
-    var lostLate = lateNow && (fresh.lift + fresh.steps + fresh.cardio + fresh.other) > day.activityPts;
+    var lostLate = lateNow && fresh.total > day.activityPts;
     if (lostLate) warns.push({ kind: "info", text: "It's past noon the day after, so added activity earns nothing. Off-plan food still counts.", help: "logging" });
     if (ready() && shown) {
       var W = basis.weight;
@@ -2663,13 +2920,25 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       toast("Pick which meal it replaced.");
       return;
     }
-    if (f.lift && !num(f.liftMin)) { toast("Enter your workout minutes, or tap the workout again to clear it."); return; }
+    var gap = -1, gapMsg = "";
+    state.acts.forEach(function (a, i) {
+      if (gap >= 0 || !a.t) return;
+      var label = a.t === "custom" ? (String(a.name || "").trim() || "Custom") : ACT_INFO[a.t].label;
+      if (!actAmount(a)) { gap = i; gapMsg = label + ": enter the " + (a.t === "custom" && a.mode === "kcal" ? "calories" : "minutes") + ", or remove it."; }
+      else if (a.t === "custom" && a.mode === "kcal" && a.steps && !num(a.min)) { gap = i; gapMsg = label + ": enter the minutes too, so the steps your watch counted aren't paid twice."; }
+    });
+    if (gap >= 0) {
+      var gl = $("actList").children[gap];
+      if (gl) gl.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+      toast(gapMsg);
+      return;
+    }
     if (prev && !isDirty(date, f)) { toast("No changes to save."); return; }
     var now = Date.now();
     var before = prev ? prev.pts - prev.spent : 0;
     var day = buildDay(prev, f, date, now);
     var fresh = freshPts(f, prev ? { weight: prev.weight, tight: prev.tight } : settings());
-    var late = now > deadline(date) && (fresh.lift + fresh.steps + fresh.cardio + fresh.other) > day.activityPts;
+    var late = now > deadline(date) && fresh.total > day.activityPts;
     var btn = $("saveDay");
     btn.disabled = true;
     write(id, day).then(function (ok) {
@@ -3202,8 +3471,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var parts = [];
     d.workouts.forEach(function (w) { parts.push(LIFT_NAMES[w.type] + " " + w.min + " min"); });
     if (d.steps) parts.push(fmt(d.steps.total) + " steps");
-    d.cardio.forEach(function (c) { parts.push((c.tread ? "treadmill " : "cardio ") + c.min + " min"); });
-    d.other.forEach(function (o) { parts.push((o.name || o.level + " activity") + " " + o.min + " min"); });
+    d.cardio.forEach(function (c) { parts.push(ACT_INFO[cardioKindOf(c)].label.toLowerCase() + " " + c.min + " min"); });
+    d.other.forEach(function (o) { parts.push(o.mode === "kcal" ? (o.name || "custom") + " " + fmt(o.kcal) + " cal" : (o.name || o.level + " activity") + " " + o.min + " min"); });
     if (!parts.length) parts.push(d.onPlan ? "On plan" : "No activity");
     if (d.late) parts.push("logged late");
     return parts.join(" · ");
@@ -3603,7 +3872,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     allOf("spend").forEach(function (s) { slot(s.date).spends.push(s); });
     weighIns().forEach(function (w) { slot(w.date).weigh = w; });
     var header = ["Date", "Weight (lb)", "Stuck to plan", "Off-plan food", "Off-plan calories", "Workout", "Steps", "Cardio",
-      "Other activity", "Activity points", "On-plan bonus", "Points spent", "Net", "Bank after", "Logged late"];
+      "Custom workouts", "Activity points", "On-plan bonus", "Points spent", "Net", "Bank after", "Logged late"];
     var lines = [header.map(function (h) { return csvCell(h); }).join(",")];
     var bank = 0, hits = tallyState().hits, hi = 0;
     Object.keys(byDate).sort().forEach(function (date) {
@@ -3624,8 +3893,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         [date], [e.weigh ? e.weigh.lb : ""], [d ? (d.onPlan ? "Yes" : "No") : ""], [food.join("; "), true], [offCal || ""],
         [d ? d.workouts.map(function (w) { return LIFT_NAMES[w.type] + " " + w.min + " min"; }).join("; ") : ""],
         [d && d.steps ? d.steps.total : ""],
-        [d ? d.cardio.map(function (c) { return (c.tread ? "Treadmill " : "Bike or elliptical ") + c.min + " min"; }).join("; ") : ""],
-        [d ? d.other.map(function (o) { return (o.name || "Other") + " " + o.min + " min (" + o.level + ")"; }).join("; ") : "", true],
+        [d ? d.cardio.map(function (c) { return ACT_INFO[cardioKindOf(c)].label + " " + c.min + " min"; }).join("; ") : ""],
+        [d ? d.other.map(function (o) { return o.mode === "kcal" ? (o.name || "Custom") + " " + o.kcal + " screen cal" + (o.steps ? ", " + o.min + " min" : "") : (o.name || "Other") + " " + o.min + " min (" + o.level + ")"; }).join("; ") : "", true],
         [d ? d.activityPts : ""], [d ? d.bonus : ""], [logged ? spent : ""], [logged ? earned - spent : ""], [logged ? bank : ""],
         [d ? (d.late ? "Yes" : "No") : ""]
       ];
@@ -4088,11 +4357,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   }
   function renderAccess() {
     var ro = state.readOnly;
-    ["liftMin", "steps", "cardioMin", "otherMin", "otherName", "addFood", "weight", "wLb", "wSave", "favPick",
+    ["steps", "addAct", "nextAdd", "addFood", "weight", "wLb", "wSave", "favPick",
       "pfSave", "goalNameIn", "goalPtsIn", "goalSave", "goalClear", "restoreBtn", "eraseBtn", "tYes", "tNo"]
       .forEach(function (id) { var e = $(id); if (e) e.disabled = ro; });
-    radios("plan").concat(radios("lift"), radios("ckind"), radios("olevel"), radios("rate")).forEach(function (r) { r.disabled = ro; });
-    Array.prototype.forEach.call(document.querySelectorAll("#foodList input, #foodList select, #foodList button, #pfForm input"), function (c) { if (ro) c.disabled = true; });
+    radios("plan").concat(radios("rate")).forEach(function (r) { r.disabled = ro; });
+    Array.prototype.forEach.call(document.querySelectorAll("#foodList input, #foodList select, #foodList button, #actList input, #actList select, #actList button, #pfForm input"), function (c) { if (ro) c.disabled = true; });
   }
   function renderAll() {
     renderBoard();
@@ -4169,18 +4438,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   $("redeemManage").addEventListener("click", openFavManager);
   $("redeemBtn").addEventListener("click", function () { showTab("redeem"); });
   $("favPick").addEventListener("change", function () { var id = $("favPick").value; $("favPick").value = ""; if (id) addFavorite(id); });
-  // Workout chips: tap the selected one again to clear it.
-  radios("lift").forEach(function (r) {
-    r.addEventListener("click", function () {
-      if (state.liftSel === r.value) { r.checked = false; state.liftSel = ""; }
-      else state.liftSel = r.value;
-      updatePreview();
-      if (r.checked) setTimeout(function () { $("liftMin").focus(); }, 0);
-    });
-    r.addEventListener("change", function () { state.liftSel = picked("lift"); updatePreview(); });
-  });
-  radios("ckind").concat(radios("olevel")).forEach(function (r) { r.addEventListener("change", updatePreview); });
-  ["liftMin", "steps", "cardioMin", "otherMin", "otherName"].forEach(function (id) { $(id).addEventListener("input", updatePreview); });
+  $("addAct").addEventListener("click", function () { addAct(""); });
+  $("nextAdd").addEventListener("click", function () { if (state.nextLift) addAct(state.nextLift); });
+  $("steps").addEventListener("input", updatePreview);
   $("saveDay").addEventListener("click", saveDay);
   $("deleteDay").addEventListener("click", deleteDay);
   $("discardDay").addEventListener("click", discardDraft);
