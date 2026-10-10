@@ -338,7 +338,7 @@ h2 {
   box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5);
 }
 .ritem.ok { border-color: rgba(127, 214, 255, 0.55); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5), 0 0 12px rgba(127, 214, 255, 0.18); }
-.ritem.short { opacity: 0.42; }
+.ritem.short { opacity: 0.42; cursor: default; }
 .ritem .rn { font-weight: 700; overflow-wrap: anywhere; }
 .ritem .rs { grid-column: 1; color: var(--muted); font-size: 0.86rem; }
 .ritem .rv { grid-column: 2; grid-row: 1 / span 2; display: grid; justify-items: end; }
@@ -1177,7 +1177,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.10.2","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.10.3","profile":null};</script>
 <script>
 (function () {
   "use strict";
@@ -1925,7 +1925,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     } },
     redeem: { title: "Redeem", html: function () {
       return ul([
-        "<b>Redeem</b> lists your favorites by the points they need, fewest first. Faded ones need more than your bank has right now.",
+        "<b>Redeem</b> lists your favorites by the points they need, fewest first. Faded ones need more than your bank has right now and can't be tapped. If you had one anyway, log it from the <b>Add a favorite</b> list.",
         "Each one's points assume it replaces the meal you saved it with, or counts as an extra. The log shows the exact cost once you pick the meal.",
         "Tap one to add it to the log for the day picked on the strip, then pick which meal it replaced.",
         "To add favorites, name an off-plan entry in the log and tap <b>Save favorite</b>."
@@ -2199,8 +2199,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       var li = el("li");
       var b = el("button", "ritem " + (ok ? "ok" : "short"));
       b.type = "button";
-      b.disabled = state.readOnly;
-      b.setAttribute("aria-label", fv.name + ", needs " + fmt(need) + " points" + (ok ? "" : ", " + fmt(need - bank) + " short") + ". Add to the log.");
+      b.disabled = state.readOnly || !ok;   // only what the bank covers can be redeemed
+      b.setAttribute("aria-label", fv.name + ", needs " + fmt(need) + " points" + (ok ? ". Add to the log." : ", " + fmt(need - bank) + " short"));
       b.appendChild(el("span", "rn", fv.name));
       b.appendChild(el("span", "rs", fmt(fv.kcal) + " cal" + (fv.posted === false ? " +25%" : "") + " · " +
         (it.n.meal === "extra" ? "as an extra" : "in place of " + MEAL_INFO[it.n.meal].short)));
