@@ -293,6 +293,60 @@ h2 {
 .meter { height: 8px; border-radius: 99px; background: rgba(127, 155, 255, 0.22); overflow: hidden; }
 .meter-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #4d6bff, #74e4ff); box-shadow: 0 0 10px var(--glow-cyan); transition: width 0.4s ease; }
 .goal-eta { color: var(--board-dim); font-size: 0.84rem; }
+/* Redeem: a pill on the board and its own tab */
+.board-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: -4px; }
+.redeem-pill {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px 0 10px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: rgba(5, 8, 35, 0.6);
+  color: var(--accent);
+  font: 700 0.72rem var(--body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px var(--glow-cyan);
+  box-shadow: 0 0 12px rgba(127, 214, 255, 0.3);
+  cursor: pointer;
+}
+.redeem-pill::after { content: ""; position: absolute; inset: -6px; }
+.redeem-pill svg, .rlist svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.rbank { display: flex; align-items: baseline; gap: 10px; }
+.rbank-num { font-family: var(--display); font-size: 3rem; line-height: 0.9; color: #ffffff; text-shadow: 0 0 6px rgba(255, 255, 255, 0.5), 0 0 16px var(--glow-cyan); }
+.rbank-num.neg { color: var(--spend); }
+.rlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ritem {
+  appearance: none;
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5);
+}
+.ritem.ok { border-color: rgba(127, 214, 255, 0.55); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5), 0 0 12px rgba(127, 214, 255, 0.18); }
+.ritem.short { opacity: 0.42; }
+.ritem .rn { font-weight: 700; overflow-wrap: anywhere; }
+.ritem .rs { grid-column: 1; color: var(--muted); font-size: 0.86rem; }
+.ritem .rv { grid-column: 2; grid-row: 1 / span 2; display: grid; justify-items: end; }
+.ritem .rp { font-family: var(--display); font-size: 1.9rem; line-height: 0.95; color: var(--spend); }
+.ritem.ok .rp { color: var(--earn); text-shadow: 0 0 10px var(--glow-cyan); }
+.ritem .rq { color: var(--muted); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em; }
+.rlist .empty { color: var(--muted); }
+
 /* Day strip: the last 31 days, today on the right. Picking a day switches the whole Today page to it. */
 .strip {
   --fl: 0px;
@@ -547,6 +601,9 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .favlist .fn { min-width: 0; overflow-wrap: anywhere; }
 .favlist .fk { display: block; color: var(--muted); font-size: 0.86rem; }
 .food-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.food-list select.need { border-color: #ff5c7a; color: #ff9aac; box-shadow: 0 0 10px rgba(255, 92, 122, 0.35); }
+.food-list select option { color: #ffffff; }
+.fitem.flash { box-shadow: 0 0 0 2px var(--accent), 0 0 18px var(--glow-cyan); transition: box-shadow 0.3s ease; }
 .fitem { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5); }
 .frow { display: grid; grid-template-columns: minmax(0, 1fr) 7.2em; gap: 8px; }
 .frow2 { display: flex; align-items: center; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; }
@@ -691,7 +748,7 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
   backdrop-filter: blur(14px);
   box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.35);
 }
-.tabbar-in { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.tabbar-in { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .tabbtn {
   appearance: none;
   position: relative;
@@ -704,8 +761,8 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
   border: 0;
   background: none;
   color: var(--muted);
-  font: 600 0.66rem var(--body);
-  letter-spacing: 0.12em;
+  font: 600 0.62rem var(--body);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
 }
@@ -804,9 +861,12 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     </header>
 
     <section class="board" aria-label="Points bank">
+      <div class="board-head">
+        <span class="label">Bank<button type="button" class="qm qm-sm" data-help="bank" aria-label="Help: the bank">?</button></span>
+        <button type="button" class="redeem-pill" id="redeemBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5h17v3a2 2 0 0 0 0 4v3h-17v-3a2 2 0 0 0 0-4z"/><path d="M14.5 8v1.5M14.5 11.25v1.5M14.5 14.5V16"/></svg>Redeem</button>
+      </div>
       <div class="board-top">
         <div>
-          <span class="label">Bank<button type="button" class="qm qm-sm" data-help="bank" aria-label="Help: the bank">?</button></span>
           <div class="bank-line"><span class="bank-num" id="bankNum">0</span><span class="bank-unit">pts</span></div>
         </div>
         <div class="board-stats">
@@ -941,6 +1001,20 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     </div>
   </section>
 
+  <!-- ===================== REDEEM ===================== -->
+  <section class="tab" id="tab-redeem" aria-label="Redeem" hidden>
+    <header class="top">
+      <div>
+        <h1 class="h1-sm">Redeem</h1>
+        <p class="sub" id="redeemSub"></p>
+      </div>
+      <button type="button" class="qm qm-lg" data-help="redeem" aria-label="Help: redeeming favorites">?</button>
+    </header>
+    <div class="rbank"><span class="label">Bank</span><span class="rbank-num" id="rBank">0</span><span class="bank-unit">pts</span></div>
+    <ul class="rlist" id="redeemList"></ul>
+    <button type="button" class="btn ghost" id="redeemManage" hidden>Edit favorites</button>
+  </section>
+
   <!-- ===================== PROGRESS ===================== -->
   <section class="tab" id="tab-progress" aria-label="Progress" hidden>
     <header class="top"><div><h1 class="h1-sm">Progress</h1></div></header>
@@ -1065,6 +1139,10 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 14a6 6 0 0 1 12 0"/><path d="M2.5 14h19"/><path d="M5 17.5h14"/><path d="M8.5 21h7"/><path d="M12 3.5v2.2M5.3 6.6l1.5 1.5M18.7 6.6l-1.5 1.5"/></svg>
       <span>Today</span>
     </button>
+    <button type="button" class="tabbtn" data-tab="redeem">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5h17v3a2 2 0 0 0 0 4v3h-17v-3a2 2 0 0 0 0-4z"/><path d="M14.5 8v1.5M14.5 11.25v1.5M14.5 14.5V16"/></svg>
+      <span>Redeem</span>
+    </button>
     <button type="button" class="tabbtn" data-tab="progress">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20.5h18"/><path d="M4 16l5-5 4 3 7-8"/><path d="M16 6h4v4"/></svg>
       <span>Progress</span>
@@ -1090,7 +1168,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.09.4","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.10.1","profile":null};</script>
 <script>
 (function () {
   "use strict";
@@ -1142,7 +1220,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     { id: "moderate", name: "Moderate", feel: "You can talk but not sing.", ex: "Doubles tennis, pickleball, hiking, golf on foot, swimming, mowing." },
     { id: "hard", name: "Hard", feel: "Only a few words at a time.", ex: "Singles tennis, a basketball game, soccer, hiking uphill with a pack." }
   ];
-  var TABS = ["today", "progress", "guide", "settings"];
+  var TABS = ["today", "redeem", "progress", "guide", "settings"];
   var LS_KEY = "cheat-points-v1", META_KEY = "cheat-points-meta", DRAFT_KEY = "cheat-points-drafts";
   var ID_RE = /^(settings|favorites|day-\d{4}-\d{2}-\d{2}|w-\d{4}-\d{2}-\d{2}|t-\d{4}-\d{2}-\d{2}|spend-[A-Za-z0-9_-]{1,60})$/;
 
@@ -1725,7 +1803,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     } },
     bank: { title: "The bank", html: function () {
       return ul([
-        "<b>Bank</b>: everything you've earned minus everything you've spent.",
+        "<b>Bank</b>: everything you've earned minus everything you've spent. <b>Redeem</b> shows which of your favorites it covers.",
         "<b>This week</b> and <b>Spent</b> cover Monday through Sunday.",
         "<b>Streak</b>: days in a row logged on time.",
         "The strip shows the last 31 days with each day's net, today on the right. Swipe for earlier days. Tap a day and the whole page switches to it.",
@@ -1748,11 +1826,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       var meals = c.ok ? "breakfast " + fmt(m.breakfast) + ", lunch " + fmt(m.lunch) + ", dinner " + fmt(m.dinner) : "set your plan meals in Settings";
       return ul([
         "Answer every day. <b>Yes</b> means you ate only your plan meals.",
-        "<b>No</b>: add each meal you swapped and each extra meal, snack or drink.",
+        "<b>No</b>: add each meal you swapped and each extra meal, snack or drink. Each one starts at <i>Select an option</i>: pick which meal it replaced, or Extra.",
         "A different meal costs its calories minus the plan meal it replaced (" + meals + "). Extras cost their full calories.",
         "A smaller meal than the plan costs nothing but earns nothing either.",
         "<b>Posted calories</b> means a chain menu, an app or a label. Unchecked adds 25%, since big meals are easy to underestimate.",
-        "<b>Favorites</b>: name an entry and tap Save favorite. Pick one from <b>Add a favorite</b> to add it; Edit lists them so you can remove any.",
+        "<b>Favorites</b>: name an entry and tap Save favorite. Add one from the <b>Add a favorite</b> list or the <b>Redeem</b> tab; Edit lists them so you can remove any.",
         "Drinking night: eat dinner first. The late-night food costs more than the drinks."
       ]);
     } },
@@ -1836,6 +1914,14 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         "<b>Streak</b> counts days in a row logged on time. A day doesn't break it until noon the next day."
       ]);
     } },
+    redeem: { title: "Redeem", html: function () {
+      return ul([
+        "<b>Redeem</b> lists your favorites by the points they need, fewest first. Faded ones need more than your bank has right now.",
+        "Each one's points assume it replaces the meal you saved it with, or counts as an extra. The log shows the exact cost once you pick the meal.",
+        "Tap one to add it to the log for the day picked on the strip, then pick which meal it replaced.",
+        "To add favorites, name an off-plan entry in the log and tap <b>Save favorite</b>."
+      ]);
+    } },
     buys: { title: "What points buy", html: function () {
       var rows = [
         ["Burger, large fries, large soda in place of dinner", "700–900"],
@@ -1905,7 +1991,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         "<p>Resting burn uses the Mifflin-St Jeor equation. Warnings and predictions use 1.2 × resting burn plus about 2.3 calories per standard point (the middle of each range), minus your plan calories and any off-plan changes. 3,500 calories is about 1 lb of fat. Costs are recalculated each week as your weight drops and assume every point gets spent.</p>";
     } }
   };
-  var GUIDE_ORDER = ["points", "bank", "logging", "plan", "workouts", "steps", "cardio", "other", "weigh", "weeks", "warnings", "rate", "weightpts", "goal", "buys", "costs", "profile", "backup", "install", "numbers"];
+  var GUIDE_ORDER = ["points", "bank", "logging", "plan", "redeem", "workouts", "steps", "cardio", "other", "weigh", "weeks", "warnings", "rate", "weightpts", "goal", "buys", "costs", "profile", "backup", "install", "numbers"];
 
   // ---------- Sheet ----------
   var sheetOnClose = null;
@@ -1991,12 +2077,16 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 
   // ---------- Favorites ----------
   function favKey(name) { return String(name || "").trim().toLowerCase(); }
+  // A favorite is a name, calories and posted-or-not; the meal you pick each time you log it.
   function isFavorite(f) {
-    return favorites().some(function (x) { return favKey(x.name) === favKey(f.name) && x.kcal === f.kcal && x.meal === f.meal && x.posted === f.posted; });
+    return favorites().some(function (x) { return favKey(x.name) === favKey(f.name) && x.kcal === Math.round(num(f.kcal)) && (x.posted !== false) === (f.posted !== false); });
   }
   function saveFavorite(f) {
+    var old = favorites().filter(function (x) { return favKey(x.name) === favKey(f.name); })[0];
     var items = favorites().filter(function (x) { return favKey(x.name) !== favKey(f.name); });
-    items.unshift({ id: Date.now().toString(36), name: f.name.trim().slice(0, 40), kcal: Math.round(num(f.kcal)), posted: f.posted !== false, meal: f.meal });
+    // Its meal is a hint for Redeem: the meal it replaced when saved, else what it replaced before, else extra.
+    var meal = MEAL_INFO[f.meal] ? f.meal : old && MEAL_INFO[old.meal] ? old.meal : "extra";
+    items.unshift({ id: Date.now().toString(36), name: f.name.trim().slice(0, 40), kcal: Math.round(num(f.kcal)), posted: f.posted !== false, meal: meal });
     return write("favorites", { kind: "favorites", items: items.slice(0, FAV_LIMIT), ts: Date.now() });
   }
   function removeFavorite(id) {
@@ -2025,15 +2115,17 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     sel.disabled = state.readOnly;
     if (favSheetDraw) favSheetDraw();
   }
+  // Adds a favorite to the form with no meal picked; returns its position in the food list.
   function addFavorite(id) {
     var fv = favorites().filter(function (x) { return x.id === id; })[0];
-    if (!fv) return;
-    var entry = { meal: MEAL_INFO[fv.meal] ? fv.meal : "extra", kcal: fv.kcal, posted: fv.posted !== false, name: fv.name };
-    var empty = -1;
-    state.food.forEach(function (x, i) { if (!num(x.kcal) && empty < 0) empty = i; });
-    if (empty >= 0) state.food[empty] = entry; else state.food.push(entry);
+    if (!fv) return -1;
+    var entry = { meal: "", kcal: fv.kcal, posted: fv.posted !== false, name: fv.name };
+    var at = -1;
+    state.food.forEach(function (x, i) { if (!num(x.kcal) && at < 0) at = i; });
+    if (at >= 0) state.food[at] = entry; else { state.food.push(entry); at = state.food.length - 1; }
     renderFoodList();
     updatePreview();
+    return at;
   }
   var favSheetDraw = null;
   function openFavManager() {
@@ -2065,8 +2157,75 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     openSheet("Favorites", body, [button("btn ghost", "Done", closeSheet)], { onClose: function () { favSheetDraw = null; } });
   }
 
+  // ---------- Redeem ----------
+  // What a favorite takes from the bank if it replaces the meal it was saved with (or as an extra).
+  function favNeed(fv) {
+    var est = Math.round(fv.posted === false ? (+fv.kcal || 0) * NO_LABEL : (+fv.kcal || 0));
+    var meal = MEAL_INFO[fv.meal] && fv.meal !== "extra" ? fv.meal : "extra";
+    return { need: Math.max(0, est - mealKcal(meal)), meal: meal };
+  }
+  function renderRedeem() {
+    if (state.tab !== "redeem") return;
+    var bank = currentBank();
+    var rb = $("rBank");
+    rb.textContent = money(bank);
+    rb.classList.toggle("neg", bank < 0);
+    var date = state.logDate;
+    $("redeemSub").textContent = "Your favorites by the points they need. Tap one to add it to " +
+      (date === today() ? "today's log." : "the log for " + fmtDay(date) + ".");
+    var list = $("redeemList");
+    list.textContent = "";
+    var items = favorites().map(function (fv) { return { fv: fv, n: favNeed(fv) }; }).sort(function (a, b) {
+      if (a.n.need !== b.n.need) return a.n.need - b.n.need;
+      var x = favKey(a.fv.name), y = favKey(b.fv.name);
+      return x < y ? -1 : x > y ? 1 : 0;
+    });
+    $("redeemManage").hidden = !items.length;
+    if (!items.length) {
+      list.appendChild(el("li", "empty", "No favorites yet. When you log a different meal or an extra, name it and tap Save favorite. It shows up here."));
+      return;
+    }
+    items.forEach(function (it) {
+      var fv = it.fv, need = it.n.need, ok = need === 0 || need <= bank;
+      var li = el("li");
+      var b = el("button", "ritem " + (ok ? "ok" : "short"));
+      b.type = "button";
+      b.disabled = state.readOnly;
+      b.setAttribute("aria-label", fv.name + ", needs " + fmt(need) + " points" + (ok ? "" : ", " + fmt(need - bank) + " short") + ". Add to the log.");
+      b.appendChild(el("span", "rn", fv.name));
+      b.appendChild(el("span", "rs", fmt(fv.kcal) + " cal" + (fv.posted === false ? " +25%" : "") + " · " +
+        (it.n.meal === "extra" ? "as an extra" : "in place of " + MEAL_INFO[it.n.meal].short)));
+      var v = el("span", "rv");
+      v.appendChild(el("span", "rp", fmt(need)));
+      v.appendChild(el("span", "rq", ok ? "pts" : fmt(need - bank) + " short"));
+      b.appendChild(v);
+      b.addEventListener("click", function () { redeemFavorite(fv.id); });
+      li.appendChild(b);
+      list.appendChild(li);
+    });
+  }
+  // Puts a favorite in the picked day's log as off-plan food, waiting on which meal it replaced.
+  function redeemFavorite(id) {
+    var fv = favorites().filter(function (x) { return x.id === id; })[0];
+    if (!fv) return;
+    showTab("today", { keepScroll: true });
+    setPicked("plan", "no");
+    $("planQ").classList.remove("ask");
+    var at = addFavorite(id);
+    var li = $("foodList").children[at];
+    if (li) {
+      setTimeout(function () {
+        li.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+        li.classList.add("flash");
+        setTimeout(function () { li.classList.remove("flash"); }, 1800);
+      }, 60);
+    }
+    snack("Added " + fv.name + ". Pick the meal it replaced.");
+  }
+
   // ---------- Off-plan food in the report ----------
-  function newFood() { return { meal: "dinner", kcal: 0, posted: true, name: "" }; }
+  // New entries start with no meal picked, so you always choose which meal it replaced (or Extra).
+  function newFood() { return { meal: "", kcal: 0, posted: true, name: "" }; }
   function renderFoodList() {
     var list = $("foodList");
     list.textContent = "";
@@ -2076,13 +2235,19 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       var row = el("div", "frow");
       var sel = el("select");
       sel.id = "foodMeal" + i;
-      sel.setAttribute("aria-label", "What was different");
+      sel.setAttribute("aria-label", "Which meal it replaced");
+      var ph = el("option", null, "Select an option");
+      ph.value = "";
+      ph.disabled = true;
+      sel.appendChild(ph);
       MEAL_ORDER.forEach(function (m) {
         var o = el("option", null, MEAL_INFO[m].label);
         o.value = m;
         sel.appendChild(o);
       });
-      sel.value = f.meal;
+      if (!MEAL_INFO[f.meal]) f.meal = "";
+      if (f.meal) sel.value = f.meal; else ph.selected = true;
+      sel.classList.toggle("need", !f.meal);
       var kc = el("input");
       kc.type = "number";
       kc.id = "foodKcal" + i;
@@ -2126,7 +2291,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       list.appendChild(li);
       state.foodEls.push({ cost: cost, how: how, fav: fav });
 
-      sel.addEventListener("change", function () { f.meal = sel.value; updatePreview(); });
+      sel.addEventListener("change", function () { f.meal = sel.value; sel.classList.toggle("need", !f.meal); updatePreview(); });
       kc.addEventListener("input", function () { f.kcal = num(kc.value); updatePreview(); });
       nm.addEventListener("input", function () { f.name = nm.value; updatePreview(); });
       cb.addEventListener("change", function () { f.posted = cb.checked; updatePreview(); });
@@ -2325,9 +2490,10 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         var els = state.foodEls[i];
         if (!els) return;
         var c = formFoodCost(fd), kc = num(fd.kcal), base = formFoodBase(fd);
-        els.cost.textContent = kc ? (c ? "−" + fmt(c) : "0") : "";
+        // The cost depends on the meal it replaced, so it waits until one is picked.
+        els.cost.textContent = kc && fd.meal ? (c ? "−" + fmt(c) : "0") : "";
         els.cost.classList.toggle("zero", !c);
-        els.how.textContent = kc && (fd.posted === false || base)
+        els.how.textContent = kc && fd.meal && (fd.posted === false || base)
           ? fmt(kc) + (fd.posted === false ? " + 25%" : "") + (base ? " − " + fmt(base) + " plan " + MEAL_INFO[fd.meal].short : "")
           : "";
         var saved = kc && String(fd.name || "").trim() && isFavorite({ name: fd.name, kcal: Math.round(kc), meal: fd.meal, posted: fd.posted !== false });
@@ -2337,8 +2503,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       });
     }
 
-    // The day as it would be saved.
-    var day = buildDay(prev, f, date, now);
+    // The day as it would be saved (food waiting on its meal isn't counted yet).
+    var fp = f.plan === "no" ? Object.assign({}, f, { food: f.food.filter(function (x) { return !!x.meal; }) }) : f;
+    var day = buildDay(prev, fp, date, now);
     if (f.plan !== "yes") { day.bonus = 0; day.pts = day.activityPts; }
     var fresh = freshPts(f, basis);
     $("liftMinRow").hidden = !f.lift;
@@ -2401,6 +2568,14 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     }
     var food = f.plan === "no" ? f.food.filter(function (x) { return num(x.kcal) > 0; }) : [];
     if (f.plan === "no" && !food.length) { toast("Enter the calories for what you ate, or pick Yes."); return; }
+    if (food.some(function (x) { return !x.meal; })) {
+      var miss = -1;
+      state.food.forEach(function (x, i) { if (miss < 0 && num(x.kcal) > 0 && !x.meal) miss = i; });
+      var need = $("foodMeal" + miss);
+      if (need) need.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+      toast("Pick which meal it replaced.");
+      return;
+    }
     if (f.lift && !num(f.liftMin)) { toast("Enter your workout minutes, or tap the workout again to clear it."); return; }
     if (prev && !isDirty(date, f)) { toast("No changes to save."); return; }
     var now = Date.now();
@@ -3440,6 +3615,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       if (b.getAttribute("data-tab") === name) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
     });
     if (name === "today") renderStrip("sel");
+    if (name === "redeem") renderRedeem();
     if (name === "progress") renderProgress();
     if (name === "guide") renderGuide(opts && opts.topic);
     if (name === "settings") renderSettingsTab(true);
@@ -3462,6 +3638,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     updatePreview();
     renderTally();
     renderDayLabels();
+    if (state.tab === "redeem") renderRedeem();
     if (state.tab === "progress") renderProgress();
     if (state.tab === "settings") renderSettingsTab(false);
     renderAccess();
@@ -3517,16 +3694,15 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     });
   });
   $("addFood").addEventListener("click", function () {
-    var last = state.food[state.food.length - 1];
-    var f = newFood();
-    if (last) f.meal = last.meal === "dinner" ? "extra" : last.meal;
-    state.food.push(f);
+    state.food.push(newFood());
     renderFoodList();
     updatePreview();
     var kc = $("foodKcal" + (state.food.length - 1));
     if (kc) kc.focus();
   });
   $("favEdit").addEventListener("click", openFavManager);
+  $("redeemManage").addEventListener("click", openFavManager);
+  $("redeemBtn").addEventListener("click", function () { showTab("redeem"); });
   $("favPick").addEventListener("change", function () { var id = $("favPick").value; $("favPick").value = ""; if (id) addFavorite(id); });
   // Workout chips: tap the selected one again to clear it.
   radios("lift").forEach(function (r) {
