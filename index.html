@@ -442,7 +442,7 @@ h2 {
 .note-x { appearance: none; min-width: 30px; min-height: 34px; padding: 0; border: 0; background: none; color: var(--muted); font-size: 1.3rem; line-height: 1; cursor: pointer; }
 
 /* ---------- Controls ---------- */
-input[type="number"], input[type="date"], input[type="text"], select {
+input[type="number"], input[type="date"], input[type="text"], input[type="password"], select {
   min-height: 44px;
   min-width: 0;
   padding: 9px 12px;
@@ -454,7 +454,11 @@ input[type="number"], input[type="date"], input[type="text"], select {
   font-variant-numeric: tabular-nums;
 }
 input[type="number"] { width: 7.2em; text-align: right; }
-input[type="text"], select { width: 100%; }
+input[type="text"], input[type="password"], select { width: 100%; }
+.syncform { display: grid; gap: 8px; }
+.syncform .btns { margin-top: 4px; }
+.hint.bad { color: #ff8fa3; }
+.help input[type="text"] { margin-top: 4px; font-size: 0.86rem; }
 input::placeholder { color: var(--dim); opacity: 1; }
 input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; box-shadow: 0 0 12px var(--glow-cyan); }
 
@@ -1125,6 +1129,26 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       </div>
     </section>
 
+    <section class="block" id="syncBlock" aria-labelledby="syncH" hidden>
+      <h2 id="syncH">Sync<button type="button" class="qm" data-help="sync" aria-label="Help: syncing with GitHub">?</button></h2>
+      <p class="hint" id="syncStatus"></p>
+      <div class="syncform" id="syncSetup">
+        <label class="flabel" for="syncRepo">Private repository</label>
+        <input id="syncRepo" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="your-name/cheat-points-data">
+        <label class="flabel" for="syncToken">Access token</label>
+        <input id="syncToken" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="github_pat_…">
+        <div class="btns">
+          <button type="button" class="btn primary" id="syncConnect">Connect</button>
+          <button type="button" class="btn ghost" data-help="sync">How to set it up</button>
+        </div>
+      </div>
+      <div class="btns" id="syncLinked" hidden>
+        <button type="button" class="btn primary" id="syncBtn">Sync now</button>
+        <button type="button" class="btn ghost" id="syncCode">Copy setup code</button>
+        <button type="button" class="btn ghost" id="syncOff">Disconnect</button>
+      </div>
+    </section>
+
     <section class="block" id="appBlock" aria-labelledby="appH" hidden>
       <h2 id="appH">App<button type="button" class="qm" data-help="install" aria-label="Help: installing and updates">?</button></h2>
       <p class="hint" id="appStatus"></p>
@@ -1177,7 +1201,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.10.3","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.10.4","profile":null};</script>
 <script>
 (function () {
   "use strict";
@@ -1586,15 +1610,17 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     if (id === "settings") normCache = new WeakMap();
     if (state.mode !== "db") {
       var prev = state.docs.get(id);
-      state.docs.set(id, data);
+      // mt: when this device last changed it. Sync keeps the newest change of each entry.
+      state.docs.set(id, Object.assign({}, data, { mt: Date.now() }));
       if (!saveLocal()) {
         if (prev === undefined) state.docs.delete(id); else state.docs.set(id, prev);
         state.storageOK = storageWorks();
-        toast("Couldn't save on this phone. Storage is full or blocked.");
+        toast("Couldn't save on this " + deviceWord() + ". Storage is full or blocked.");
         renderAll();
         return Promise.resolve(false);
       }
       afterLocalWrite();
+      noteLocalChange(id, false);
       renderAll();
       return Promise.resolve(true);
     }
@@ -1615,10 +1641,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       state.docs.delete(id);
       if (!saveLocal()) {
         if (prev !== undefined) state.docs.set(id, prev);
-        toast("Couldn't save on this phone. Storage is full or blocked.");
+        toast("Couldn't save on this " + deviceWord() + ". Storage is full or blocked.");
         renderAll();
         return Promise.resolve(false);
       }
+      noteLocalChange(id, true);
       renderAll();
       return Promise.resolve(true);
     }
@@ -1976,13 +2003,28 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         ]);
       }
       return ul([
-        "Your logs live only on this phone, in this app. Nothing is uploaded anywhere.",
+        syncOn() ? "Your logs live on this " + deviceWord() + " and in your private GitHub repository (see Sync)." : "Your logs live only on this " + deviceWord() + ", in this app. Nothing is uploaded anywhere unless you turn on Sync.",
         "<b>Back up</b> at least weekly. On iPhone, choose Save to Files and pick iCloud Drive; on Android, save to Drive or Downloads. The app reminds you after " + BACKUP_DAYS + " days.",
         "<b>Restore</b> a backup on a new phone or after reinstalling: open the app from your home screen, then Settings → Restore from backup.",
         "On iPhone, the home-screen app and Safari keep separate data. Always restore inside the home-screen app.",
         "Deleting the app from your home screen deletes its data. Back up first.",
         "<b>Export spreadsheet</b> saves every day as a CSV you can open in Sheets or Excel. It's for reading, not restoring."
       ]);
+    } },
+    sync: { title: "Sync with GitHub", pwa: true, html: function () {
+      return "<p>Sync keeps your logs in a private GitHub repository you own, so your phone and computer show the same data. It saves a few seconds after each change and checks for changes when you open the app.</p>" +
+        "<ol class=\"steps\" style=\"padding-left:1.2em;margin:0 0 10px;display:grid;gap:8px\">" +
+        "<li>On github.com, tap <b>+</b> → <b>New repository</b>. Name it something like <i>cheat-points-data</i>, choose <b>Private</b>, check <b>Add a README</b>, and create it. Don't use the repository that hosts the app; that one is public.</li>" +
+        "<li>Make a token: your picture → <b>Settings</b> → <b>Developer settings</b> → <b>Personal access tokens</b> → <b>Fine-grained tokens</b> → <b>Generate new token</b>. Pick an expiration (No expiration, or the longest offered). Under Repository access choose <b>Only select repositories</b> and pick the new repository. Under Permissions → Repositories, add <b>Contents</b> and set it to <b>Read and write</b>. Generate it and copy it.</li>" +
+        "<li>Here, open <b>Settings → Sync</b>. Enter the repository as <i>owner/name</i>, paste the token, and tap <b>Connect</b>.</li>" +
+        "<li>On your other device, open the app the same way and connect with the same repository and token. Shortcut: tap <b>Copy setup code</b> on a connected device and paste it into the token box on the other.</li>" +
+        "</ol>" + ul([
+          "If both devices already have logs, the first connect asks whether to use GitHub's copy or combine both.",
+          "The newest change wins. If you edit the same day on both before they sync, the later save is kept. Unsaved changes stay on the device where you typed them.",
+          "The token stays on each device. It's never in the app's files, and it can only reach that one repository. To cut it off, delete it on GitHub.",
+          "Every sync is a commit, so GitHub keeps the full history of <i>cheat-points.json</i>. That file restores like a backup.",
+          "<b>Disconnect</b> stops syncing on this device. Its data and the GitHub copy stay."
+        ]);
     } },
     install: { title: "Installing and updates", html: function () {
       return "<ol class=\"steps\" style=\"padding-left:0;margin:0 0 10px;display:grid;gap:8px\">" +
@@ -2000,7 +2042,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         "<p>Resting burn uses the Mifflin-St Jeor equation. Warnings and predictions use 1.2 × resting burn plus about 2.3 calories per standard point (the middle of each range), minus your plan calories and any off-plan changes. 3,500 calories is about 1 lb of fat. Costs are recalculated each week as your weight drops and assume every point gets spent.</p>";
     } }
   };
-  var GUIDE_ORDER = ["points", "bank", "logging", "plan", "redeem", "workouts", "steps", "cardio", "other", "weigh", "weeks", "warnings", "rate", "weightpts", "goal", "buys", "costs", "profile", "backup", "install", "numbers"];
+  var GUIDE_ORDER = ["points", "bank", "logging", "plan", "redeem", "workouts", "steps", "cardio", "other", "weigh", "weeks", "warnings", "rate", "weightpts", "goal", "buys", "costs", "profile", "backup", "sync", "install", "numbers"];
 
   // ---------- Sheet ----------
   var sheetOnClose = null;
@@ -2064,6 +2106,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var c = helpCtx();
     GUIDE_ORDER.forEach(function (id) {
       var t = HELP[id];
+      if (t.pwa && !IS_PWA) return;
       var det = el("details", "topic");
       det.id = "g-" + id;
       det.setAttribute("data-id", id);
@@ -2835,13 +2878,14 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   function backupDue() {
     var days = allDays();
     if (days.length < 3) return "";
+    if (syncOn() && cloud.cfg.last && Date.now() - cloud.cfg.last < BACKUP_DAYS * 86400000) return "";
     var last = meta().lastBackup || 0;
     if (!last) {
       var first = days.reduce(function (a, d) { return d.date < a ? d.date : a; }, today());
-      return daysBetween(first, today()) >= 2 ? "You haven't backed up yet. Your logs live only on this phone." : "";
+      return daysBetween(first, today()) >= 2 ? "You haven't backed up yet. Your logs live only on this " + deviceWord() + "." : "";
     }
     var ago = Math.floor((Date.now() - last) / 86400000);
-    return ago >= BACKUP_DAYS ? "Last backup was " + ago + " days ago. Your logs live only on this phone." : "";
+    return ago >= BACKUP_DAYS ? "Last backup was " + ago + " days ago. Your logs live only on this " + deviceWord() + "." : "";
   }
   function hideInstall() { setMeta({ installHidden: Date.now() + 14 * 86400000 }); renderNotes(); }
   function todayNotes() {
@@ -2849,6 +2893,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     if (!state.loaded) return notes;
     var m = meta();
     if (state.updateReady) notes.push({ kind: "info", text: "A new version of Cheat Points is ready.", action: { label: "Restart", fn: applyUpdate } });
+    if (syncOn() && cloudFatal(cloud.err)) notes.push({ kind: "warn", text: "Sync is paused. " + cloudErrText(cloud.err), action: { label: "Fix", fn: openSyncSettings } });
     if (!state.storageOK) notes.push({ kind: "warn", text: "This browser isn't saving your data. Open Cheat Points from your home screen, not a private tab." });
     if (IS_PWA && !ENV.standalone && !(m.installHidden > Date.now())) {
       if (ENV.ios) notes.push({ kind: "info", text: "Install it: tap Share (on iOS 26 it's under •••), then Add to Home Screen. Open it from the new icon.", action: { label: "How", fn: function () { openHelp("install"); } }, dismiss: hideInstall });
@@ -3318,11 +3363,12 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var body = el("div", "help");
     var html = "<p>Earn cheat-meal calories from workouts, steps and on-plan days, then spend them without stalling your progress.</p>";
     if (ENV.ios && !ENV.standalone) html += '<p class="callout"><b>On iPhone, install first.</b> Tap Share (on iOS 26 it\'s under •••), then Add to Home Screen, and open Cheat Points from the new icon. Anything you enter here in Safari stays in Safari.</p>';
-    html += "<p><b>Moving from the Claude version?</b> Restore your backup file. Otherwise, start fresh and enter your numbers.</p>";
+    html += "<p><b>Moving from the Claude version?</b> Restore your backup file. <b>Already syncing on another device?</b> Connect sync to load your logs. Otherwise, start fresh and enter your numbers.</p>";
     body.innerHTML = html;
     var r = button("btn primary", "Restore my data", function () { closeSheet(); startRestore(); });
+    var g = button("btn ghost", "Connect sync", openSyncSettings);
     var s = button("btn ghost", "Start fresh", openSetup);
-    openSheet("Welcome to Cheat Points", body, [r, s]);
+    openSheet("Welcome to Cheat Points", body, IS_PWA ? [r, g, s] : [r, s]);
   }
   function maybeWelcome() {
     if (state.welcomed || state.mode !== "local" || state.readOnly) return;
@@ -3334,7 +3380,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   function backupStatusText() {
     if (state.mode === "db") return "Saved to your Claude account. Back up to move your logs to the home-screen app.";
     var last = meta().lastBackup;
-    var text = IS_PWA ? "Your logs are saved only on this phone. " : "Saved in this browser only. ";
+    var text = !IS_PWA ? "Saved in this browser only. " : syncOn() ? "Saved on this " + deviceWord() + " and synced to GitHub. " : "Your logs are saved only on this " + deviceWord() + ". ";
     text += last ? "Last backup: " + new Date(last).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) + "." : "No backup yet.";
     if (state.persisted === true) text += " Protected from automatic cleanup.";
     return text;
@@ -3367,6 +3413,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var local = state.mode === "local";
     $("restoreBtn").hidden = !local;
     $("eraseBlock").hidden = !local;
+    $("eraseBtn").textContent = "Erase all data on this " + deviceWord();
+    renderCloudStatus();
     $("backupStatus").textContent = backupStatusText();
     $("appBlock").hidden = !IS_PWA;
     if (IS_PWA) {
@@ -3510,22 +3558,29 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     body.innerHTML = "<p>This backup has <b>" + sm.days + "</b> logged day" + (sm.days === 1 ? "" : "s") + " and <b>" + sm.weighs + "</b> weigh-in" + (sm.weighs === 1 ? "" : "s") +
       (sm.first ? ", " + esc(fmtShort(sm.first)) + " to " + esc(fmtShort(sm.last)) : "") + ".</p>" +
       (when ? '<p class="fine">Saved ' + esc(when) + ".</p>" : "") +
-      (hasLocal ? "<p>This phone already has data. <b>Replace</b> swaps it for the backup. <b>Merge</b> keeps both, using the newer copy of anything that's in both.</p>" : "");
+      (hasLocal ? "<p>This " + deviceWord() + " already has data. <b>Replace</b> swaps it for the backup. <b>Merge</b> keeps both, using the newer copy of anything that's in both.</p>" : "") +
+      (syncOn() ? "<p>Your other synced devices get the same change.</p>" : "");
     var buttons = [button("btn primary", hasLocal ? "Replace" : "Restore", function () { applyRestore(docs, false, obj); })];
     if (hasLocal) buttons.push(button("btn ghost", "Merge", function () { applyRestore(docs, true, obj); }));
     buttons.push(button("btn ghost", "Cancel", closeSheet));
     openSheet("Restore backup", body, buttons);
   }
   function applyRestore(docs, merge, obj) {
-    var next = merge ? new Map(state.docs) : new Map();
+    var next = merge ? new Map(state.docs) : new Map(), stamp = Date.now();
     Object.keys(docs).forEach(function (id) {
       var inc = docs[id], cur = next.get(id);
-      if (!merge || !cur || (inc.ts || 0) >= (cur.ts || 0)) next.set(id, inc);
+      // A replace is the newest change to everything in it, so it also wins on synced devices.
+      if (!merge || !cur || (inc.ts || 0) >= (cur.ts || 0)) next.set(id, merge ? inc : Object.assign({}, inc, { mt: stamp }));
     });
     var prev = state.docs;
     state.docs = next;
     normCache = new WeakMap();
-    if (!saveLocal()) { state.docs = prev; normCache = new WeakMap(); toast("Couldn't save on this phone."); return; }
+    if (!saveLocal()) { state.docs = prev; normCache = new WeakMap(); toast("Couldn't save on this " + deviceWord() + "."); return; }
+    if (syncOn()) {
+      if (!merge) prev.forEach(function (v, k) { if (!next.has(k)) cloud.cfg.tomb[k] = stamp; });
+      saveCloud();
+      syncSoon(500);
+    }
     var when = obj && obj.exported ? Date.parse(obj.exported) : NaN;
     setMeta({ lastBackup: isNaN(when) ? Date.now() : when });
     closeSheet();
@@ -3585,8 +3640,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   }
   function confirmErase() {
     var body = el("div", "help");
-    body.innerHTML = "<p>This deletes every log, weigh-in, favorite and setting on this phone. It can't be undone.</p><p>Back up first if you might want them later.</p>";
+    var dw = deviceWord(), synced = syncOn();
+    body.innerHTML = "<p>This deletes every log, weigh-in, favorite and setting on this " + dw + ". It can't be undone.</p>" +
+      (synced ? "<p>Sync turns off on this " + dw + " first, so the copy on GitHub and your other devices keep everything.</p>" : "<p>Back up first if you might want them later.</p>");
     var erase = button("btn danger", "Erase everything", function () {
+      if (syncOn()) stopSync();
       state.docs = new Map();
       normCache = new WeakMap();
       saveLocal();
@@ -3603,6 +3661,364 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     });
     var first = button("btn ghost", "Back up first", function () { closeSheet(); backupNow(); });
     openSheet("Erase all data?", body, [erase, first]);
+  }
+
+  // ---------- Sync (home-screen app) ----------
+  // One file, cheat-points.json, in a private GitHub repository you own. Each device keeps a full copy and merges
+  // with that file: for every entry the newest change wins, and deletions are remembered so they reach the others.
+  var CLOUD_KEY = "cheat-points-sync", CLOUD_FILE = "cheat-points.json", CLOUD_API = "https://api.github.com";
+  var CLOUD_IDLE = 2500, CLOUD_EVERY = 5 * 60 * 1000, CLOUD_FOCUS = 20 * 1000, TOMB_DAYS = 120;
+  var cloud = { cfg: loadCloud(), busy: null, again: false, timer: null, lastTry: 0, err: null, pulled: false };
+
+  function loadCloud() {
+    var o = null;
+    try { o = JSON.parse(window.localStorage.getItem(CLOUD_KEY) || "null"); } catch (e) { o = null; }
+    if (!o || typeof o !== "object") o = {};
+    if (!o.tomb || typeof o.tomb !== "object") o.tomb = {};
+    return o;
+  }
+  function saveCloud() { try { window.localStorage.setItem(CLOUD_KEY, JSON.stringify(cloud.cfg)); } catch (e) { /* sync settings are per device */ } }
+  function syncOn() { return IS_PWA && state.mode === "local" && !!(cloud.cfg.repo && cloud.cfg.token); }
+  function deviceName() { return /iPhone/.test(navigator.userAgent) ? "iPhone" : ENV.ios ? "iPad" : ENV.android ? "Android" : "computer"; }
+  function deviceWord() { var n = deviceName(); return n === "computer" || n === "iPad" ? n : "phone"; }
+  function stampOf(d) { return d ? (isNum(d.mt) ? d.mt : isNum(d.ts) ? d.ts : 0) : 0; }
+  // Called after every local save or delete.
+  function noteLocalChange(id, deleted) {
+    if (!syncOn()) return;
+    if (deleted) cloud.cfg.tomb[id] = Date.now(); else delete cloud.cfg.tomb[id];
+    saveCloud();
+    syncSoon();
+  }
+  function toB64(str) {
+    var bytes = new TextEncoder().encode(str), bin = "";
+    for (var i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  }
+  function fromB64(b64) {
+    var bin = atob(String(b64).replace(/\s+/g, "")), bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+  function ghFetch(cfg, path, method, body) {
+    var headers = { Authorization: "Bearer " + cfg.token, Accept: "application/vnd.github+json" };
+    if (body) headers["Content-Type"] = "application/json";
+    return fetch(CLOUD_API + path, {
+      method: method || "GET", headers: headers, body: body ? JSON.stringify(body) : undefined,
+      cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer"
+    }).then(function (res) {
+      return res.text().then(function (t) {
+        var j = null;
+        try { j = t ? JSON.parse(t) : null; } catch (e) { j = null; }
+        return { status: res.status, json: j };
+      }, function () { return { status: res.status, json: null }; });
+    }, function () { throw { kind: "net" }; });
+  }
+  function httpErr(r) {
+    var msg = r.json && r.json.message ? String(r.json.message) : "";
+    return { kind: "http", status: r.status, rate: r.status === 429 || (r.status === 403 && /rate limit/i.test(msg)) };
+  }
+  function filePath(cfg) { return "/repos/" + cfg.repo + "/contents/" + CLOUD_FILE; }
+  // Resolves { sha, obj } (obj null when the file isn't there yet).
+  function pullCloud(cfg) {
+    return ghFetch(cfg, filePath(cfg)).then(function (r) {
+      if (r.status === 404) return { sha: "", obj: null };
+      if (r.status !== 200 || !r.json || !r.json.sha) throw httpErr(r);
+      var j = r.json;
+      if (!j.size) return { sha: j.sha, obj: null };
+      // Past 1 MB GitHub leaves out the content; the blob has it.
+      var got = j.encoding === "base64" && j.content ? Promise.resolve(j.content) :
+        ghFetch(cfg, "/repos/" + cfg.repo + "/git/blobs/" + j.sha).then(function (b) {
+          if (b.status !== 200 || !b.json || !b.json.content) throw httpErr(b);
+          return b.json.content;
+        });
+      return got.then(function (c) {
+        var obj = null;
+        try { obj = JSON.parse(fromB64(c)); } catch (e) { obj = null; }
+        if (!obj || obj.app !== "cheat-points" || !obj.docs || typeof obj.docs !== "object") throw { kind: "bad" };
+        return { sha: j.sha, obj: obj };
+      });
+    });
+  }
+  // The file is a normal backup (restorable) plus "deleted". One entry per line keeps GitHub's history readable.
+  function cloudText(docs, tomb) {
+    var head = JSON.stringify({ app: "cheat-points", format: 1, exported: new Date().toISOString(), version: APP_VERSION, device: deviceName() });
+    var ids = Array.from(docs.keys()).filter(function (k) { return ID_RE.test(k); }).sort();
+    var del = {};
+    Object.keys(tomb).sort().forEach(function (k) { del[k] = tomb[k]; });
+    return head.slice(0, -1) + ',\n"docs":{\n' + ids.map(function (k) { return JSON.stringify(k) + ":" + JSON.stringify(docs.get(k)); }).join(",\n") +
+      '\n},\n"deleted":' + JSON.stringify(del) + "}\n";
+  }
+  // Resolves the new sha, or "" when the file changed since it was read.
+  function pushCloud(cfg, docs, tomb, sha) {
+    var body = { message: "Sync from " + deviceName(), content: toB64(cloudText(docs, tomb)) };
+    if (sha) body.sha = sha;
+    return ghFetch(cfg, filePath(cfg), "PUT", body).then(function (r) {
+      if ((r.status === 200 || r.status === 201) && r.json && r.json.content && r.json.content.sha) return r.json.content.sha;
+      if (r.status === 409 || r.status === 422) return "";
+      throw httpErr(r);
+    });
+  }
+  function cleanTombs(o) {
+    var out = {};
+    if (o && typeof o === "object") Object.keys(o).forEach(function (k) { if (ID_RE.test(k) && isNum(o[k]) && o[k] > 0) out[k] = o[k]; });
+    return out;
+  }
+  function mergeCloud(local, ltomb, remote, rtomb) {
+    var ids = {}, docs = new Map(), tomb = {}, cutoff = Date.now() - TOMB_DAYS * 86400000;
+    local.forEach(function (v, k) { ids[k] = 1; });
+    [remote, ltomb, rtomb].forEach(function (o) { Object.keys(o).forEach(function (k) { ids[k] = 1; }); });
+    Object.keys(ids).sort().forEach(function (id) {
+      var a = local.get(id), b = remote[id];
+      var doc = !a ? b : !b ? a : stampOf(b) > stampOf(a) ? b : a;
+      var t = Math.max(ltomb[id] || 0, rtomb[id] || 0);
+      if (t && (!doc || t >= stampOf(doc))) { if (t > cutoff) tomb[id] = t; return; }
+      if (doc) docs.set(id, doc);
+    });
+    return { docs: docs, tomb: tomb };
+  }
+  function docsCanon(docs) {
+    var isMap = docs instanceof Map, ids = isMap ? Array.from(docs.keys()) : Object.keys(docs);
+    return JSON.stringify(ids.sort().map(function (k) { return [k, isMap ? docs.get(k) : docs[k]]; }));
+  }
+  function tombCanon(t) { return JSON.stringify(Object.keys(t).sort().map(function (k) { return [k, t[k]]; })); }
+  function runCloud(cfg, attempt) {
+    return pullCloud(cfg).then(function (rem) {
+      if (cfg !== cloud.cfg) throw { kind: "stopped" };
+      var rdocs = rem.obj ? cleanBackup(rem.obj) || {} : {}, rtomb = cleanTombs(rem.obj && rem.obj.deleted);
+      var m = mergeCloud(state.docs, cfg.tomb, rdocs, rtomb);
+      var merged = docsCanon(m.docs);
+      if (merged !== docsCanon(state.docs)) {
+        var prev = state.docs;
+        state.docs = m.docs;
+        normCache = new WeakMap();
+        if (!saveLocal()) { state.docs = prev; normCache = new WeakMap(); throw { kind: "local" }; }
+        renderAll();
+        cloud.pulled = true;
+        if (cfg.last) toast("Updated from your other device");
+      }
+      cfg.tomb = m.tomb;
+      saveCloud();
+      if (rem.obj && merged === docsCanon(rdocs) && tombCanon(m.tomb) === tombCanon(rtomb)) return;
+      return pushCloud(cfg, m.docs, m.tomb, rem.sha).then(function (sha) {
+        if (sha) return;
+        // Another device saved in between: read it again and merge.
+        if (attempt >= 3) throw { kind: "conflict" };
+        return sleep(500 + attempt * 800).then(function () { return runCloud(cfg, attempt + 1); });
+      });
+    });
+  }
+  function syncNow(manual) {
+    if (!syncOn()) return Promise.resolve(false);
+    if (cloud.busy) { cloud.again = true; return cloud.busy; }
+    clearTimeout(cloud.timer);
+    cloud.timer = null;
+    cloud.lastTry = Date.now();
+    cloud.pulled = false;
+    var cfg = cloud.cfg;
+    cloud.busy = runCloud(cfg, 0).then(function () {
+      cfg.last = Date.now();
+      if (cfg === cloud.cfg) saveCloud();
+      setCloudErr(null);
+      return true;
+    }, function (e) {
+      if (e && e.kind === "stopped") return false;
+      setCloudErr(e);
+      if (manual) toast(cloudErrText(e));
+      return false;
+    }).then(function (ok) {
+      cloud.busy = null;
+      renderCloudStatus();
+      if (cloud.again) { cloud.again = false; syncSoon(300); }
+      return ok;
+    });
+    renderCloudStatus();
+    return cloud.busy;
+  }
+  function syncSoon(ms) {
+    if (!syncOn()) return;
+    if (cloud.busy) { cloud.again = true; return; }
+    clearTimeout(cloud.timer);
+    cloud.timer = setTimeout(function () { cloud.timer = null; syncNow(false); }, ms == null ? CLOUD_IDLE : ms);
+  }
+  function cloudFatal(e) { return !!e && (e.kind === "bad" || e.kind === "public" || e.status === 401 || e.status === 404 || (e.status === 403 && !e.rate)); }
+  function setCloudErr(e) {
+    var was = cloudFatal(cloud.err);
+    cloud.err = e || null;
+    if (was !== cloudFatal(cloud.err)) renderNotes();
+  }
+  function cloudErrText(e) {
+    var k = e && e.kind, s = e && e.status;
+    if (k === "net") return navigator.onLine === false ? "You're offline. It syncs when you're back online." : "Couldn't reach GitHub. It'll try again.";
+    if (k === "public") return "That repository is public, so anyone could read your logs. Make it private on GitHub, or use a new private one.";
+    if (k === "bad") return "The cheat-points.json in that repository isn't a Cheat Points file. Use a new repository.";
+    if (k === "conflict") return "Couldn't finish syncing. Tap Sync now to try again.";
+    if (k === "local") return "Couldn't save on this " + deviceWord() + ". Storage is full or blocked.";
+    if (s === 401) return "GitHub didn't accept the token. It may have expired. Make a new one and enter it below.";
+    if (s === 403 && e.rate) return "GitHub's hourly limit was reached. It'll try again later.";
+    if (s === 403) return "The token can't save to that repository. Give it Contents: Read and write.";
+    if (s === 404) return "Can't find that repository with this token. Check the name, and that the token includes it.";
+    return "GitHub had a problem" + (s ? " (" + s + ")" : "") + ". It'll try again.";
+  }
+  function whenText(ms) {
+    var d = new Date(ms), time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    return isoDate(d) === today() ? "at " + time : d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + ", " + time;
+  }
+  function cloudStatusText() {
+    var c = cloud.cfg;
+    if (!syncOn()) return "Off. Connect a private GitHub repository to use the same logs on your phone and computer.";
+    var t = "On with " + c.repo + ". ";
+    if (cloud.busy) return t + "Syncing…";
+    if (cloud.err) return t + cloudErrText(cloud.err);
+    return t + (c.last ? "Last synced " + whenText(c.last) + "." : "Not synced yet.");
+  }
+  function renderCloudStatus() {
+    var b = $("syncBlock");
+    if (!b) return;
+    b.hidden = !(IS_PWA && state.mode === "local");
+    if (b.hidden) return;
+    var on = syncOn(), fatal = on && cloudFatal(cloud.err);
+    $("syncStatus").textContent = cloudStatusText();
+    $("syncStatus").classList.toggle("bad", fatal);
+    $("syncSetup").hidden = on && !fatal;
+    $("syncLinked").hidden = !on;
+    $("syncConnect").textContent = on ? "Update token" : "Connect";
+    $("syncBtn").disabled = !!cloud.busy;
+    if (on && !$("syncRepo").value && document.activeElement !== $("syncRepo")) $("syncRepo").value = cloud.cfg.repo;
+  }
+  function cleanRepo(s) {
+    s = String(s || "").trim().replace(/^https?:\/\//i, "").replace(/^(www\.)?github\.com\//i, "");
+    var p = s.split("/");
+    if (p.length < 2) return "";
+    var owner = p[0], name = p[1].replace(/[?#].*$/, "").replace(/\.git$/i, "");
+    if (!/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/.test(owner) || !/^[A-Za-z0-9._-]{1,100}$/.test(name) || name === "." || name === "..") return "";
+    return owner + "/" + name;
+  }
+  // "Copy setup code" on one device, paste it on the other: fills in both boxes.
+  function onSyncField(e) {
+    var m = /^\s*cpsync:([^\s:]+\/[^\s:]+):([A-Za-z0-9_]+)\s*$/.exec(e.target.value || "");
+    if (!m) return;
+    $("syncRepo").value = m[1];
+    $("syncToken").value = m[2];
+    toast("Setup code filled in. Tap Connect.");
+  }
+  function connectSync() {
+    var repo = cleanRepo($("syncRepo").value), token = $("syncToken").value.trim();
+    if (!repo) { toast("Enter the repository as owner/name, like your-name/cheat-points-data."); return; }
+    if (!/^[A-Za-z0-9_]{30,255}$/.test(token)) { toast("Paste the access token from GitHub."); return; }
+    var same = syncOn() && repo.toLowerCase() === String(cloud.cfg.repo).toLowerCase();
+    var cfg = { repo: repo, token: token, tomb: same ? cloud.cfg.tomb : {}, last: same ? cloud.cfg.last || 0 : 0 };
+    var btn = $("syncConnect");
+    btn.disabled = true;
+    btn.textContent = "Checking…";
+    ghFetch(cfg, "/repos/" + repo).then(function (r) {
+      if (r.status !== 200 || !r.json) throw httpErr(r);
+      if (r.json.private !== true) throw { kind: "public" };
+      if (typeof r.json.full_name === "string" && cleanRepo(r.json.full_name)) cfg.repo = r.json.full_name;
+      return pullCloud(cfg);
+    }).then(function (rem) {
+      $("syncToken").value = "";
+      $("syncRepo").value = cfg.repo;
+      if (same) {
+        cloud.cfg = cfg;
+        saveCloud();
+        setCloudErr(null);
+        return syncNow(true).then(function (ok) { if (ok) toast("Token updated. Synced."); });
+      }
+      var rdocs = rem.obj ? cleanBackup(rem.obj) || {} : {};
+      if (!Object.keys(rdocs).length) return beginSync(cfg, null);
+      if (!state.docs.size) return beginSync(cfg, rdocs);
+      chooseFirstSync(cfg, rdocs);
+    }).catch(function (e) {
+      toast(cloudErrText(e && e.kind ? e : { kind: "net" }));
+    }).then(function () {
+      btn.disabled = false;
+      renderCloudStatus();
+    });
+  }
+  // rdocs: take GitHub's copy in place of this device's data. null: combine both.
+  function beginSync(cfg, rdocs) {
+    if (rdocs) {
+      var prev = state.docs;
+      state.docs = new Map(Object.keys(rdocs).map(function (k) { return [k, rdocs[k]]; }));
+      normCache = new WeakMap();
+      if (!saveLocal()) { state.docs = prev; normCache = new WeakMap(); toast("Couldn't save on this " + deviceWord() + "."); return Promise.resolve(false); }
+      state.drafts = {};
+      saveDrafts();
+      requestPersist();
+      selectDay(today(), { scroll: "end" });
+      renderAll();
+    }
+    cloud.cfg = cfg;
+    saveCloud();
+    setCloudErr(null);
+    closeSheet();
+    renderSettingsTab(false);
+    return syncNow(true).then(function (ok) {
+      if (ok) toast(rdocs ? "Loaded your logs from GitHub" : "Sync is on");
+      renderAll();
+      return ok;
+    });
+  }
+  function chooseFirstSync(cfg, rdocs) {
+    var here = {};
+    state.docs.forEach(function (v, k) { here[k] = v; });
+    var r = summarize(rdocs), h = summarize(here), dw = deviceWord();
+    function count(n, word) { return "<b>" + n + "</b> " + word + (n === 1 ? "" : "s"); }
+    var body = el("div", "help");
+    body.innerHTML = "<p>GitHub already has " + count(r.days, "logged day") + " and " + count(r.weighs, "weigh-in") +
+      (r.first ? ", " + esc(fmtShort(r.first)) + " to " + esc(fmtShort(r.last)) : "") + ". This " + dw + " has " + count(h.days, "day") + " and " + count(h.weighs, "weigh-in") + ".</p>" +
+      "<p><b>Use GitHub's copy</b> replaces what's on this " + dw + ". <b>Combine</b> keeps both, using the newest copy of anything that's in both.</p>";
+    var fresh = !h.days && !h.weighs;
+    var use = button(fresh ? "btn primary" : "btn ghost", "Use GitHub's copy", function () { beginSync(cfg, rdocs); });
+    var both = button(fresh ? "btn ghost" : "btn primary", "Combine", function () { beginSync(cfg, null); });
+    var cancel = button("btn ghost", "Cancel", closeSheet);
+    openSheet("Sync with GitHub", body, fresh ? [use, both, cancel] : [both, use, cancel]);
+  }
+  function stopSync() {
+    clearTimeout(cloud.timer);
+    cloud.timer = null;
+    cloud.cfg = { tomb: {} };
+    cloud.err = null;
+    saveCloud();
+    if ($("syncRepo")) { $("syncRepo").value = ""; $("syncToken").value = ""; }
+    renderCloudStatus();
+    renderNotes();
+  }
+  function confirmDisconnect() {
+    var dw = deviceWord(), body = el("div", "help");
+    body.innerHTML = "<p>This " + dw + " stops syncing. It keeps its data, and the copy on GitHub stays as it is.</p>";
+    var off = button("btn danger", "Disconnect", function () {
+      closeSheet();
+      (cloud.timer ? syncNow(false) : Promise.resolve()).then(function () { stopSync(); toast("Sync is off on this " + dw); });
+    });
+    openSheet("Turn off sync?", body, [off, button("btn ghost", "Cancel", closeSheet)]);
+  }
+  function copySetupCode() {
+    if (!syncOn()) return;
+    var code = "cpsync:" + cloud.cfg.repo + ":" + cloud.cfg.token;
+    function show() {
+      var body = el("div", "help");
+      body.innerHTML = "<p>Paste this into the token box under Sync on your other device. It includes your token, so treat it like a password.</p>";
+      var inp = document.createElement("input");
+      inp.type = "text";
+      inp.readOnly = true;
+      inp.value = code;
+      inp.setAttribute("aria-label", "Setup code");
+      inp.addEventListener("focus", function () { inp.select(); });
+      body.appendChild(inp);
+      openSheet("Setup code", body, [button("btn ghost", "Done", closeSheet)]);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(function () { toast("Setup code copied. It includes your token, so treat it like a password."); }, show);
+    } else show();
+  }
+  function openSyncSettings() {
+    closeSheet();
+    showTab("settings");
+    setTimeout(function () {
+      var b = $("syncBlock");
+      if (b && !b.hidden) b.scrollIntoView({ block: "start", behavior: reduceMotion ? "auto" : "smooth" });
+    }, 60);
   }
 
   // ---------- Home-screen app ----------
@@ -3811,6 +4227,20 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   $("installBtn").addEventListener("click", promptInstall);
   $("updateBtn").addEventListener("click", function () { checkForUpdate(true); });
   $("eraseBtn").addEventListener("click", confirmErase);
+  $("syncConnect").addEventListener("click", connectSync);
+  $("syncBtn").addEventListener("click", function () { syncNow(true).then(function (ok) { if (ok && !cloud.pulled) toast("Synced"); }); });
+  $("syncCode").addEventListener("click", copySetupCode);
+  $("syncOff").addEventListener("click", confirmDisconnect);
+  ["syncRepo", "syncToken"].forEach(function (id) { $(id).addEventListener("input", onSyncField); });
+  // Sync: when the app comes back, every few minutes while it's open, and right away when it's put away with changes waiting.
+  document.addEventListener("visibilitychange", function () {
+    if (!syncOn()) return;
+    if (document.hidden) { if (cloud.timer) syncNow(false); return; }
+    if (Date.now() - cloud.lastTry > CLOUD_FOCUS) syncNow(false);
+  });
+  window.addEventListener("pagehide", function () { if (syncOn() && cloud.timer) syncNow(false); });
+  window.addEventListener("online", function () { if (syncOn()) syncNow(false); });
+  setInterval(function () { if (syncOn() && !document.hidden && Date.now() - cloud.lastTry > CLOUD_EVERY) syncNow(false); }, 60 * 1000);
 
   window.addEventListener("beforeinstallprompt", function (e) {
     e.preventDefault();
@@ -3832,6 +4262,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   // Another tab or window changed the saved data: pick it up.
   window.addEventListener("storage", function (e) {
     if (e.key === DRAFT_KEY) { state.drafts = loadDrafts(); renderStrip("none"); return; }
+    if (e.key === CLOUD_KEY) { cloud.cfg = loadCloud(); renderCloudStatus(); renderNotes(); return; }
     if (e.key !== LS_KEY || state.mode !== "local") return;
     loadLocal();
     normCache = new WeakMap();
@@ -3839,7 +4270,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   });
   // On phones, hide the tab bar while the keyboard is up so it can't cover what you're typing.
   var coarse = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
-  function isTypingField(t) { return t && ((t.tagName === "INPUT" && /^(number|text|date)$/.test(t.type)) || t.tagName === "SELECT"); }
+  function isTypingField(t) { return t && ((t.tagName === "INPUT" && /^(number|text|date|password)$/.test(t.type)) || t.tagName === "SELECT"); }
   document.addEventListener("focusin", function (e) { if (coarse && isTypingField(e.target)) document.documentElement.classList.add("typing"); });
   document.addEventListener("focusout", function () {
     setTimeout(function () { if (!isTypingField(document.activeElement)) document.documentElement.classList.remove("typing"); }, 80);
@@ -3853,6 +4284,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 
   function afterLoad() {
     if (state.mode === "local" && IS_PWA && hasAnyDays()) requestPersist();
+    if (syncOn()) syncNow(false);
     maybeWelcome();
     handleGo();
   }
