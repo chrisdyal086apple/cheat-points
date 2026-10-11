@@ -968,6 +968,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   .rtabs { gap: 4px; }
   .rtabs button { font-size: 0.7rem; padding: 0 1px; }
 }
+
+/* Redeem: under-plan calories for the picked day */
+.rbankwrap { display: grid; gap: 4px; }
+.rextra { margin: 0; color: var(--muted); font-size: 0.9rem; font-weight: 600; }
+.rextra.on { font-family: var(--display); font-weight: 400; font-size: 1.35rem; color: var(--earn); text-shadow: 0 0 8px var(--glow-cyan); }
 </style>
 <div class="statusfill" aria-hidden="true"></div>
 <main class="wrap" id="main">
@@ -1094,12 +1099,14 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     <header class="top">
       <div>
         <h1 class="h1-sm">Redeem</h1>
-        <p class="sub" id="redeemSub"></p>
       </div>
       <button type="button" class="qm qm-lg" data-help="redeem" aria-label="Help: redeeming cheats">?</button>
     </header>
     <div class="rhead">
-      <div class="rbank"><span class="label">Bank</span><span class="rbank-num" id="rBank">0</span><span class="bank-unit">pts</span></div>
+      <div class="rbankwrap">
+        <div class="rbank"><span class="label">Bank</span><span class="rbank-num" id="rBank">0</span><span class="bank-unit">pts</span></div>
+        <p class="rextra" id="rExtra" hidden></p>
+      </div>
       <button type="button" class="btn primary sm" id="cheatAdd">Add a cheat</button>
     </div>
     <div class="rtabs" role="tablist" aria-label="What it replaces">
@@ -1289,7 +1296,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.11.4","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.11.6","profile":null};</script>
 <script>
 (function () {
   "use strict";
@@ -2218,7 +2225,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         "A meal smaller than the plan meal it replaces is free. Snacks and drinks never are, so a beer can't show up as a free lunch.",
         "Faded ones need more than your bank has right now and can't be tapped. If you had one anyway, log it from the <b>Add a cheat…</b> list in the log.",
         "Tap one to add it to the log for the day picked on the strip, already set to that meal. Save the day to redeem it.",
-        "Points count what's already in that day's log: a skipped meal lowers them, and a meal you've already replaced means a second one costs in full.",
+        "Skipped or smaller meals in that day's log show under the bank as extra points, for that day only. A meal you've already replaced means a second one costs in full.",
         "<b>Add a cheat</b> saves one ahead of time: name, calories, Meal, Snack or Drink, and whether the calories are posted. For a meal, <b>Usually for</b> marks the meals you tend to have it for; for a snack or drink, <b>Favorite</b> marks it. Either way it gets a ★ on those tabs. <b>Edit cheats</b> lets you change or remove any. You can also name an off-plan entry in the log and tap <b>Save cheat</b>."
       ]);
     } },
@@ -2633,6 +2640,12 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   // What a cheat would add to the picked day's cost eaten as meal ("extra" for a snack or drink), counting
   // what's already in that day's log: a skipped or smaller meal offsets it, and a meal that's already been
   // replaced means it costs in full. Never below 0: a cheat smaller than the meal is free.
+  // A cheat's own cost on the picked day, before any under-plan calories (those show as extra points).
+  function favCostFor(fv, rows, meal) {
+    var before = netSpent(foodRows(rows)).cost;
+    var after = netSpent(foodRows(rows.concat([{ meal: meal, kcal: fv.kcal, qty: 1, posted: fv.posted !== false }]))).cost;
+    return Math.max(0, after - before);
+  }
   function favNeedFor(fv, rows, meal) {
     var before = netSpent(foodRows(rows)).spent;
     var after = netSpent(foodRows(rows.concat([{ meal: meal, kcal: fv.kcal, qty: 1, posted: fv.posted !== false }]))).spent;
@@ -2672,17 +2685,18 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     });
     var date = state.logDate;
     var rows = picked("plan") === "no" ? state.food : [];
-    var left = netSpent(foodRows(rows)).left;
-    $("redeemSub").textContent = (tab === "snack" ? "Snacks" : tab === "drink" ? "Drinks" : "Meals") + (favOnly ? " you starred," : "") +
-      " by the points they need" + (mealTab ? " in place of " + tab : "") + ". " +
-      "Tap one to add it to " + (date === today() ? "today's log." : "the log for " + fmtDay(date) + ".") +
-      (left ? " Counts the " + fmt(left) + " unused plan calories already in that log." : "");
+    // Calories under plan in the picked day's log (skipped or smaller meals) are extra points for that day only.
+    var left = netSpent(foodRows(rows)).left, avail = bank + left;
+    var dayTxt = date === today() ? "today" : fmtShort(date);
+    $("rExtra").hidden = !left && date === today();
+    $("rExtra").textContent = left ? "+" + fmt(left) + " under plan " + dayTxt : "For " + fmtDay(date);
+    $("rExtra").classList.toggle("on", !!left);
     var list = $("redeemList");
     list.textContent = "";
     var all = favorites();
     var inTab = all.filter(function (fv) { return cheatType(fv) === (mealTab ? "meal" : tab); });
     var items = inTab.filter(function (fv) { return !favOnly || starredFor(fv, tab); }).map(function (fv) {
-      return { fv: fv, need: favNeedFor(fv, rows, meal) };
+      return { fv: fv, need: favCostFor(fv, rows, meal) };
     }).sort(function (a, b) {
       if (a.need !== b.need) return a.need - b.need;
       var x = favKey(a.fv.name), y = favKey(b.fv.name);
@@ -2697,21 +2711,21 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       return;
     }
     items.forEach(function (it) {
-      var fv = it.fv, need = it.need, ok = need === 0 || need <= bank;
+      var fv = it.fv, need = it.need, ok = need === 0 || need <= avail;
       var li = el("li");
       var b = el("button", "ritem " + (ok ? "ok" : "short"));
       b.type = "button";
       b.disabled = state.readOnly || !ok;   // only what the bank covers can be redeemed
       var star = starredFor(fv, tab);
-      b.setAttribute("aria-label", (star ? (mealTab ? "Usually for " + tab + ": " : "Favorite: ") : "") + fv.name + ", needs " + fmt(need) + " points" + (ok ? ". Add to the log." : ", " + fmt(need - bank) + " short"));
+      b.setAttribute("aria-label", (star ? (mealTab ? "Usually for " + tab + ": " : "Favorite: ") : "") + fv.name + ", needs " + fmt(need) + " points" + (ok ? ". Add to the log." : ", " + fmt(need - avail) + " short"));
       var rn = el("span", "rn");
       if (star) rn.appendChild(el("span", "rstar", "★ "));
       rn.appendChild(document.createTextNode(fv.name));
       b.appendChild(rn);
-      b.appendChild(el("span", "rs", fmt(fv.kcal) + " cal" + (fv.posted === false ? " +25%" : "") + (need === 0 && !snack ? " · under your plan " + tab : "")));
+      b.appendChild(el("span", "rs", fmt(fv.kcal) + " cal" + (fv.posted === false ? " +25%" : "")));
       var v = el("span", "rv");
       v.appendChild(el("span", "rp", fmt(need)));
-      v.appendChild(el("span", "rq", !ok ? fmt(need - bank) + " short" : need === 0 ? "free" : "pts"));
+      v.appendChild(el("span", "rq", !ok ? fmt(need - avail) + " short" : need === 0 ? "free" : "pts"));
       b.appendChild(v);
       b.addEventListener("click", function () { redeemFavorite(fv.id, meal); });
       li.appendChild(b);
@@ -3441,8 +3455,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         if (fd.skip) {
           els.cost.textContent = "0";
           els.cost.classList.add("zero");
-          els.how.textContent = base ? "Frees " + fmt(base) + " plan " + MEAL_INFO[fd.meal].short + " calories to offset today's cheats. Earns no points." :
-            "Your plan " + MEAL_INFO[fd.meal].short + " is already counted above, so this frees nothing.";
+          els.how.textContent = base ? fmt(base) + " under plan · Eat a snack; don't overeat at another meal." : "Plan " + MEAL_INFO[fd.meal].short + " already counted above";
           return;
         }
         // The cost depends on the meal it replaced, so it waits until one is picked.
@@ -3451,7 +3464,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         var q = qtyOf(fd), dup = kc && fd.meal && fd.meal !== "extra" && r && !base;
         els.how.textContent = kc && fd.meal && (q > 1 || fd.posted === false || base || dup)
           ? (q > 1 ? q + " × " + fmt(kc) : fmt(kc)) + (fd.posted === false ? " + 25%" : "") + (base ? " − " + fmt(base) + " plan " + MEAL_INFO[fd.meal].short : "") +
-            (r && r.credit ? ". The " + fmt(r.credit) + " left offsets today's cheats." : "") + (dup ? " (plan " + MEAL_INFO[fd.meal].short + " already counted above)" : "")
+            (r && r.credit ? " · " + fmt(r.credit) + " under plan" : "") + (dup ? " (plan " + MEAL_INFO[fd.meal].short + " already counted above)" : "")
           : "";
         var saved = kc && String(fd.name || "").trim() && isFavorite({ name: fd.name, kcal: Math.round(kc), meal: fd.meal, posted: fd.posted !== false });
         els.fav.textContent = saved ? "★ Cheat" : "Save cheat";
@@ -3493,16 +3506,16 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 
     var warns = [];
     var lostLate = lateNow && fresh.total > day.activityPts;
-    if (lostLate) warns.push({ kind: "info", text: "It's past noon the day after, so added activity earns nothing. Off-plan food still counts.", help: "logging" });
+    if (lostLate) warns.push({ kind: "info", text: "Past noon the next day, so new activity earns nothing. Food still counts.", help: "logging" });
     if (ready() && shown) {
       var W = basis.weight;
       var std = stdActivity(day);
       var intake = planKcal() + intakeDelta(day, 0);
       var deficit = maintenance(W) + BURN_PER_PT * std - intake;
-      if (std > BIG_DAY) warns.push({ kind: "warn", text: "Big activity day. That's fine now and then, but long sessions are where burn estimates run high, and joints need time to adapt. Work up to days like this.", help: "warnings" });
-      if (deficit > DEFICIT_PER_LB * W) warns.push({ kind: "warn", text: "Estimated deficit is about " + fmt(near50(deficit)) + " today, past the 1%-a-week pace of about " + fmt(near50(5 * W)) + " a day. Eating some of today's points is fine.", help: "warnings" });
-      if (day.food.length && intake < floorKcal()) warns.push({ kind: "warn", text: "Estimated intake is about " + fmt(near50(intake)) + ", under the " + fmt(floorKcal()) + " floor. Eat the rest of your plan meals.", help: "warnings" });
-      if (day.spent > BIG_FOOD) warns.push({ kind: "info", text: "Over " + fmt(BIG_FOOD) + " off plan today. Expect the scale to jump 2–5 lb from water for a few days. Get right back on plan tomorrow.", help: "warnings" });
+      if (std > BIG_DAY) warns.push({ kind: "warn", text: "Big activity day. Fine now and then; work up to days like this.", help: "warnings" });
+      if (deficit > DEFICIT_PER_LB * W) warns.push({ kind: "warn", text: "Deficit about " + fmt(near50(deficit)) + " today, past the 1%-a-week pace (" + fmt(near50(5 * W)) + "). Eating some points is fine.", help: "warnings" });
+      if (day.food.length && intake < floorKcal()) warns.push({ kind: "warn", text: "Intake about " + fmt(near50(intake)) + ", under your " + fmt(floorKcal()) + " floor. Eat the rest of your plan meals.", help: "warnings" });
+      if (day.spent > BIG_FOOD) warns.push({ kind: "info", text: "Over " + fmt(BIG_FOOD) + " off plan. Expect a 2–5 lb water jump for a few days.", help: "warnings" });
     }
     renderNoteList($("dayWarns"), warns);
 
@@ -3804,10 +3817,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var ws = weighStatus();
     if (ws.status && ws.status[0] === "warn") notes.push({ kind: "warn", text: ws.status[1], help: "weigh" });
     var bank = currentBank();
-    if (bank < 0) notes.push({ kind: "warn", text: "Bank is in the red by " + fmt(-bank) + ". The next cheat waits until you're back to 0.", help: "bank" });
-    else if (bank > BIG_BANK) notes.push({ kind: "info", text: "Bank is past " + fmt(BIG_BANK) + ". Saving up for an event is fine; regular cheats are easier to bounce back from than one huge one.", help: "bank" });
+    if (bank > BIG_BANK) notes.push({ kind: "info", text: "Bank is past " + fmt(BIG_BANK) + ". Regular cheats are easier to bounce back from than one huge one.", help: "bank" });
     var ramp = rampUp();
-    if (ramp) notes.push({ kind: "warn", text: "Activity is up " + ramp + "% on your previous two weeks. Ramp up gradually; feet and knees adapt slower than your lungs.", help: "warnings" });
+    if (ramp) notes.push({ kind: "warn", text: "Activity is up " + ramp + "% on your previous two weeks. Ramp up gradually.", help: "warnings" });
     return notes;
   }
   function renderNotes() {
