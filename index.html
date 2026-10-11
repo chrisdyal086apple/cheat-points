@@ -1296,7 +1296,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.11.6","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.11.7","profile":null};</script>
 <script>
 (function () {
   "use strict";
@@ -1338,9 +1338,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     breakfast: { label: "Different breakfast", short: "breakfast" },
     lunch: { label: "Different lunch", short: "lunch" },
     dinner: { label: "Different dinner", short: "dinner" },
-    extra: { label: "Extra food or drinks", short: "extra" }
+    extra: { label: "Extra food", short: "extra" },
+    drink: { label: "Drink", short: "drink" }
   };
-  var MEAL_ORDER = ["breakfast", "lunch", "dinner", "extra"];
+  var MEAL_ORDER = ["breakfast", "lunch", "dinner", "extra", "drink"];
+  function isPlanMeal(m) { return MEAL_KEYS.indexOf(m) >= 0; }
   var EFFORTS = [
     { id: "light", name: "Light", feel: "Easy breathing.", ex: "Bowling, golf with a cart, an easy bike ride, light yard work." },
     { id: "moderate", name: "Moderate", feel: "You can talk but not sing.", ex: "Doubles tennis, pickleball, hiking, golf on foot, swimming, mowing." },
@@ -1527,7 +1529,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   function planKcal() { return profile().planKcal || 0; }
   function floorKcal() { return profile().sex === "female" ? 1200 : 1500; }
   function mealKcal(meal) {
-    if (!MEAL_INFO[meal] || meal === "extra") return 0;
+    if (!isPlanMeal(meal)) return 0;
     var v = profile().meals[meal];
     return isNum(v) ? v : 0;
   }
@@ -1536,6 +1538,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   function foodEst(f) { var kc = (+f.kcal || 0) * Math.max(1, Math.round(+f.qty || 1)); return isNum(f.est) ? f.est : Math.round(f.posted === false ? kc * NO_LABEL : kc); }
   function foodDelta(f) { return foodEst(f) - foodBase(f); }
   function foodCost(f) { return isNum(f.cost) ? f.cost : Math.max(0, foodDelta(f)); }
+  // A netted day's food cost: unused plan calories offset food, never below 0. Drinks always cost in full.
+  function netDayCost(food) {
+    var eat = food.filter(function (f) { return f.meal !== "drink"; }), drink = food.filter(function (f) { return f.meal === "drink"; });
+    return Math.max(0, sum(eat, foodDelta)) + sum(drink, foodCost);
+  }
 
   // ---------- Day records ----------
   // A day holds what was logged for it: a workout, the step total, cardio, other activity, and any off-plan
@@ -1550,8 +1557,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     day.activityPts = sum(day.acts, function (x) { return x.pts || 0; }) + (day.steps ? day.steps.pts || 0 : 0);
     day.bonus = day.onPlan && !day.late ? Math.round(ON_PLAN_BONUS * rateK(day.tight)) : 0;
     // Days saved since skipped meals arrived net the day: unused plan calories (a skipped or smaller meal)
-    // offset that day's off-plan cost, never below 0. Older days keep the costs they were saved with.
-    day.spent = day.netFood ? Math.max(0, sum(day.food, foodDelta)) : sum(day.food, foodCost);
+    // offset that day's off-plan food, never below 0, but not drinks. Older days keep their saved costs.
+    day.spent = day.netFood ? netDayCost(day.food) : sum(day.food, foodCost);
     day.pts = day.activityPts + day.bonus;
     return day;
   }
@@ -1620,15 +1627,16 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     return rows.map(function (x) {
       if (!x || !MEAL_INFO[x.meal] || !(x.skip || num(x.kcal) > 0)) return null;
       var base = 0;
-      if (x.meal !== "extra" && !used[x.meal]) { base = formFoodBase(x); used[x.meal] = true; }
+      if (isPlanMeal(x.meal) && !used[x.meal]) { base = formFoodBase(x); used[x.meal] = true; }
       var est = formFoodEst(x);
-      return { base: base, est: est, cost: Math.max(0, est - base), credit: Math.max(0, base - est) };
+      return { base: base, est: est, cost: Math.max(0, est - base), credit: Math.max(0, base - est), drink: x.meal === "drink" };
     });
   }
+  // Under-plan calories offset food, not drinks.
   function netSpent(fr) {
-    var cost = 0, credit = 0;
-    fr.forEach(function (r) { if (r) { cost += r.cost; credit += r.credit; } });
-    return { cost: cost, credit: credit, spent: Math.max(0, cost - credit), off: Math.min(cost, credit), left: Math.max(0, credit - cost) };
+    var cost = 0, credit = 0, drinks = 0;
+    fr.forEach(function (r) { if (!r) return; if (r.drink) drinks += r.cost; else { cost += r.cost; credit += r.credit; } });
+    return { cost: cost + drinks, credit: credit, spent: Math.max(0, cost - credit) + drinks, off: Math.min(cost, credit), left: Math.max(0, credit - cost) };
   }
   // The day as it would be saved from form f, given the saved day prev (or none).
   function buildDay(prev, f, date, now) {
@@ -2118,9 +2126,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       var meals = c.ok ? "breakfast " + fmt(m.breakfast) + ", lunch " + fmt(m.lunch) + ", dinner " + fmt(m.dinner) : "set your plan meals in Settings";
       return ul([
         "Answer every day. <b>Yes</b> means you ate only your plan meals.",
-        "<b>No</b>: add each meal you swapped and each extra meal, snack or drink. Each one starts at <i>Select an option</i>: pick which meal it replaced, or Extra.",
+        "<b>No</b>: add each meal you swapped and each extra meal, snack or drink. Each one starts at <i>Select an option</i>: pick which meal it replaced, Extra food, or Drink.",
         "A different meal costs its calories minus the plan meal it replaced (" + meals + "). Extras cost their full calories.",
-        "<b>Skipped a meal?</b> Pick <i>Skipped breakfast</i>, lunch or dinner. It earns no points, but its plan calories offset that day's cheats. A smaller meal's leftover calories do the same. Nothing carries to another day, and the day never goes below 0 for food.",
+        "<b>Skipped a meal?</b> Pick <i>Skipped breakfast</i>, lunch or dinner. It earns no points, but its plan calories offset that day's food cheats (not drinks). A smaller meal's leftover calories do the same. Nothing carries to another day, and the day never goes below 0 for food.",
         "Each plan meal counts once a day. A second entry for the same meal costs its full calories.",
         "A day with a skipped meal counts as off plan, so it doesn't get the on-plan bonus.",
         "<b>Posted calories</b> means a chain menu, an app or a label. Unchecked adds 25%, since big meals are easy to underestimate.",
@@ -2225,7 +2233,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         "A meal smaller than the plan meal it replaces is free. Snacks and drinks never are, so a beer can't show up as a free lunch.",
         "Faded ones need more than your bank has right now and can't be tapped. If you had one anyway, log it from the <b>Add a cheat…</b> list in the log.",
         "Tap one to add it to the log for the day picked on the strip, already set to that meal. Save the day to redeem it.",
-        "Skipped or smaller meals in that day's log show under the bank as extra points, for that day only. A meal you've already replaced means a second one costs in full.",
+        "Skipped or smaller meals in that day's log show under the bank as extra points, for that day's food only, not drinks. A meal you've already replaced means a second one costs in full.",
         "<b>Add a cheat</b> saves one ahead of time: name, calories, Meal, Snack or Drink, and whether the calories are posted. For a meal, <b>Usually for</b> marks the meals you tend to have it for; for a snack or drink, <b>Favorite</b> marks it. Either way it gets a ★ on those tabs. <b>Edit cheats</b> lets you change or remove any. You can also name an off-plan entry in the log and tap <b>Save cheat</b>."
       ]);
     } },
@@ -2431,7 +2439,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var pref = old ? prefsOf(old) : [];
     if (MEAL_KEYS.indexOf(meal) >= 0 && pref.indexOf(meal) < 0) pref.push(meal);
     var name = f.name.trim().slice(0, 40);
-    var cat = meal !== "extra" ? "meal" : old && cheatType(old) !== "meal" ? cheatType(old) : DRINK_RE.test(name) ? "drink" : "snack";
+    var cat = meal === "drink" ? "drink" : meal !== "extra" ? "meal" : old && cheatType(old) !== "meal" ? cheatType(old) : DRINK_RE.test(name) ? "drink" : "snack";
+    if (cat !== "meal") meal = "extra";
     items.unshift({ id: Date.now().toString(36), name: name, kcal: Math.round(num(f.kcal)), posted: f.posted !== false, meal: meal,
       type: cat === "meal" ? "meal" : "snack", cat: cat, fav: cat !== "meal" && !!(old && old.fav),
       pref: cat === "meal" ? MEAL_KEYS.filter(function (m) { return pref.indexOf(m) >= 0; }) : [] });
@@ -2475,7 +2484,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   function addFavorite(id, meal) {
     var fv = favorites().filter(function (x) { return x.id === id; })[0];
     if (!fv) return -1;
-    var entry = { meal: MEAL_INFO[meal] ? meal : "", kcal: fv.kcal, qty: 1, posted: fv.posted !== false, name: fv.name };
+    var t = cheatType(fv);
+    if (!MEAL_INFO[meal]) meal = t === "drink" ? "drink" : t === "snack" ? "extra" : "";
+    var entry = { meal: meal, kcal: fv.kcal, qty: 1, posted: fv.posted !== false, name: fv.name };
     var at = -1;
     state.food.forEach(function (x, i) { if (!num(x.kcal) && !x.skip && at < 0) at = i; });
     if (at >= 0) state.food[at] = entry; else { state.food.push(entry); at = state.food.length - 1; }
@@ -2673,7 +2684,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     rb.textContent = money(bank);
     rb.classList.toggle("neg", bank < 0);
     var tab = redeemTab(), mealTab = MEAL_KEYS.indexOf(tab) >= 0, snack = !mealTab, favs = redeemFavs(), favOnly = !!favs[tab];
-    var meal = mealTab ? tab : "extra";
+    var meal = mealTab ? tab : tab === "drink" ? "drink" : "extra";
     Array.prototype.forEach.call(document.querySelectorAll(".rtabs button"), function (b) {
       var t = b.getAttribute("data-rt"), on = !!favs[t], cur = t === tab;
       b.setAttribute("aria-selected", cur ? "true" : "false");
@@ -2685,12 +2696,13 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     });
     var date = state.logDate;
     var rows = picked("plan") === "no" ? state.food : [];
-    // Calories under plan in the picked day's log (skipped or smaller meals) are extra points for that day only.
-    var left = netSpent(foodRows(rows)).left, avail = bank + left;
+    // Calories under plan in the picked day's log (skipped or smaller meals) are extra points for that day
+    // only, for food: drinks come from the bank.
+    var left = netSpent(foodRows(rows)).left, drinkTab = tab === "drink", avail = bank + (drinkTab ? 0 : left);
     var dayTxt = date === today() ? "today" : fmtShort(date);
     $("rExtra").hidden = !left && date === today();
-    $("rExtra").textContent = left ? "+" + fmt(left) + " under plan " + dayTxt : "For " + fmtDay(date);
-    $("rExtra").classList.toggle("on", !!left);
+    $("rExtra").textContent = left ? "+" + fmt(left) + " under plan " + dayTxt + (drinkTab ? " · not for drinks" : "") : "For " + fmtDay(date);
+    $("rExtra").classList.toggle("on", !!left && !drinkTab);
     var list = $("redeemList");
     list.textContent = "";
     var all = favorites();
@@ -2748,7 +2760,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         setTimeout(function () { li.classList.remove("flash"); }, 1800);
       }, 60);
     }
-    snack("Added " + fv.name + (meal === "extra" ? " as an extra." : " in place of " + meal + ".") + " Save the day to redeem it.");
+    snack("Added " + fv.name + (meal === "extra" ? " as an extra." : meal === "drink" ? " as a drink." : " in place of " + meal + ".") + " Save the day to redeem it.");
   }
 
   // ---------- Off-plan food in the report ----------
@@ -2785,7 +2797,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       });
       sel.appendChild(sg);
       if (!MEAL_INFO[f.meal]) f.meal = "";
-      if (f.skip && (!f.meal || f.meal === "extra")) f.skip = false;
+      if (f.skip && !isPlanMeal(f.meal)) f.skip = false;
       if (f.meal) sel.value = f.skip ? "skip-" + f.meal : f.meal; else ph.selected = true;
       sel.classList.toggle("need", !f.meal);
       if (f.skip) sel.classList.add("wide");
@@ -3461,7 +3473,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         // The cost depends on the meal it replaced, so it waits until one is picked.
         els.cost.textContent = kc && fd.meal ? (c ? "−" + fmt(c) : "0") : "";
         els.cost.classList.toggle("zero", !c);
-        var q = qtyOf(fd), dup = kc && fd.meal && fd.meal !== "extra" && r && !base;
+        var q = qtyOf(fd), dup = kc && isPlanMeal(fd.meal) && r && !base;
         els.how.textContent = kc && fd.meal && (q > 1 || fd.posted === false || base || dup)
           ? (q > 1 ? q + " × " + fmt(kc) : fmt(kc)) + (fd.posted === false ? " + 25%" : "") + (base ? " − " + fmt(base) + " plan " + MEAL_INFO[fd.meal].short : "") +
             (r && r.credit ? " · " + fmt(r.credit) + " under plan" : "") + (dup ? " (plan " + MEAL_INFO[fd.meal].short + " already counted above)" : "")
@@ -3493,7 +3505,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     $("sumEarn").textContent = plus(day.activityPts);
     $("sumBonusRow").hidden = !day.bonus;
     $("sumBonus").textContent = plus(day.bonus);
-    var ns = netSpent(day.food.map(function (x) { return { cost: foodCost(x), credit: Math.max(0, foodBase(x) - foodEst(x)) }; }));
+    var ns = netSpent(day.food.map(function (x) { return { cost: foodCost(x), credit: Math.max(0, foodBase(x) - foodEst(x)), drink: x.meal === "drink" }; }));
     $("sumFoodRow").hidden = !ns.cost;
     $("sumFood").textContent = ns.cost ? "−" + fmt(ns.cost) : "0";
     $("sumOffRow").hidden = !ns.off;

@@ -1,4 +1,4 @@
-Cheat Points, version 2026.10.11.6
+Cheat Points, version 2026.10.11.7
 
 This folder is the whole app. Put every file here online together (same folder),
 then open the link on your phone and add it to your home screen.
