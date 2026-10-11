@@ -973,9 +973,190 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 .rbankwrap { display: grid; gap: 4px; }
 .rextra { margin: 0; color: var(--muted); font-size: 0.9rem; font-weight: 600; }
 .rextra.on { font-family: var(--display); font-weight: 400; font-size: 1.35rem; color: var(--earn); text-shadow: 0 0 8px var(--glow-cyan); }
+
+/* ---------- Music ---------- */
+/* The speaker sits at the top right of every page (on a computer, at the foot of the sidebar). */
+.wrap { position: relative; }
+.top { padding-right: 46px; }
+.music {
+  position: absolute;
+  z-index: 5;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(127, 214, 255, 0.7);
+  border-radius: 50%;
+  background: rgba(5, 8, 35, 0.6);
+  color: #7fd6ff;
+  box-shadow: 0 0 10px rgba(127, 214, 255, 0.3);
+  cursor: pointer;
+  transition: opacity 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.music::after { content: ""; position: absolute; inset: -6px; }
+.music:active { transform: scale(0.94); }
+.music svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 2px rgba(127, 214, 255, 0.9)); }
+.music .ms { display: none; }
+.music.off { color: var(--muted); border-color: var(--line); background: rgba(5, 8, 35, 0.4); box-shadow: none; opacity: 0.5; }
+.music.off svg { filter: none; }
+.music.off .ms { display: inline; }
+.songs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.songbtn {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(7, 10, 44, 0.75);
+  color: var(--ink);
+  font: 600 0.95rem/1.1 var(--body);
+  cursor: pointer;
+}
+.songbtn[aria-pressed="true"] { border-color: rgba(127, 214, 255, 0.7); box-shadow: 0 0 12px rgba(127, 214, 255, 0.25); }
+.songbtn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.eq { display: none; align-items: flex-end; gap: 2px; height: 12px; flex: none; }
+.songbtn[aria-pressed="true"] .eq { display: inline-flex; }
+.eq i { width: 3px; height: 100%; border-radius: 1px; background: var(--accent); box-shadow: 0 0 4px var(--glow-cyan); transform-origin: 50% 100%; transform: scaleY(0.35); }
+.songbtn.playing .eq i { animation: eq 0.9s ease-in-out infinite alternate; }
+.songbtn.playing .eq i:nth-child(2) { animation-delay: -0.3s; }
+.songbtn.playing .eq i:nth-child(3) { animation-delay: -0.6s; }
+@keyframes eq { from { transform: scaleY(0.25); } to { transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .songbtn.playing .eq i { animation: none; transform: scaleY(0.8); }
+}
+
+/* ---------- Desktop ---------- */
+/* Column wrappers only matter on wide screens; on a phone their contents sit in the tab's single column. */
+.col { display: contents; }
+@media (min-width: 1080px) {
+  :root { --tabbar-h: 0px; --side: 212px; }
+  html { scroll-padding-top: 24px; scroll-padding-bottom: 24px; }
+  .wrap { max-width: none; margin: 0 0 0 var(--side); padding: 34px 40px 64px; }
+  .tab { max-width: 1120px; margin: 0 auto; column-gap: 28px; row-gap: 20px; }
+  .col { display: grid; gap: 20px; align-content: start; min-width: 0; }
+  h1 { font-size: 2.3rem; }
+  .h1-sm { font-size: 2rem; }
+
+  /* The tab bar becomes a sidebar */
+  .tabbar {
+    top: 0;
+    right: auto;
+    width: var(--side);
+    padding: 30px 14px 24px;
+    border-top: 0;
+    border-right: 1px solid rgba(127, 155, 255, 0.28);
+    background: rgba(6, 9, 36, 0.72);
+    box-shadow: 8px 0 30px rgba(0, 0, 0, 0.28);
+  }
+  html.typing .tabbar { display: block; }
+  .tabbar-in { max-width: none; height: 100%; display: flex; flex-direction: column; gap: 4px; }
+  .tabbtn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 48px;
+    padding: 0 14px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    letter-spacing: 0.14em;
+    text-align: left;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .tabbtn svg { flex: none; width: 22px; height: 22px; }
+  .tabbtn:hover { color: #ffffff; background: rgba(77, 107, 255, 0.14); }
+  .tabbtn[aria-current="page"] { background: linear-gradient(90deg, rgba(95, 124, 255, 0.34), rgba(95, 124, 255, 0.06)); box-shadow: inset 2px 0 0 var(--accent); }
+  .tabbtn .dot { top: 50%; left: auto; right: 14px; transform: translateY(-50%); }
+  .tabbar { padding-bottom: 78px; }
+  .top { padding-right: 0; }
+  .music { position: fixed; z-index: 41; top: auto; right: auto; left: 27px; bottom: 26px; }
+  .tabbar-in::after {
+    content: "チートポイント";
+    margin: auto 0 0 14px;
+    writing-mode: vertical-rl;
+    font-size: 0.82rem;
+    letter-spacing: 0.5em;
+    color: var(--dim);
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  /* Sections become panels */
+  .block, .block.first {
+    padding: 20px 22px 22px;
+    border: 1px solid rgba(44, 60, 168, 0.9);
+    border-radius: 18px;
+    background: rgba(9, 13, 53, 0.5);
+    box-shadow: inset 0 0 26px rgba(5, 8, 35, 0.45);
+  }
+
+  /* Today: bank and weigh-in beside the log */
+  #tab-today { grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); align-items: start; }
+  #tab-today > .top { grid-column: 1 / -1; }
+  .board { padding: 20px 20px 16px; }
+  .board > * { min-width: 0; }
+  .top .sub { max-width: 64ch; }
+  .tally { margin-top: 0; padding: 14px 22px; border: 1px dashed var(--line); border-radius: 18px; }
+
+  /* Redeem: cheats as a grid of cards */
+  .rhead { justify-content: flex-start; gap: 18px 40px; }
+  .rtabs { max-width: 640px; }
+  .rlist { grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+  .ritem { height: 100%; padding: 14px 16px; }
+  .ritem.ok:hover { border-color: var(--accent); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5), 0 0 16px rgba(127, 214, 255, 0.35); }
+
+  /* Progress: the chart beside the weeks and days */
+  #tab-progress { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); align-items: start; }
+  #tab-progress > .top { grid-column: 1 / -1; }
+
+  /* Guide: one readable column */
+  #tab-guide > .top, #tab-guide .guide { max-width: 820px; }
+  .topic > summary:hover { color: var(--accent); }
+
+  /* Settings: two columns */
+  #tab-settings { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  #tab-settings > .top { grid-column: 1 / -1; }
+
+  /* Sheets open as a centered window over the page */
+  dialog.sheet {
+    top: 0;
+    bottom: 0;
+    left: var(--side);
+    margin: auto;
+    max-width: 620px;
+    max-height: min(86vh, 860px);
+    border-bottom: 1px solid rgba(127, 155, 255, 0.45);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55), 0 0 30px rgba(95, 124, 255, 0.3);
+  }
+  .sheet-grip { display: none; }
+  .sheet-head { padding-top: 16px; }
+  .sheet-foot { padding-bottom: 14px; }
+  .snack { left: calc(50% + var(--side) / 2); bottom: 28px; }
+
+  /* Mouse-friendly touches */
+  .btn.primary:hover, .btn.ghost:hover { filter: brightness(1.12); }
+  .day:hover { border-color: var(--accent); }
+  .linkbtn:hover { color: #ffffff; }
+}
+@media (min-width: 1280px) {
+  .bank-num { font-size: 6.4rem; }
+}
+/* Tall enough screens keep the bank (and the chart) in view while the other column scrolls. */
+@media (min-width: 1080px) and (min-height: 760px) {
+  #tab-today .col-a, #tab-progress .col-a { position: sticky; top: 24px; }
+}
 </style>
 <div class="statusfill" aria-hidden="true"></div>
 <main class="wrap" id="main">
+  <button type="button" class="music" id="musicBtn" aria-pressed="true" aria-label="Music"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.4L12 5.6v12.8l-4.6-3.9H4z"/><path class="mw" d="M15.4 9.2a4 4 0 0 1 0 5.6M18.2 6.6a7.6 7.6 0 0 1 0 10.8"/><path class="ms" d="M3.5 3.5l17 17"/></svg></button>
 
   <!-- ===================== TODAY ===================== -->
   <section class="tab" id="tab-today" aria-label="Today">
@@ -987,6 +1168,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       <button type="button" class="qm qm-lg" data-help="points" aria-label="Help: how points work">?</button>
     </header>
 
+    <div class="col col-a">
     <section class="board" aria-label="Points bank">
       <div class="board-head">
         <span class="label">Bank<button type="button" class="qm qm-sm" data-help="bank" aria-label="Help: the bank">?</button></span>
@@ -1025,6 +1207,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       </div>
       <div class="wline"><span id="wLine"></span><button type="button" class="linkbtn" id="toProgress">Progress</button></div>
     </section>
+    </div>
+
+    <div class="col col-b">
 
     <section class="block" id="log" aria-labelledby="logH">
       <div class="block-h">
@@ -1092,6 +1277,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         <span class="tn"><span class="k">Points</span><b id="tPts">0</b></span>
       </div>
     </div>
+    </div>
   </section>
 
   <!-- ===================== REDEEM ===================== -->
@@ -1124,6 +1310,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   <section class="tab" id="tab-progress" aria-label="Progress" hidden>
     <header class="top"><div><h1 class="h1-sm">Progress</h1></div></header>
 
+    <div class="col col-a">
     <section class="block first" aria-labelledby="trendH">
       <div class="block-h">
         <h2 id="trendH">Weight<button type="button" class="qm" data-help="weigh" aria-label="Help: weigh-ins and the chart">?</button></h2>
@@ -1144,6 +1331,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       <p class="hint" id="wBurnNote"></p>
       <p class="note info" id="wStatus"></p>
     </section>
+    </div>
+
+    <div class="col col-b">
 
     <section class="block" aria-labelledby="weeksH">
       <h2 id="weeksH">Weeks<button type="button" class="qm" data-help="weeks" aria-label="Help: weekly summary">?</button></h2>
@@ -1156,6 +1346,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       <ul class="hist" id="hist"></ul>
       <button type="button" class="btn ghost" id="histMore" hidden>Show all</button>
     </section>
+    </div>
   </section>
 
   <!-- ===================== GUIDE ===================== -->
@@ -1173,6 +1364,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   <section class="tab" id="tab-settings" aria-label="Settings" hidden>
     <header class="top"><div><h1 class="h1-sm">Settings</h1></div></header>
 
+    <div class="col col-a">
     <section class="block first" aria-labelledby="pfH">
       <h2 id="pfH">Your numbers<button type="button" class="qm" data-help="profile" aria-label="Help: your numbers">?</button></h2>
       <div class="pf" id="pfForm"></div>
@@ -1200,6 +1392,15 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       <p class="hint" id="actSummary"></p>
       <div class="btns"><button type="button" class="btn ghost" id="actEdit2">Edit activities</button></div>
     </section>
+
+    <section class="block" id="musicBlock" aria-labelledby="musicH">
+      <h2 id="musicH">Music</h2>
+      <div class="songs" id="songList" role="group" aria-label="Songs"></div>
+      <p class="hint">Tap a song to play it now. Each time the app starts, it shuffles to a random one.</p>
+    </section>
+    </div>
+
+    <div class="col col-b">
 
     <section class="block" aria-labelledby="goalH">
       <h2 id="goalH">Savings goal<button type="button" class="qm" data-help="goal" aria-label="Help: savings goal and streak">?</button></h2>
@@ -1258,6 +1459,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     </section>
 
     <p class="status" id="sync"></p>
+    </div>
   </section>
 </main>
 
@@ -1296,7 +1498,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.11.7","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.11.9","profile":null};</script>
 <script>
 (function () {
   "use strict";
@@ -3976,7 +4178,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       box.appendChild(el("p", "chart-empty", all.length ? "Weigh in a few more mornings to see your trend here." : "Your weight trend shows here once you've weighed in a few mornings."));
       return;
     }
-    var width = Math.max(260, Math.round(box.getBoundingClientRect().width || 340)), height = 200;
+    var width = Math.max(260, Math.round(box.getBoundingClientRect().width || 340)), height = width >= 560 ? 270 : 200;
     var m = { l: 38, r: 46, t: 12, b: 26 };
     var x0 = parseISO(series[0].date).getTime(), x1 = parseISO(t).getTime();
     if (x1 <= x0) x1 = x0 + 86400000;
@@ -5116,6 +5318,14 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   Array.prototype.forEach.call(document.querySelectorAll(".rangebar button"), function (b) {
     b.addEventListener("click", function () { setMeta({ chartRange: b.getAttribute("data-range") }); renderChart(); });
   });
+  // With a mouse, the wheel scrolls the day strip back through the month (and the page once it reaches an end).
+  $("week").addEventListener("wheel", function (e) {
+    var w = $("week"), max = w.scrollWidth - w.clientWidth, dy = e.deltaY;
+    if (e.ctrlKey || !dy || Math.abs(e.deltaX) >= Math.abs(dy) || max <= 0) return;
+    if ((dy < 0 && w.scrollLeft <= 0) || (dy > 0 && w.scrollLeft >= max - 1)) return;
+    w.scrollLeft += e.deltaMode === 1 ? dy * 40 : dy;
+    e.preventDefault();
+  }, { passive: false });
   var resizeTimer = null;
   window.addEventListener("resize", function () {
     clearTimeout(resizeTimer);
@@ -5194,6 +5404,108 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     setTimeout(function () { if (!isTypingField(document.activeElement)) document.documentElement.classList.remove("typing"); }, 80);
   });
   setInterval(checkRollover, 60 * 1000);
+
+  // ---------- Music ----------
+  // Background music: plays while the app is open and shuffles through the songs. It pauses when the app goes
+  // to the background and picks up where it left off; a fresh start begins on a random song. The speaker
+  // button mutes it, remembered on this device. Browsers only start sound after a tap, so it starts on the first.
+  var SONGS = [
+    { id: "take-off", name: "Take Off" },
+    { id: "golden-dust", name: "Golden Dust" },
+    { id: "shapes", name: "S.H.A.P.E.S." },
+    { id: "space-echo", name: "Space Echo" }
+  ];
+  var music = { audio: null, cur: "", queue: [], off: !!meta().musicOff, errors: 0 };
+  function songUrl(id) { return "music/" + id + ".mp3"; }
+  function shuffled(list) {
+    var a = list.slice();
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+  // Every song plays once before any repeats, and never the same one twice in a row.
+  function nextSong() {
+    if (!music.queue.length) {
+      music.queue = shuffled(SONGS.map(function (s) { return s.id; }));
+      if (music.queue.length > 1 && music.queue[0] === music.cur) music.queue.push(music.queue.shift());
+    }
+    return music.queue.shift();
+  }
+  function musicAudio() {
+    if (music.audio) return music.audio;
+    var a = new Audio();
+    a.preload = "auto";
+    a.volume = 0.6;
+    a.addEventListener("ended", function () { setSong(nextSong()); playMusic(); });
+    a.addEventListener("error", function () {
+      if (!a.getAttribute("src") || ++music.errors >= SONGS.length) return;   // offline and not saved yet: stay quiet
+      setSong(nextSong());
+      playMusic();
+    });
+    a.addEventListener("playing", function () { music.errors = 0; renderMusic(); });
+    a.addEventListener("pause", renderMusic);
+    music.audio = a;
+    return a;
+  }
+  function setSong(id) {
+    music.cur = id;
+    music.queue = music.queue.filter(function (x) { return x !== id; });
+    if (music.audio) music.audio.src = songUrl(id);
+    renderMusic();
+  }
+  function playMusic() {
+    if (music.off || document.hidden) return;
+    var a = musicAudio();
+    if (!music.cur) music.cur = nextSong();
+    if (a.getAttribute("src") !== songUrl(music.cur)) a.src = songUrl(music.cur);
+    var p = a.play();
+    if (p && p.catch) p.catch(function () { /* waits for a tap */ });
+  }
+  function setMusicOff(off) {
+    music.off = off;
+    setMeta({ musicOff: off });
+    if (off) { if (music.audio) music.audio.pause(); } else playMusic();
+    renderMusic();
+  }
+  function pickSong(id) {
+    if (music.off) { music.off = false; setMeta({ musicOff: false }); }
+    musicAudio();
+    setSong(id);
+    playMusic();
+  }
+  function renderMusic() {
+    var b = $("musicBtn"), on = !music.off;
+    b.classList.toggle("off", !on);
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+    b.title = on ? "Mute music" : "Play music";
+    var playing = on && music.audio && !music.audio.paused;
+    Array.prototype.forEach.call($("songList").children, function (x) {
+      var cur = x.getAttribute("data-song") === music.cur;
+      x.setAttribute("aria-pressed", cur ? "true" : "false");
+      x.classList.toggle("playing", !!(cur && playing));
+    });
+  }
+  SONGS.forEach(function (s) {
+    var b = button("songbtn", null, function () { pickSong(s.id); });
+    b.setAttribute("data-song", s.id);
+    b.innerHTML = '<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>';
+    b.appendChild(document.createTextNode(s.name));
+    $("songList").appendChild(b);
+  });
+  $("musicBtn").addEventListener("click", function () { setMusicOff(!music.off); });
+  // The first tap anywhere starts it (and restarts it if the phone blocked a resume).
+  ["click", "touchend", "keydown"].forEach(function (type) {
+    document.addEventListener(type, function (e) {
+      if (music.off || document.hidden || (e.target && e.target.closest && e.target.closest("#musicBtn"))) return;
+      if (!music.audio || music.audio.paused) playMusic();
+    }, true);
+  });
+  document.addEventListener("visibilitychange", function () {
+    if (!music.audio) return;
+    if (document.hidden) music.audio.pause(); else playMusic();
+  });
+  music.cur = nextSong();
+  renderMusic();
+  playMusic();
 
   // ---------- Start ----------
   state.drafts = loadDrafts();
