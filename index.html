@@ -911,6 +911,39 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 .actctl { display: grid; gap: 8px; }
 .actfoot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .actadd { display: grid; gap: 8px; margin-top: 6px; padding-top: 4px; }
+
+/* ---------- Cheats ---------- */
+.rhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.favlinks { display: flex; gap: 14px; flex: none; }
+.cheatform { display: grid; gap: 10px; }
+.cfield { display: grid; gap: 6px; min-width: 0; }
+.cfield .flabel { font-size: 0.9rem; }
+.cfield input[type="number"] { width: 100%; text-align: right; }
+.cftwo { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 10px; }
+.cheatform select.need { border-color: #ff5c7a; color: #ff9aac; box-shadow: 0 0 10px rgba(255, 92, 122, 0.35); }
+.cheatform select option { color: #ffffff; }
+.cfneed { margin: 0; color: var(--accent); font-weight: 600; }
+.cfneed:empty { display: none; }
+.cheatform .fine { margin: -4px 0 0; }
+
+.frow select.wide { grid-column: span 2; }
+
+/* Redeem's meal tabs */
+.rtabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.rtabs button {
+  appearance: none;
+  height: 40px;
+  padding: 0 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(7, 10, 44, 0.75);
+  color: var(--ink);
+  font: 600 0.88rem/1 var(--body);
+  cursor: pointer;
+}
+.rtabs button[aria-selected="true"] { background: linear-gradient(180deg, #6f8bff 0%, #3b55e8 100%); border-color: #b4c3ff; box-shadow: 0 0 14px var(--glow); }
+.rtabs button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.cheatform > .flabel { font-size: 0.9rem; margin-bottom: -4px; }
 </style>
 <div class="statusfill" aria-hidden="true"></div>
 <main class="wrap" id="main">
@@ -979,7 +1012,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       </fieldset>
       <div class="food" id="food" hidden>
         <div class="favs" id="favs" hidden>
-          <select id="favPick" aria-label="Add a favorite"><option value="">Add a favorite…</option></select>
+          <select id="favPick" aria-label="Add a cheat"><option value="">Add a cheat…</option></select>
           <button type="button" class="linkbtn" id="favEdit">Edit</button>
         </div>
         <ul class="food-list" id="foodList"></ul>
@@ -1003,6 +1036,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         <div class="ln"><span>Day's activity</span><b class="earn" id="sumEarn">0</b></div>
         <div class="ln" id="sumBonusRow" hidden><span>On-plan bonus<button type="button" class="qm qm-sm" data-help="logging" aria-label="Help: the on-plan bonus">?</button></span><b class="earn" id="sumBonus">+25</b></div>
         <div class="ln" id="sumFoodRow" hidden><span>Off-plan food</span><b class="spend" id="sumFood">0</b></div>
+        <div class="ln" id="sumOffRow" hidden><span>Skipped or smaller meals</span><b class="earn" id="sumOff">+0</b></div>
         <div class="ln net"><span>Day total</span><strong id="dayTotal">0</strong></div>
         <div class="after" id="bankAfter"></div>
         <ul class="warns" id="dayWarns" aria-live="polite"></ul>
@@ -1038,11 +1072,20 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         <h1 class="h1-sm">Redeem</h1>
         <p class="sub" id="redeemSub"></p>
       </div>
-      <button type="button" class="qm qm-lg" data-help="redeem" aria-label="Help: redeeming favorites">?</button>
+      <button type="button" class="qm qm-lg" data-help="redeem" aria-label="Help: redeeming cheats">?</button>
     </header>
-    <div class="rbank"><span class="label">Bank</span><span class="rbank-num" id="rBank">0</span><span class="bank-unit">pts</span></div>
+    <div class="rhead">
+      <div class="rbank"><span class="label">Bank</span><span class="rbank-num" id="rBank">0</span><span class="bank-unit">pts</span></div>
+      <button type="button" class="btn primary sm" id="cheatAdd">Add a cheat</button>
+    </div>
+    <div class="rtabs" role="tablist" aria-label="What it replaces">
+      <button type="button" role="tab" data-rt="breakfast" aria-selected="false">Breakfast</button>
+      <button type="button" role="tab" data-rt="lunch" aria-selected="false">Lunch</button>
+      <button type="button" role="tab" data-rt="dinner" aria-selected="true">Dinner</button>
+      <button type="button" role="tab" data-rt="extra" aria-selected="false">Snack</button>
+    </div>
     <ul class="rlist" id="redeemList"></ul>
-    <button type="button" class="btn ghost" id="redeemManage" hidden>Edit favorites</button>
+    <button type="button" class="btn ghost" id="redeemManage" hidden>Edit cheats</button>
   </section>
 
   <!-- ===================== PROGRESS ===================== -->
@@ -1221,7 +1264,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.10.7","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.11.1","profile":null};</script>
 <script>
 (function () {
   "use strict";
@@ -1364,7 +1407,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     actEls: [],
     armedAct: -1,
     nextLift: "",
-    shownActs: null,        // the activity list the rows were drawn with
+    shownActs: null,
+    redeemTab: "",          // Redeem's meal tab once you've picked one        // the activity list the rows were drawn with
     food: [],
     foodEls: [],
     armedSpend: null,
@@ -1473,7 +1517,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     day.onPlan = day.food.length === 0;
     day.activityPts = sum(day.acts, function (x) { return x.pts || 0; }) + (day.steps ? day.steps.pts || 0 : 0);
     day.bonus = day.onPlan && !day.late ? Math.round(ON_PLAN_BONUS * rateK(day.tight)) : 0;
-    day.spent = sum(day.food, foodCost);
+    // Days saved since skipped meals arrived net the day: unused plan calories (a skipped or smaller meal)
+    // offset that day's off-plan cost, never below 0. Older days keep the costs they were saved with.
+    day.spent = day.netFood ? Math.max(0, sum(day.food, foodDelta)) : sum(day.food, foodCost);
     day.pts = day.activityPts + day.bonus;
     return day;
   }
@@ -1532,9 +1578,26 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     return { pts: keepOnTime ? fresh : Math.min(fresh, prev.pts || 0), late: false };
   }
   // A food line keeps the plan-meal value it was saved with unless its meal is changed.
-  function formFoodBase(x) { return isNum(x.base) && x.bmeal === x.meal ? x.base : mealKcal(x.meal); }
-  function formFoodEst(x) { var kc = Math.round(num(x.kcal)) * qtyOf(x); return Math.round(x.posted === false ? kc * NO_LABEL : kc); }
-  function formFoodCost(x) { return Math.max(0, formFoodEst(x) - formFoodBase(x)); }
+  function formFoodBase(x) { return isNum(x.base) && x.base > 0 && x.bmeal === x.meal ? x.base : mealKcal(x.meal); }
+  function formFoodEst(x) { if (x.skip) return 0; var kc = Math.round(num(x.kcal)) * qtyOf(x); return Math.round(x.posted === false ? kc * NO_LABEL : kc); }
+  // The day's food, row by row. Each plan meal counts once: the first entry for it (a different meal or a
+  // skip) takes its plan calories; another entry for the same meal costs its full calories. A row with no
+  // meal picked, or no calories and no skip, isn't counted (null).
+  function foodRows(rows) {
+    var used = {};
+    return rows.map(function (x) {
+      if (!x || !MEAL_INFO[x.meal] || !(x.skip || num(x.kcal) > 0)) return null;
+      var base = 0;
+      if (x.meal !== "extra" && !used[x.meal]) { base = formFoodBase(x); used[x.meal] = true; }
+      var est = formFoodEst(x);
+      return { base: base, est: est, cost: Math.max(0, est - base), credit: Math.max(0, base - est) };
+    });
+  }
+  function netSpent(fr) {
+    var cost = 0, credit = 0;
+    fr.forEach(function (r) { if (r) { cost += r.cost; credit += r.credit; } });
+    return { cost: cost, credit: credit, spent: Math.max(0, cost - credit), off: Math.min(cost, credit), left: Math.max(0, credit - cost) };
+  }
   // The day as it would be saved from form f, given the saved day prev (or none).
   function buildDay(prev, f, date, now) {
     var basis = prev ? { weight: prev.weight, tight: prev.tight } : settings();
@@ -1554,15 +1617,20 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       day.acts.push({ act: d.id, name: d.name, rate: d.rate, steps: d.steps, mode: kc ? "kcal" : "min",
         min: !kc || d.steps ? m : 0, kcal: kc ? Math.round(num(a.kcal)) : 0, late: r.late, pts: r.pts });
     });
-    if (f.plan === "no") (f.food || []).forEach(function (x) {
-      var kc = Math.round(num(x.kcal));
-      if (!kc) return;
-      var entry = { meal: MEAL_INFO[x.meal] ? x.meal : "extra", kcal: kc, qty: qtyOf(x), posted: x.posted !== false, name: String(x.name || "").trim().slice(0, 40) };
-      entry.base = formFoodBase(x);
-      entry.est = formFoodEst(x);
-      entry.cost = Math.max(0, entry.est - entry.base);
-      day.food.push(entry);
-    });
+    if (f.plan === "no") {
+      var fr = foodRows(f.food || []);
+      (f.food || []).forEach(function (x, i) {
+        var r = fr[i];
+        if (!r) return;
+        var entry = x.skip ? { meal: x.meal, skip: true, kcal: 0, qty: 1, posted: true, name: "" }
+          : { meal: x.meal, kcal: Math.round(num(x.kcal)), qty: qtyOf(x), posted: x.posted !== false, name: String(x.name || "").trim().slice(0, 40) };
+        entry.base = r.base;
+        entry.est = r.est;
+        entry.cost = r.cost;
+        day.food.push(entry);
+      });
+      day.netFood = true;
+    }
     day.ts = now;
     return finalizeDay(day);
   }
@@ -1995,7 +2063,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     } },
     bank: { title: "The bank", html: function () {
       return ul([
-        "<b>Bank</b>: everything you've earned minus everything you've spent. <b>Redeem</b> shows which of your favorites it covers.",
+        "<b>Bank</b>: everything you've earned minus everything you've spent. <b>Redeem</b> shows which of your cheats it covers.",
         "<b>This week</b> and <b>Spent</b> cover Monday through Sunday.",
         "<b>Streak</b>: days in a row logged on time.",
         "The strip shows the last 31 days with each day's net, today on the right. Swipe for earlier days. Tap a day and the whole page switches to it.",
@@ -2020,9 +2088,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         "Answer every day. <b>Yes</b> means you ate only your plan meals.",
         "<b>No</b>: add each meal you swapped and each extra meal, snack or drink. Each one starts at <i>Select an option</i>: pick which meal it replaced, or Extra.",
         "A different meal costs its calories minus the plan meal it replaced (" + meals + "). Extras cost their full calories.",
-        "A smaller meal than the plan costs nothing but earns nothing either.",
+        "<b>Skipped a meal?</b> Pick <i>Skipped breakfast</i>, lunch or dinner. It earns no points, but its plan calories offset that day's cheats. A smaller meal's leftover calories do the same. Nothing carries to another day, and the day never goes below 0 for food.",
+        "Each plan meal counts once a day. A second entry for the same meal costs its full calories.",
+        "A day with a skipped meal counts as off plan, so it doesn't get the on-plan bonus.",
         "<b>Posted calories</b> means a chain menu, an app or a label. Unchecked adds 25%, since big meals are easy to underestimate.",
-        "<b>Favorites</b>: name an entry and tap Save favorite. Add one from the <b>Add a favorite</b> list or the <b>Redeem</b> tab; Edit lists them so you can remove any.",
+        "<b>Cheats</b> are your go-to meals. Save them ahead of time with <b>Add a cheat</b> on the Redeem tab, or name an entry here and tap <b>Save cheat</b>. Add one to the log from the <b>Add a cheat…</b> list or the Redeem tab; Edit lists them so you can change or remove any.",
         "Drinking night: eat dinner first. The late-night food costs more than the drinks."
       ]);
     } },
@@ -2116,12 +2186,14 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         "<b>Streak</b> counts days in a row logged on time. A day doesn't break it until noon the next day."
       ]);
     } },
-    redeem: { title: "Redeem", html: function () {
+    redeem: { title: "Redeem and cheats", html: function () {
       return ul([
-        "<b>Redeem</b> lists your favorites by the points they need, fewest first. Faded ones need more than your bank has right now and can't be tapped. If you had one anyway, log it from the <b>Add a favorite</b> list.",
-        "Each one's points assume it replaces the meal you saved it with, or counts as an extra. The log shows the exact cost once you pick the meal.",
-        "Tap one to add it to the log for the day picked on the strip, then pick which meal it replaced.",
-        "To add favorites, name an off-plan entry in the log and tap <b>Save favorite</b>."
+        "Pick a tab: <b>Breakfast</b>, <b>Lunch</b> or <b>Dinner</b> shows your meal cheats priced in place of that meal. <b>Snack</b> shows snacks and drinks at their full calories, since they count on top of the plan.",
+        "A meal smaller than the plan meal it replaces is free. Snacks and drinks never are, so a beer can't show up as a free lunch.",
+        "Faded ones need more than your bank has right now and can't be tapped. If you had one anyway, log it from the <b>Add a cheat…</b> list in the log.",
+        "Tap one to add it to the log for the day picked on the strip, already set to that meal. Save the day to redeem it.",
+        "Points count what's already in that day's log: a skipped meal lowers them, and a meal you've already replaced means a second one costs in full.",
+        "<b>Add a cheat</b> saves one ahead of time: name, calories, Meal or Snack or drink, and whether the calories are posted. <b>Edit cheats</b> lets you change or remove any. You can also name an off-plan entry in the log and tap <b>Save cheat</b>."
       ]);
     } },
     buys: { title: "What points buy", html: function () {
@@ -2293,9 +2365,13 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     }
   }
 
-  // ---------- Favorites ----------
+  // ---------- Cheats ----------
+  // Cheats are saved go-to meals (stored as "favorites"): a name, calories, posted-or-not, and the meal it
+  // usually replaces. The meal is a hint for Redeem; you still pick the meal each time you log one.
   function favKey(name) { return String(name || "").trim().toLowerCase(); }
-  // A favorite is a name, calories and posted-or-not; the meal you pick each time you log it.
+  // A cheat is a meal (it can stand in for breakfast, lunch or dinner) or a snack or drink (always on top of
+  // the plan). Cheats saved before this had only a meal hint: Extra means a snack or drink.
+  function cheatType(fv) { return fv.type === "meal" || fv.type === "snack" ? fv.type : fv.meal === "extra" ? "snack" : "meal"; }
   function isFavorite(f) {
     return favorites().some(function (x) { return favKey(x.name) === favKey(f.name) && x.kcal === Math.round(num(f.kcal)) && (x.posted !== false) === (f.posted !== false); });
   }
@@ -2304,7 +2380,14 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var items = favorites().filter(function (x) { return favKey(x.name) !== favKey(f.name); });
     // Its meal is a hint for Redeem: the meal it replaced when saved, else what it replaced before, else extra.
     var meal = MEAL_INFO[f.meal] ? f.meal : old && MEAL_INFO[old.meal] ? old.meal : "extra";
-    items.unshift({ id: Date.now().toString(36), name: f.name.trim().slice(0, 40), kcal: Math.round(num(f.kcal)), posted: f.posted !== false, meal: meal });
+    items.unshift({ id: Date.now().toString(36), name: f.name.trim().slice(0, 40), kcal: Math.round(num(f.kcal)), posted: f.posted !== false, meal: meal, type: meal === "extra" ? "snack" : "meal" });
+    return write("favorites", { kind: "favorites", items: items.slice(0, FAV_LIMIT), ts: Date.now() });
+  }
+  // Saves a cheat from the form: a new one, or changes to the one with id.
+  function saveCheat(c, id) {
+    var key = favKey(c.name);
+    var items = favorites().filter(function (x) { return x.id !== id && favKey(x.name) !== key; });
+    items.unshift({ id: id || Date.now().toString(36), name: c.name, kcal: c.kcal, posted: c.posted, meal: c.meal, type: c.type });
     return write("favorites", { kind: "favorites", items: items.slice(0, FAV_LIMIT), ts: Date.now() });
   }
   function removeFavorite(id) {
@@ -2315,13 +2398,13 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     return favorites().slice().sort(function (a, b) { var x = favKey(a.name), y = favKey(b.name); return x < y ? -1 : x > y ? 1 : 0; });
   }
   function favLabel(fv) { return fv.name + " · " + fmt(fv.kcal) + (fv.posted === false ? " +25%" : ""); }
-  // Favorites live in a dropdown, so a long list stays one line.
+  // Cheats live in a dropdown in the log, so a long list stays one line.
   function renderFavs() {
     var favs = sortedFavorites();
     $("favs").hidden = !favs.length;
     var sel = $("favPick");
     sel.textContent = "";
-    var first = el("option", null, "Add a favorite…");
+    var first = el("option", null, "Add a cheat…");
     first.value = "";
     sel.appendChild(first);
     favs.forEach(function (fv) {
@@ -2333,13 +2416,13 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     sel.disabled = state.readOnly;
     if (favSheetDraw) favSheetDraw();
   }
-  // Adds a favorite to the form with no meal picked; returns its position in the food list.
-  function addFavorite(id) {
+  // Adds a cheat to the form with no meal picked; returns its position in the food list.
+  function addFavorite(id, meal) {
     var fv = favorites().filter(function (x) { return x.id === id; })[0];
     if (!fv) return -1;
-    var entry = { meal: "", kcal: fv.kcal, qty: 1, posted: fv.posted !== false, name: fv.name };
+    var entry = { meal: MEAL_INFO[meal] ? meal : "", kcal: fv.kcal, qty: 1, posted: fv.posted !== false, name: fv.name };
     var at = -1;
-    state.food.forEach(function (x, i) { if (!num(x.kcal) && at < 0) at = i; });
+    state.food.forEach(function (x, i) { if (!num(x.kcal) && !x.skip && at < 0) at = i; });
     if (at >= 0) state.food[at] = entry; else { state.food.push(entry); at = state.food.length - 1; }
     renderFoodList();
     updatePreview();
@@ -2353,13 +2436,17 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     favSheetDraw = function () {
       list.textContent = "";
       var favs = sortedFavorites();
-      if (!favs.length) { list.appendChild(el("li", null, "No favorites yet. Name a food entry and tap Save favorite.")); return; }
+      if (!favs.length) { list.appendChild(el("li", null, "No cheats yet. Tap Add a cheat to save one.")); return; }
       favs.forEach(function (fv) {
         var li = el("li");
         var t = el("span", "fn");
         t.appendChild(el("b", null, fv.name));
-        t.appendChild(el("span", "fk", fmt(fv.kcal) + " cal" + (fv.posted === false ? " +25%" : "") + " · " + (MEAL_INFO[fv.meal] || MEAL_INFO.extra).label));
+        t.appendChild(el("span", "fk", fmt(fv.kcal) + " cal" + (fv.posted === false ? " +25%" : "") + " · " + (cheatType(fv) === "meal" ? "Meal" : "Snack or drink")));
         li.appendChild(t);
+        var links = el("span", "favlinks");
+        var ed = button("linkbtn", "Edit", function () { openCheatForm(fv, true); });
+        ed.disabled = state.readOnly;
+        links.appendChild(ed);
         var rm = button("linkbtn", "Remove", function () {
           var before = state.docs.get("favorites");
           removeFavorite(fv.id).then(function (ok) {
@@ -2367,20 +2454,110 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
           });
         });
         rm.disabled = state.readOnly;
-        li.appendChild(rm);
+        links.appendChild(rm);
+        li.appendChild(links);
         list.appendChild(li);
       });
     };
     favSheetDraw();
-    openSheet("Favorites", body, [button("btn ghost", "Done", closeSheet)], { onClose: function () { favSheetDraw = null; } });
+    var add = button("btn primary", "Add a cheat", function () { openCheatForm(null, true); });
+    add.disabled = state.readOnly;
+    openSheet("Cheats", body, [add, button("btn ghost", "Done", closeSheet)], { onClose: function () { favSheetDraw = null; } });
+  }
+  // Add a cheat ahead of time, or change one: name, calories, the meal it usually replaces, posted or not.
+  function openCheatForm(fv, fromList) {
+    if (state.readOnly) return;
+    var body = el("div", "cheatform");
+    function field(labelText, input) {
+      var w = el("label", "cfield");
+      w.appendChild(el("span", "flabel", labelText));
+      w.appendChild(input);
+      return w;
+    }
+    var nm = el("input");
+    nm.type = "text";
+    nm.id = "cfName";
+    nm.maxLength = 40;
+    nm.autocomplete = "off";
+    nm.placeholder = "Like Five Guys burger and fries";
+    nm.value = fv ? fv.name : "";
+    var kc = el("input");
+    kc.type = "number";
+    kc.id = "cfKcal";
+    kc.inputMode = "numeric";
+    kc.min = "0";
+    kc.step = "10";
+    kc.placeholder = "0";
+    kc.value = fv ? fv.kcal : "";
+    var type = fv ? cheatType(fv) : "";
+    var seg = segRadios("two", "cfType", "Meal or snack", [["meal", "Meal"], ["snack", "Snack or drink"]], type, function (v) {
+      type = v;
+      seg.classList.remove("ask");
+      preview();
+    });
+    var chk = el("label", "check");
+    var cb = el("input");
+    cb.type = "checkbox";
+    cb.id = "cfPosted";
+    cb.checked = fv ? fv.posted !== false : true;
+    chk.appendChild(cb);
+    chk.appendChild(el("span", null, "Posted calories"));
+    var need = el("p", "cfneed");
+    need.id = "cfNeed";
+    body.appendChild(field("Name", nm));
+    body.appendChild(field("Calories", kc));
+    body.appendChild(el("span", "flabel", "It's a"));
+    body.appendChild(seg);
+    body.appendChild(el("p", "fine", "A meal can stand in for breakfast, lunch or dinner. A snack or drink always counts on top of the plan, so a beer never shows up as a free lunch."));
+    body.appendChild(chk);
+    body.appendChild(el("p", "fine", "Posted means a chain menu, an app or a label. Unchecked adds 25%, since big meals are easy to underestimate."));
+    body.appendChild(need);
+    function preview() {
+      var k = Math.round(num(kc.value));
+      if (!k || !type) { need.textContent = ""; return; }
+      var c = { kcal: k, posted: cb.checked };
+      need.textContent = type === "snack" ? "Needs " + fmt(favNeedFor(c, [], "extra")) + " points." :
+        "Points needed: " + MEAL_KEYS.map(function (m) { return MEAL_INFO[m].short + " " + fmt(favNeedFor(c, [], m)); }).join(", ") + ".";
+    }
+    [nm, kc].forEach(function (x) { x.addEventListener("input", preview); });
+    cb.addEventListener("change", preview);
+    preview();
+    var save = button("btn primary", fv ? "Save changes" : "Save cheat", function () {
+      var name = nm.value.trim().slice(0, 40), k = Math.round(num(kc.value));
+      if (!name) { toast("Name the cheat."); nm.focus(); return; }
+      if (!k) { toast("Enter its calories."); kc.focus(); return; }
+      if (!type) { seg.classList.add("ask"); toast("Pick Meal or Snack or drink."); return; }
+      var clash = favorites().filter(function (x) { return favKey(x.name) === favKey(name) && (!fv || x.id !== fv.id); })[0];
+      if (clash) { toast("You already have a cheat named " + clash.name + "."); return; }
+      // meal is kept for older versions of the app: their hint for what it replaces.
+      var meal = type === "snack" ? "extra" : fv && MEAL_KEYS.indexOf(fv.meal) >= 0 ? fv.meal : "dinner";
+      saveCheat({ name: name, kcal: k, posted: cb.checked, meal: meal, type: type }, fv ? fv.id : "").then(function (ok) {
+        if (!ok) return;
+        toast((fv ? "Updated " : "Saved ") + name + (fv ? "" : " to cheats"));
+        if (fromList) openFavManager(); else closeSheet();
+      });
+    });
+    var cancel = button("btn ghost", "Cancel", function () { if (fromList) openFavManager(); else closeSheet(); });
+    openSheet(fv ? "Edit cheat" : "Add a cheat", body, [save, cancel]);
   }
 
   // ---------- Redeem ----------
-  // What a favorite takes from the bank if it replaces the meal it was saved with (or as an extra).
-  function favNeed(fv) {
-    var est = Math.round(fv.posted === false ? (+fv.kcal || 0) * NO_LABEL : (+fv.kcal || 0));
-    var meal = MEAL_INFO[fv.meal] && fv.meal !== "extra" ? fv.meal : "extra";
-    return { need: Math.max(0, est - mealKcal(meal)), meal: meal };
+  // What a cheat takes from the bank if it replaces the meal it was saved with (or as an extra).
+  // What a cheat would add to the picked day's cost, counting what's already in its log: a skipped or smaller
+  // meal offsets it, and a meal that's already been replaced means it costs in full.
+  // What a cheat would add to the picked day's cost eaten as meal ("extra" for a snack or drink), counting
+  // what's already in that day's log: a skipped or smaller meal offsets it, and a meal that's already been
+  // replaced means it costs in full. Never below 0: a cheat smaller than the meal is free.
+  function favNeedFor(fv, rows, meal) {
+    var before = netSpent(foodRows(rows)).spent;
+    var after = netSpent(foodRows(rows.concat([{ meal: meal, kcal: fv.kcal, qty: 1, posted: fv.posted !== false }]))).spent;
+    return Math.max(0, after - before);
+  }
+  // The tab Redeem opens on: the meal around this time of day, or Snack late at night.
+  function redeemTab() {
+    if (state.redeemTab) return state.redeemTab;
+    var d = new Date(), h = d.getHours() + d.getMinutes() / 60;
+    return h < 10.5 ? "breakfast" : h < 15 ? "lunch" : h < 21 ? "dinner" : "extra";
   }
   function renderRedeem() {
     if (state.tab !== "redeem") return;
@@ -2388,48 +2565,58 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var rb = $("rBank");
     rb.textContent = money(bank);
     rb.classList.toggle("neg", bank < 0);
+    var tab = redeemTab(), snack = tab === "extra";
+    Array.prototype.forEach.call(document.querySelectorAll(".rtabs button"), function (b) {
+      b.setAttribute("aria-selected", b.getAttribute("data-rt") === tab ? "true" : "false");
+    });
     var date = state.logDate;
-    $("redeemSub").textContent = "Your favorites by the points they need. Tap one to add it to " +
-      (date === today() ? "today's log." : "the log for " + fmtDay(date) + ".");
+    var rows = picked("plan") === "no" ? state.food : [];
+    var left = netSpent(foodRows(rows)).left;
+    $("redeemSub").textContent = (snack ? "Snacks and drinks by the points they need. " : "Meals by the points they need in place of " + tab + ". ") +
+      "Tap one to add it to " + (date === today() ? "today's log." : "the log for " + fmtDay(date) + ".") +
+      (left ? " Counts the " + fmt(left) + " unused plan calories already in that log." : "");
     var list = $("redeemList");
     list.textContent = "";
-    var items = favorites().map(function (fv) { return { fv: fv, n: favNeed(fv) }; }).sort(function (a, b) {
-      if (a.n.need !== b.n.need) return a.n.need - b.n.need;
+    var all = favorites();
+    var items = all.filter(function (fv) { return (cheatType(fv) === "snack") === snack; }).map(function (fv) {
+      return { fv: fv, need: favNeedFor(fv, rows, tab) };
+    }).sort(function (a, b) {
+      if (a.need !== b.need) return a.need - b.need;
       var x = favKey(a.fv.name), y = favKey(b.fv.name);
       return x < y ? -1 : x > y ? 1 : 0;
     });
-    $("redeemManage").hidden = !items.length;
+    $("redeemManage").hidden = !all.length;
     if (!items.length) {
-      list.appendChild(el("li", "empty", "No favorites yet. When you log a different meal or an extra, name it and tap Save favorite. It shows up here."));
+      list.appendChild(el("li", "empty", all.length ? (snack ? "No snacks or drinks yet. Tap Add a cheat and pick Snack or drink." : "No meals yet. Tap Add a cheat and pick Meal.") :
+        "No cheats yet. Tap Add a cheat to save your go-to meals, snacks and drinks with their calories. You can also name an off-plan entry in the log and tap Save cheat."));
       return;
     }
     items.forEach(function (it) {
-      var fv = it.fv, need = it.n.need, ok = need === 0 || need <= bank;
+      var fv = it.fv, need = it.need, ok = need === 0 || need <= bank;
       var li = el("li");
       var b = el("button", "ritem " + (ok ? "ok" : "short"));
       b.type = "button";
       b.disabled = state.readOnly || !ok;   // only what the bank covers can be redeemed
       b.setAttribute("aria-label", fv.name + ", needs " + fmt(need) + " points" + (ok ? ". Add to the log." : ", " + fmt(need - bank) + " short"));
       b.appendChild(el("span", "rn", fv.name));
-      b.appendChild(el("span", "rs", fmt(fv.kcal) + " cal" + (fv.posted === false ? " +25%" : "") + " · " +
-        (it.n.meal === "extra" ? "as an extra" : "in place of " + MEAL_INFO[it.n.meal].short)));
+      b.appendChild(el("span", "rs", fmt(fv.kcal) + " cal" + (fv.posted === false ? " +25%" : "") + (need === 0 && !snack ? " · under your plan " + tab : "")));
       var v = el("span", "rv");
       v.appendChild(el("span", "rp", fmt(need)));
-      v.appendChild(el("span", "rq", ok ? "pts" : fmt(need - bank) + " short"));
+      v.appendChild(el("span", "rq", !ok ? fmt(need - bank) + " short" : need === 0 ? "free" : "pts"));
       b.appendChild(v);
-      b.addEventListener("click", function () { redeemFavorite(fv.id); });
+      b.addEventListener("click", function () { redeemFavorite(fv.id, tab); });
       li.appendChild(b);
       list.appendChild(li);
     });
   }
-  // Puts a favorite in the picked day's log as off-plan food, waiting on which meal it replaced.
-  function redeemFavorite(id) {
+  // Puts a cheat in the picked day's log as off-plan food, waiting on which meal it replaced.
+  function redeemFavorite(id, meal) {
     var fv = favorites().filter(function (x) { return x.id === id; })[0];
     if (!fv) return;
     showTab("today", { keepScroll: true });
     setPicked("plan", "no");
     $("planQ").classList.remove("ask");
-    var at = addFavorite(id);
+    var at = addFavorite(id, meal);
     var li = $("foodList").children[at];
     if (li) {
       setTimeout(function () {
@@ -2438,7 +2625,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         setTimeout(function () { li.classList.remove("flash"); }, 1800);
       }, 60);
     }
-    snack("Added " + fv.name + ". Pick the meal it replaced.");
+    snack("Added " + fv.name + (meal === "extra" ? " as an extra." : " in place of " + meal + ".") + " Save the day to redeem it.");
   }
 
   // ---------- Off-plan food in the report ----------
@@ -2465,9 +2652,20 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         o.value = m;
         sel.appendChild(o);
       });
+      // A skipped meal: no calories, and its plan calories offset that day's cheats.
+      var sg = document.createElement("optgroup");
+      sg.label = "Skipped";
+      MEAL_KEYS.forEach(function (m) {
+        var o = el("option", null, "Skipped " + MEAL_INFO[m].short);
+        o.value = "skip-" + m;
+        sg.appendChild(o);
+      });
+      sel.appendChild(sg);
       if (!MEAL_INFO[f.meal]) f.meal = "";
-      if (f.meal) sel.value = f.meal; else ph.selected = true;
+      if (f.skip && (!f.meal || f.meal === "extra")) f.skip = false;
+      if (f.meal) sel.value = f.skip ? "skip-" + f.meal : f.meal; else ph.selected = true;
       sel.classList.toggle("need", !f.meal);
+      if (f.skip) sel.classList.add("wide");
       var kc = el("input");
       kc.type = "number";
       kc.id = "foodKcal" + i;
@@ -2478,7 +2676,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       kc.setAttribute("aria-label", "Calories each");
       kc.value = f.kcal ? f.kcal : "";
       row.appendChild(sel);
-      row.appendChild(kc);
+      if (!f.skip) row.appendChild(kc);
       var nm = el("input");
       nm.type = "text";
       nm.id = "foodName" + i;
@@ -2486,7 +2684,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       nm.placeholder = "What was it? (optional)";
       nm.setAttribute("aria-label", "What it was");
       nm.value = f.name || "";
-      // Quantity: how many of it. Calories are for one; favorites keep the one.
+      // Quantity: how many of it. Calories are for one; cheats keep the one.
       f.qty = qtyOf(f);
       var nrow = el("div", "frow3");
       var qbox = el("div", "qty");
@@ -2516,22 +2714,29 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       chk.appendChild(el("span", null, "Posted calories"));
       var right = el("div", "fright");
       var cost = el("span", "fcost", "");
-      var fav = button("linkbtn", "Save favorite");
+      var fav = button("linkbtn", "Save cheat");
       var rm = button("linkbtn" + (state.armedFood === i ? " armed" : ""), state.armedFood === i ? "Tap again" : "Remove");
       right.appendChild(cost);
       right.appendChild(fav);
       right.appendChild(rm);
-      row2.appendChild(chk);
+      if (!f.skip) row2.appendChild(chk); else { row2.appendChild(el("span")); fav.hidden = true; }
       row2.appendChild(right);
       var how = el("div", "fhow");
       li.appendChild(row);
-      li.appendChild(nrow);
+      if (!f.skip) li.appendChild(nrow);
       li.appendChild(row2);
       li.appendChild(how);
       list.appendChild(li);
       state.foodEls.push({ cost: cost, how: how, fav: fav });
 
-      sel.addEventListener("change", function () { f.meal = sel.value; sel.classList.toggle("need", !f.meal); updatePreview(); });
+      sel.addEventListener("change", function () {
+        var v = sel.value, wasSkip = !!f.skip;
+        f.skip = v.indexOf("skip-") === 0;
+        f.meal = f.skip ? v.slice(5) : v;
+        sel.classList.toggle("need", !f.meal);
+        if (wasSkip !== f.skip) renderFoodList();
+        updatePreview();
+      });
       kc.addEventListener("input", function () { f.kcal = num(kc.value); updatePreview(); });
       nm.addEventListener("input", function () { f.name = nm.value; updatePreview(); });
       cb.addEventListener("change", function () { f.posted = cb.checked; updatePreview(); });
@@ -2547,7 +2752,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       plus.addEventListener("click", function () { setQty(f.qty + 1); });
       fav.addEventListener("click", function () {
         if (!f.kcal || !f.name.trim() || isFavorite(f)) return;
-        saveFavorite(f).then(function (ok) { if (ok) { toast("Saved " + f.name.trim() + " to favorites"); updatePreview(); } });
+        saveFavorite(f).then(function (ok) { if (ok) { toast("Saved " + f.name.trim() + " to cheats"); updatePreview(); } });
       });
       rm.addEventListener("click", function () {
         if (!f.kcal || state.armedFood === i) {
@@ -2962,7 +3167,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     if (!day) return f;
     f.plan = day.food.length ? "no" : "yes";
     f.food = day.food.map(function (x) {
-      return { meal: MEAL_INFO[x.meal] ? x.meal : "extra", kcal: +x.kcal || 0, qty: qtyOf(x), posted: x.posted !== false, name: x.name || "", base: foodBase(x), bmeal: x.meal };
+      return { meal: MEAL_INFO[x.meal] ? x.meal : "extra", kcal: +x.kcal || 0, qty: qtyOf(x), posted: x.posted !== false, name: x.name || "", base: foodBase(x), bmeal: x.meal, skip: !!x.skip };
     });
     if (day.steps) f.steps = day.steps.total;
     day.acts.forEach(function (e) {
@@ -2979,7 +3184,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   function captureForm() {
     return {
       plan: picked("plan"),
-      food: state.food.map(function (x) { return { meal: x.meal, kcal: x.kcal || "", qty: qtyOf(x), posted: x.posted !== false, name: x.name || "", base: x.base, bmeal: x.bmeal }; }),
+      food: state.food.map(function (x) { return { meal: x.meal, kcal: x.kcal || "", qty: qtyOf(x), posted: x.posted !== false, name: x.name || "", base: x.base, bmeal: x.bmeal, skip: !!x.skip }; }),
       acts: state.acts.map(function (a) { return Object.assign({}, a); }),
       steps: $("steps").value
     };
@@ -2997,8 +3202,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   }
   // Two forms that would save the same day compare equal.
   function canonForm(f) {
-    var food = f.plan === "no" ? (f.food || []).filter(function (x) { return num(x.kcal) > 0; }).map(function (x) {
-      return [x.meal, Math.round(num(x.kcal)), qtyOf(x), x.posted !== false, String(x.name || "").trim()];
+    var food = f.plan === "no" ? (f.food || []).filter(function (x) { return x.skip ? !!MEAL_INFO[x.meal] : num(x.kcal) > 0; }).map(function (x) {
+      return x.skip ? [x.meal, "skip"] : [x.meal, Math.round(num(x.kcal)), qtyOf(x), x.posted !== false, String(x.name || "").trim()];
     }) : [];
     var aw = formActs(f).filter(function (a) { return actAmount(a) > 0; }).map(function (a) {
       var d = rowDef(a), kc = a.mode === "kcal", m = Math.round(num(a.min));
@@ -3119,19 +3324,28 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var off = f.plan === "no";
     $("food").hidden = !off;
     if (off) {
+      var frs = foodRows(state.food);
       state.food.forEach(function (fd, i) {
         var els = state.foodEls[i];
         if (!els) return;
-        var c = formFoodCost(fd), kc = num(fd.kcal), base = formFoodBase(fd);
+        var r = frs[i], kc = num(fd.kcal), c = r ? r.cost : 0, base = r ? r.base : 0;
+        if (fd.skip) {
+          els.cost.textContent = "0";
+          els.cost.classList.add("zero");
+          els.how.textContent = base ? "Frees " + fmt(base) + " plan " + MEAL_INFO[fd.meal].short + " calories to offset today's cheats. Earns no points." :
+            "Your plan " + MEAL_INFO[fd.meal].short + " is already counted above, so this frees nothing.";
+          return;
+        }
         // The cost depends on the meal it replaced, so it waits until one is picked.
         els.cost.textContent = kc && fd.meal ? (c ? "−" + fmt(c) : "0") : "";
         els.cost.classList.toggle("zero", !c);
-        var q = qtyOf(fd);
-        els.how.textContent = kc && fd.meal && (q > 1 || fd.posted === false || base)
-          ? (q > 1 ? q + " × " + fmt(kc) : fmt(kc)) + (fd.posted === false ? " + 25%" : "") + (base ? " − " + fmt(base) + " plan " + MEAL_INFO[fd.meal].short : "")
+        var q = qtyOf(fd), dup = kc && fd.meal && fd.meal !== "extra" && r && !base;
+        els.how.textContent = kc && fd.meal && (q > 1 || fd.posted === false || base || dup)
+          ? (q > 1 ? q + " × " + fmt(kc) : fmt(kc)) + (fd.posted === false ? " + 25%" : "") + (base ? " − " + fmt(base) + " plan " + MEAL_INFO[fd.meal].short : "") +
+            (r && r.credit ? ". The " + fmt(r.credit) + " left offsets today's cheats." : "") + (dup ? " (plan " + MEAL_INFO[fd.meal].short + " already counted above)" : "")
           : "";
         var saved = kc && String(fd.name || "").trim() && isFavorite({ name: fd.name, kcal: Math.round(kc), meal: fd.meal, posted: fd.posted !== false });
-        els.fav.textContent = saved ? "★ Favorite" : "Save favorite";
+        els.fav.textContent = saved ? "★ Cheat" : "Save cheat";
         els.fav.classList.toggle("done", !!saved);
         els.fav.disabled = state.readOnly || !kc || !String(fd.name || "").trim();
       });
@@ -3157,8 +3371,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     $("sumEarn").textContent = plus(day.activityPts);
     $("sumBonusRow").hidden = !day.bonus;
     $("sumBonus").textContent = plus(day.bonus);
-    $("sumFoodRow").hidden = !day.spent;
-    $("sumFood").textContent = day.spent ? "−" + fmt(day.spent) : "0";
+    var ns = netSpent(day.food.map(function (x) { return { cost: foodCost(x), credit: Math.max(0, foodBase(x) - foodEst(x)) }; }));
+    $("sumFoodRow").hidden = !ns.cost;
+    $("sumFood").textContent = ns.cost ? "−" + fmt(ns.cost) : "0";
+    $("sumOffRow").hidden = !ns.off;
+    $("sumOff").textContent = "+" + fmt(ns.off);
     var net = shown ? day.pts - day.spent : 0;
     var dt = $("dayTotal");
     dt.textContent = signed(net);
@@ -3202,7 +3419,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       toast("Did you stick to the meal plan? Pick Yes or No.");
       return;
     }
-    var food = f.plan === "no" ? f.food.filter(function (x) { return num(x.kcal) > 0; }) : [];
+    var food = f.plan === "no" ? f.food.filter(function (x) { return x.skip || num(x.kcal) > 0; }) : [];
     if (f.plan === "no" && !food.length) { toast("Enter the calories for what you ate, or pick Yes."); return; }
     if (food.some(function (x) { return !x.meal; })) {
       var miss = -1;
@@ -3773,6 +3990,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     if (!d.food.length) return "";
     return "Off plan: " + d.food.map(function (f) {
       var q = Math.max(1, Math.round(+f.qty || 1));
+      if (f.skip) return "skipped " + (MEAL_INFO[f.meal] || MEAL_INFO.extra).short;
       return (q > 1 ? q + " × " : "") + (f.name || (MEAL_INFO[f.meal] || MEAL_INFO.extra).short) + " " + fmt((f.kcal || 0) * q) + " cal";
     }).join(", ") + " (−" + fmt(d.spent) + ")";
   }
@@ -4182,6 +4400,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       var food = [], offCal = 0;
       if (d) d.food.forEach(function (f) {
         var q = Math.max(1, Math.round(+f.qty || 1));
+        if (f.skip) { food.push("Skipped " + (MEAL_INFO[f.meal] || MEAL_INFO.extra).short); return; }
         food.push((q > 1 ? q + " × " : "") + (f.name || (MEAL_INFO[f.meal] || MEAL_INFO.extra).label) + " " + (f.kcal || 0));
         offCal += foodEst(f);
       });
@@ -4205,7 +4424,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   function confirmErase() {
     var body = el("div", "help");
     var dw = deviceWord(), synced = syncOn();
-    body.innerHTML = "<p>This deletes every log, weigh-in, favorite and setting on this " + dw + ". It can't be undone.</p>" +
+    body.innerHTML = "<p>This deletes every log, weigh-in, cheat and setting on this " + dw + ". It can't be undone.</p>" +
       (synced ? "<p>Sync turns off on this " + dw + " first, so the copy on GitHub and your other devices keep everything.</p>" : "<p>Back up first if you might want them later.</p>");
     var erase = button("btn danger", "Erase everything", function () {
       if (syncOn()) stopSync();
@@ -4652,7 +4871,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   }
   function renderAccess() {
     var ro = state.readOnly;
-    ["steps", "addAct", "nextAdd", "actEdit", "actEdit2", "addFood", "weight", "wLb", "wSave", "favPick",
+    ["steps", "addAct", "nextAdd", "actEdit", "actEdit2", "cheatAdd", "addFood", "weight", "wLb", "wSave", "favPick",
       "pfSave", "goalNameIn", "goalPtsIn", "goalSave", "goalClear", "restoreBtn", "eraseBtn", "tYes", "tNo"]
       .forEach(function (id) { var e = $(id); if (e) e.disabled = ro; });
     radios("plan").concat(radios("rate")).forEach(function (r) { r.disabled = ro; });
@@ -4732,6 +4951,10 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   });
   $("favEdit").addEventListener("click", openFavManager);
   $("redeemManage").addEventListener("click", openFavManager);
+  $("cheatAdd").addEventListener("click", function () { openCheatForm(null, false); });
+  Array.prototype.forEach.call(document.querySelectorAll(".rtabs button"), function (b) {
+    b.addEventListener("click", function () { state.redeemTab = b.getAttribute("data-rt"); renderRedeem(); });
+  });
   $("redeemBtn").addEventListener("click", function () { showTab("redeem"); });
   $("favPick").addEventListener("change", function () { var id = $("favPick").value; $("favPick").value = ""; if (id) addFavorite(id); });
   $("addAct").addEventListener("click", function () { addAct(""); });
