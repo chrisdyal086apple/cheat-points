@@ -944,6 +944,16 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 .rtabs button[aria-selected="true"] { background: linear-gradient(180deg, #6f8bff 0%, #3b55e8 100%); border-color: #b4c3ff; box-shadow: 0 0 14px var(--glow); }
 .rtabs button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .cheatform > .flabel { font-size: 0.9rem; margin-bottom: -4px; }
+
+/* Cheats: usual meals */
+.cfpref { display: grid; gap: 6px; }
+.cfpref .flabel { font-size: 0.9rem; }
+.prefbar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.prefbtn { appearance: none; height: 40px; border: 1px solid var(--line); border-radius: 12px; background: rgba(7, 10, 44, 0.75); color: var(--ink); font: 600 0.9rem/1 var(--body); cursor: pointer; }
+.prefbtn[aria-pressed="true"] { background: linear-gradient(180deg, #6f8bff 0%, #3b55e8 100%); border-color: #b4c3ff; box-shadow: 0 0 14px var(--glow); }
+.prefbtn[aria-pressed="true"]::before { content: "★ "; color: #7fd6ff; text-shadow: 0 0 4px rgba(127, 214, 255, 0.9); }
+.prefbtn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.rstar { color: #7fd6ff; text-shadow: 0 0 4px rgba(127, 214, 255, 0.9); }
 </style>
 <div class="statusfill" aria-hidden="true"></div>
 <main class="wrap" id="main">
@@ -1264,7 +1274,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.11.1","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.11.3","profile":null};</script>
 <script>
 (function () {
   "use strict";
@@ -2193,7 +2203,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         "Faded ones need more than your bank has right now and can't be tapped. If you had one anyway, log it from the <b>Add a cheat…</b> list in the log.",
         "Tap one to add it to the log for the day picked on the strip, already set to that meal. Save the day to redeem it.",
         "Points count what's already in that day's log: a skipped meal lowers them, and a meal you've already replaced means a second one costs in full.",
-        "<b>Add a cheat</b> saves one ahead of time: name, calories, Meal or Snack or drink, and whether the calories are posted. <b>Edit cheats</b> lets you change or remove any. You can also name an off-plan entry in the log and tap <b>Save cheat</b>."
+        "<b>Add a cheat</b> saves one ahead of time: name, calories, Meal or Snack or drink, and whether the calories are posted. For a meal, <b>Usually for</b> marks the meals you tend to have it for; it gets a ★ on those tabs. <b>Edit cheats</b> lets you change or remove any. You can also name an off-plan entry in the log and tap <b>Save cheat</b>."
       ]);
     } },
     buys: { title: "What points buy", html: function () {
@@ -2372,6 +2382,12 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   // A cheat is a meal (it can stand in for breakfast, lunch or dinner) or a snack or drink (always on top of
   // the plan). Cheats saved before this had only a meal hint: Extra means a snack or drink.
   function cheatType(fv) { return fv.type === "meal" || fv.type === "snack" ? fv.type : fv.meal === "extra" ? "snack" : "meal"; }
+  // The meals a meal cheat is usually for (starred on those Redeem tabs). Older cheats: their meal hint.
+  function prefsOf(fv) {
+    if (cheatType(fv) !== "meal") return [];
+    var p = Array.isArray(fv.pref) ? fv.pref : MEAL_KEYS.indexOf(fv.meal) >= 0 ? [fv.meal] : [];
+    return MEAL_KEYS.filter(function (m) { return p.indexOf(m) >= 0; });
+  }
   function isFavorite(f) {
     return favorites().some(function (x) { return favKey(x.name) === favKey(f.name) && x.kcal === Math.round(num(f.kcal)) && (x.posted !== false) === (f.posted !== false); });
   }
@@ -2380,14 +2396,17 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var items = favorites().filter(function (x) { return favKey(x.name) !== favKey(f.name); });
     // Its meal is a hint for Redeem: the meal it replaced when saved, else what it replaced before, else extra.
     var meal = MEAL_INFO[f.meal] ? f.meal : old && MEAL_INFO[old.meal] ? old.meal : "extra";
-    items.unshift({ id: Date.now().toString(36), name: f.name.trim().slice(0, 40), kcal: Math.round(num(f.kcal)), posted: f.posted !== false, meal: meal, type: meal === "extra" ? "snack" : "meal" });
+    var pref = old ? prefsOf(old) : [];
+    if (MEAL_KEYS.indexOf(meal) >= 0 && pref.indexOf(meal) < 0) pref.push(meal);
+    items.unshift({ id: Date.now().toString(36), name: f.name.trim().slice(0, 40), kcal: Math.round(num(f.kcal)), posted: f.posted !== false, meal: meal,
+      type: meal === "extra" ? "snack" : "meal", pref: MEAL_KEYS.filter(function (m) { return pref.indexOf(m) >= 0; }) });
     return write("favorites", { kind: "favorites", items: items.slice(0, FAV_LIMIT), ts: Date.now() });
   }
   // Saves a cheat from the form: a new one, or changes to the one with id.
   function saveCheat(c, id) {
     var key = favKey(c.name);
     var items = favorites().filter(function (x) { return x.id !== id && favKey(x.name) !== key; });
-    items.unshift({ id: id || Date.now().toString(36), name: c.name, kcal: c.kcal, posted: c.posted, meal: c.meal, type: c.type });
+    items.unshift({ id: id || Date.now().toString(36), name: c.name, kcal: c.kcal, posted: c.posted, meal: c.meal, type: c.type, pref: c.pref || [] });
     return write("favorites", { kind: "favorites", items: items.slice(0, FAV_LIMIT), ts: Date.now() });
   }
   function removeFavorite(id) {
@@ -2441,7 +2460,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         var li = el("li");
         var t = el("span", "fn");
         t.appendChild(el("b", null, fv.name));
-        t.appendChild(el("span", "fk", fmt(fv.kcal) + " cal" + (fv.posted === false ? " +25%" : "") + " · " + (cheatType(fv) === "meal" ? "Meal" : "Snack or drink")));
+        var pf = prefsOf(fv);
+        t.appendChild(el("span", "fk", fmt(fv.kcal) + " cal" + (fv.posted === false ? " +25%" : "") + " · " + (cheatType(fv) === "meal" ? "Meal" : "Snack or drink") +
+          (pf.length ? " · ★ " + pf.join(", ") : "")));
         li.appendChild(t);
         var links = el("span", "favlinks");
         var ed = button("linkbtn", "Edit", function () { openCheatForm(fv, true); });
@@ -2490,11 +2511,31 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     kc.placeholder = "0";
     kc.value = fv ? fv.kcal : "";
     var type = fv ? cheatType(fv) : "";
+    var prefs = fv ? prefsOf(fv) : [];
     var seg = segRadios("two", "cfType", "Meal or snack", [["meal", "Meal"], ["snack", "Snack or drink"]], type, function (v) {
       type = v;
       seg.classList.remove("ask");
+      prefWrap.hidden = type !== "meal";
       preview();
     });
+    // Which meals it's usually for: any of them, or none. Starred on those Redeem tabs.
+    var prefWrap = el("div", "cfpref");
+    prefWrap.appendChild(el("span", "flabel", "Usually for (optional)"));
+    var pbar = el("div", "prefbar");
+    pbar.setAttribute("role", "group");
+    pbar.setAttribute("aria-label", "Usually for");
+    MEAL_KEYS.forEach(function (m) {
+      var b = button("prefbtn", MEAL_INFO[m].short.charAt(0).toUpperCase() + MEAL_INFO[m].short.slice(1), function () {
+        var i = prefs.indexOf(m);
+        if (i >= 0) prefs.splice(i, 1); else prefs.push(m);
+        b.setAttribute("aria-pressed", prefs.indexOf(m) >= 0 ? "true" : "false");
+      });
+      b.id = "cfPref-" + m;
+      b.setAttribute("aria-pressed", prefs.indexOf(m) >= 0 ? "true" : "false");
+      pbar.appendChild(b);
+    });
+    prefWrap.appendChild(pbar);
+    prefWrap.hidden = type !== "meal";
     var chk = el("label", "check");
     var cb = el("input");
     cb.type = "checkbox";
@@ -2509,6 +2550,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     body.appendChild(el("span", "flabel", "It's a"));
     body.appendChild(seg);
     body.appendChild(el("p", "fine", "A meal can stand in for breakfast, lunch or dinner. A snack or drink always counts on top of the plan, so a beer never shows up as a free lunch."));
+    body.appendChild(prefWrap);
     body.appendChild(chk);
     body.appendChild(el("p", "fine", "Posted means a chain menu, an app or a label. Unchecked adds 25%, since big meals are easy to underestimate."));
     body.appendChild(need);
@@ -2530,8 +2572,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       var clash = favorites().filter(function (x) { return favKey(x.name) === favKey(name) && (!fv || x.id !== fv.id); })[0];
       if (clash) { toast("You already have a cheat named " + clash.name + "."); return; }
       // meal is kept for older versions of the app: their hint for what it replaces.
-      var meal = type === "snack" ? "extra" : fv && MEAL_KEYS.indexOf(fv.meal) >= 0 ? fv.meal : "dinner";
-      saveCheat({ name: name, kcal: k, posted: cb.checked, meal: meal, type: type }, fv ? fv.id : "").then(function (ok) {
+      var pref = type === "meal" ? MEAL_KEYS.filter(function (m) { return prefs.indexOf(m) >= 0; }) : [];
+      var meal = type === "snack" ? "extra" : pref.length ? pref[0] : fv && MEAL_KEYS.indexOf(fv.meal) >= 0 ? fv.meal : "dinner";
+      saveCheat({ name: name, kcal: k, posted: cb.checked, meal: meal, type: type, pref: pref }, fv ? fv.id : "").then(function (ok) {
         if (!ok) return;
         toast((fv ? "Updated " : "Saved ") + name + (fv ? "" : " to cheats"));
         if (fromList) openFavManager(); else closeSheet();
@@ -2597,8 +2640,12 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       var b = el("button", "ritem " + (ok ? "ok" : "short"));
       b.type = "button";
       b.disabled = state.readOnly || !ok;   // only what the bank covers can be redeemed
-      b.setAttribute("aria-label", fv.name + ", needs " + fmt(need) + " points" + (ok ? ". Add to the log." : ", " + fmt(need - bank) + " short"));
-      b.appendChild(el("span", "rn", fv.name));
+      var star = !snack && prefsOf(fv).indexOf(tab) >= 0;
+      b.setAttribute("aria-label", (star ? "Usually for " + tab + ": " : "") + fv.name + ", needs " + fmt(need) + " points" + (ok ? ". Add to the log." : ", " + fmt(need - bank) + " short"));
+      var rn = el("span", "rn");
+      if (star) rn.appendChild(el("span", "rstar", "★ "));
+      rn.appendChild(document.createTextNode(fv.name));
+      b.appendChild(rn);
       b.appendChild(el("span", "rs", fmt(fv.kcal) + " cal" + (fv.posted === false ? " +25%" : "") + (need === 0 && !snack ? " · under your plan " + tab : "")));
       var v = el("span", "rv");
       v.appendChild(el("span", "rp", fmt(need)));
