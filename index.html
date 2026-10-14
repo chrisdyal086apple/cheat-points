@@ -640,6 +640,40 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .sum .after { margin-bottom: 6px; color: var(--muted); font-size: 0.88rem; text-align: right; }
 
 /* ---------- Progress ---------- */
+.ptabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ptabs button {
+  appearance: none;
+  height: 42px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(7, 10, 44, 0.75);
+  color: var(--muted);
+  font: 700 0.86rem/1 var(--body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.ptabs button[aria-selected="true"] { background: linear-gradient(180deg, #6f8bff 0%, #3b55e8 100%); border-color: #b4c3ff; color: #ffffff; box-shadow: 0 0 14px var(--glow); }
+.ptabs button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* Deficit bars: one cyan, one hot pink, both inside the chart's lightness band (validated). */
+.k-bar { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+.k-bar.def, .tk-bar.def { background: #1c9be0; box-shadow: 0 0 6px rgba(116, 228, 255, 0.55); }
+.k-bar.sur, .tk-bar.sur { background: #ee4569; box-shadow: 0 0 6px rgba(255, 92, 122, 0.55); }
+.k-bar.sur { margin-left: 10px; }
+.tk-bar { display: inline-block; width: 8px; height: 8px; border-radius: 2px; }
+.chart .zero { stroke: rgba(185, 195, 255, 0.55); stroke-width: 1; }
+.chart .bar.def { fill: #1c9be0; filter: drop-shadow(0 0 3px rgba(116, 228, 255, 0.45)); }
+.chart .bar.sur { fill: #ee4569; filter: drop-shadow(0 0 3px rgba(255, 92, 122, 0.5)); }
+.chart .bar.now { fill-opacity: 0.45; stroke-dasharray: 3 2; }
+.chart .bar.now.def { stroke: #1c9be0; }
+.chart .bar.now.sur { stroke: #ee4569; }
+.chart .bar.on { stroke: #ffffff; stroke-width: 1.5; stroke-dasharray: none; fill-opacity: 1; }
+.wstat b.sur { color: #ff8fa3; text-shadow: 0 0 10px rgba(255, 92, 122, 0.55); }
+.dnet { line-height: 1; }
+.hrow .amt.dnet { grid-row: 1 / span 4; }
+.dnet small { display: block; margin-top: 2px; font: 700 0.6rem/1 var(--body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.amt.sur, .wk-net.sur { color: #ff8fa3; }
 /* Plain buttons (not a fieldset) so desktop browsers can't clip or stretch them. */
 .rangebar { display: inline-flex; flex: none; gap: 5px; margin-left: auto; }
 .rangebar button {
@@ -1315,9 +1349,13 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   <section class="tab" id="tab-progress" aria-label="Progress" hidden>
     <div class="col col-a">
     <header class="top"><div><h1 class="h1-sm">Progress</h1></div></header>
-    <section class="block first" aria-labelledby="trendH">
+    <div class="ptabs" role="tablist" aria-label="Chart">
+      <button type="button" role="tab" id="ptWeight" data-pm="weight" aria-selected="true" aria-controls="trendBlock">Weight</button>
+      <button type="button" role="tab" id="ptDeficit" data-pm="deficit" aria-selected="false" aria-controls="trendBlock" tabindex="-1">Deficit</button>
+    </div>
+    <section class="block first" id="trendBlock" role="tabpanel" aria-labelledby="trendH">
       <div class="block-h">
-        <h2 id="trendH">Weight<button type="button" class="qm" data-help="weigh" aria-label="Help: weigh-ins and the chart">?</button></h2>
+        <h2 id="trendH"><span id="trendT">Weight</span><button type="button" class="qm" id="trendQ" data-help="weigh" aria-label="Help: weigh-ins and the chart">?</button></h2>
         <div class="rangebar" role="radiogroup" aria-label="Chart range">
           <button type="button" role="radio" data-range="30" aria-checked="false">30 days</button>
           <button type="button" role="radio" data-range="90" aria-checked="true">90 days</button>
@@ -1325,30 +1363,50 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         </div>
       </div>
       <p class="chart-key" id="chartKey" hidden><span class="k-line"></span>7-day average<span class="k-dot"></span>Daily weigh-in</p>
+      <p class="chart-key" id="defKey" hidden><span class="k-bar def"></span>Deficit<span class="k-bar sur"></span>Surplus</p>
       <div class="chart" id="chart"></div>
       <details class="tview" id="wTableWrap" hidden><summary>Table view</summary><div class="tbl"><table id="wTable"></table></div></details>
-      <div class="wout">
+      <div class="wout" id="wOut">
         <div class="wstat"><span class="k">7-day average</span><b id="wAvg">—</b></div>
         <div class="wstat"><span class="k">Weekly pace</span><b id="wPace">—</b></div>
         <div class="wstat"><span class="k">Real burn</span><b id="wBurn">—</b></div>
       </div>
       <p class="hint" id="wBurnNote"></p>
       <p class="note info" id="wStatus"></p>
+      <div class="wout" id="dOut" hidden>
+        <div class="wstat"><span class="k" id="dAvgK">7-day average</span><b id="dAvg">—</b></div>
+        <div class="wstat"><span class="k">Est. pace</span><b id="dPace">—</b></div>
+        <div class="wstat"><span class="k">BMR now</span><b id="dBmr">—</b></div>
+      </div>
+      <p class="hint" id="dNote" hidden></p>
+      <p class="note warn" id="dStatus" hidden></p>
     </section>
     </div>
 
     <div class="col col-b">
 
-    <section class="block" aria-labelledby="weeksH">
+    <section class="block" id="weeksBlock" aria-labelledby="weeksH">
       <h2 id="weeksH">Weeks<button type="button" class="qm" data-help="weeks" aria-label="Help: weekly summary">?</button></h2>
       <ul class="weeks" id="weeks"></ul>
       <button type="button" class="btn ghost" id="weeksMore" hidden>Show all</button>
     </section>
 
-    <section class="block" aria-labelledby="histH">
+    <section class="block" id="histBlock" aria-labelledby="histH">
       <h2 id="histH">Days<button type="button" class="qm" data-help="logging" aria-label="Help: logging">?</button></h2>
       <ul class="hist" id="hist"></ul>
       <button type="button" class="btn ghost" id="histMore" hidden>Show all</button>
+    </section>
+
+    <section class="block" id="dWeeksBlock" aria-labelledby="dWeeksH" hidden>
+      <h2 id="dWeeksH">Weeks<button type="button" class="qm" data-help="deficit" aria-label="Help: deficit">?</button></h2>
+      <ul class="weeks" id="dWeeks"></ul>
+      <button type="button" class="btn ghost" id="dWeeksMore" hidden>Show all</button>
+    </section>
+
+    <section class="block" id="dDaysBlock" aria-labelledby="dDaysH" hidden>
+      <h2 id="dDaysH">Days<button type="button" class="qm" data-help="deficit" aria-label="Help: deficit">?</button></h2>
+      <ul class="hist" id="dDays"></ul>
+      <button type="button" class="btn ghost" id="dDaysMore" hidden>Show all</button>
     </section>
     </div>
   </section>
@@ -1502,7 +1560,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.12.2","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.14.1","profile":null};</script>
 <script>
 (function () {
   "use strict";
@@ -1641,6 +1699,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     tab: "today",
     histAll: false,
     weeksAll: false,
+    dDaysAll: false,
+    dWeeksAll: false,
     logDate: today(),       // the day picked on the strip; the whole Today page shows it
     drafts: {},             // unsaved changes by date: { form, wlb }
     acts: [],               // the form's workouts
@@ -1949,6 +2009,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var basis = prev ? { weight: prev.weight, tight: prev.tight } : settings();
     var lateNow = now > deadline(date);
     var day = blankDay(date, basis, prev ? !!prev.late : lateNow);
+    // The plan calories the day was eaten against, so changing the plan later doesn't rewrite its deficit.
+    // Today always takes the current plan.
+    day.plan = prev && isNum(prev.plan) && date !== today() ? prev.plan : planKcal();
     var b = bandFor(day.weight || 250), k = rateK(day.tight);
     var st = Math.round(num(f.steps));
     if (st) {
@@ -2351,6 +2414,34 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     return { real: intake + pace * 500, formula: formula };
   }
 
+  // ---------- Daily deficit ----------
+  // Estimated calories in and out for each logged day. In: the plan calories with that day's off-plan changes
+  // (different meals, skips, extras, drinks). Out: resting burn (BMR) at that morning's weigh-in, or the last
+  // one before it, plus 20% of it for daily life, plus about 2.3 calories per standard activity point. Late
+  // entries count here: they lose points, not calories.
+  function weighFor(ws, date, fallback) {
+    var best = null;
+    for (var i = 0; i < ws.length && ws[i].date <= date; i++) best = ws[i];
+    if (!best && ws.length) best = ws[0];
+    return best ? { lb: best.lb, date: best.date } : { lb: fallback, date: null };
+  }
+  function dayBalance(date, day, ws, spent) {
+    var w = weighFor(ws, date, (day && day.weight) || settings().weight || 250);
+    var rest = Math.round(bmr(w.lb)), life = Math.round((ACTIVITY - 1) * rest), act = Math.round(BURN_PER_PT * stdActivity(day));
+    var plan = day && isNum(day.plan) ? day.plan : planKcal();
+    var ate = Math.max(0, Math.round(plan + intakeDelta(day, spent)));
+    var burn = rest + life + act;
+    return { date: date, lb: w.lb, lbDate: w.date, bmr: rest, life: life, act: act, burn: burn, ate: ate, net: burn - ate, partial: date === today() };
+  }
+  // Every logged day through today, oldest first.
+  function balances() {
+    var ws = weighIns(), sp = spendsByDate(), t = today(), byDate = {};
+    allDays().forEach(function (d) { if (d.date <= t) byDate[d.date] = d; });
+    Object.keys(sp).forEach(function (date) { if (date <= t && !(date in byDate)) byDate[date] = null; });
+    return Object.keys(byDate).sort().map(function (date) { return dayBalance(date, byDate[date], ws, sp[date]); });
+  }
+  function netWord(n) { return n >= 0 ? "deficit" : "surplus"; }
+
   // ---------- Model for the Guide ----------
   // A full routine week: 6 lifts (2 of each), 6 forty-five-minute walks (about 5,000 steps), 7 on-plan days.
   function weekModel(w, tight) {
@@ -2503,6 +2594,17 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     weeks: { title: "Weeks", html: function () {
       return "<p>Each row is a Monday–Sunday week: points earned, points spent, and the net on the right. The weight is that week's average weigh-in, with the change from the week before.</p>";
     } },
+    deficit: { title: "Deficit", html: function (c) {
+      return "<p>Switch Progress to <b>Deficit</b> to see an estimate of each logged day's calories in and out. A <b>deficit</b> means you burned more than you ate, a <b>surplus</b> the reverse. About 3,500 calories is a pound.</p>" + ul([
+        "<b>Ate</b>: your plan calories" + (c.ok ? " (" + fmt(planKcal()) + ")" : "") + ", with that day's changes from your log: different meals, skipped meals, extra food and drinks.",
+        "<b>BMR</b>: your resting burn at that morning's weigh-in, from your height, age and sex (Mifflin-St Jeor). A day without a weigh-in uses the last one before it.",
+        "<b>Beyond BMR</b>: daily life, 20% of BMR, which covers an easy day up to 3,000 steps; plus your activity at about " + BURN_PER_PT + " calories per point, before Tight. Activity logged late still counts here.",
+        "<b>Today</b> shows so far. It assumes you finish your plan and counts the activity logged.",
+        "Days you didn't log are left out. The 7-day average uses the last 7 full days.",
+        "<b>Weeks</b> add up the logged days, with the estimated change in pounds next to the change in your weekly average weigh-in. Water moves the scale for a few days after salty, carb-heavy or drinking days, so compare over several weeks.",
+        "These are estimates. After 3 weeks, <b>Real burn</b> on the Weight view checks them against your scale."
+      ]);
+    } },
     warnings: { title: "Warnings", html: function (c) {
       var list = [
         ["Big activity day", "Activity earns more than " + BIG_DAY + " points in a day.", "Fine now and then. Work up to days like this."],
@@ -2636,7 +2738,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         "<p>Resting burn uses the Mifflin-St Jeor equation. Warnings and predictions use 1.2 × resting burn plus about 2.3 calories per standard point (the middle of each range), minus your plan calories and any off-plan changes. 3,500 calories is about 1 lb of fat. Costs are recalculated each week as your weight drops and assume every point gets spent.</p>";
     } }
   };
-  var GUIDE_ORDER = ["points", "bank", "logging", "plan", "redeem", "workouts", "steps", "cardio", "other", "weigh", "weeks", "warnings", "rate", "weightpts", "goal", "buys", "costs", "profile", "backup", "sync", "install", "numbers"];
+  var GUIDE_ORDER = ["points", "bank", "logging", "plan", "redeem", "workouts", "steps", "cardio", "other", "weigh", "weeks", "deficit", "warnings", "rate", "weightpts", "goal", "buys", "costs", "profile", "backup", "sync", "install", "numbers"];
 
   // ---------- Sheet ----------
   var sheetOnClose = null;
@@ -4244,12 +4346,34 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   }
 
   // ---------- Progress ----------
+  // Two views: Weight (the scale) and Deficit (calories in and out). Each keeps its own chart range.
+  function progMode() { return meta().progMode === "deficit" ? "deficit" : "weight"; }
+  function setProgMode(m) {
+    if (m === progMode()) return;
+    setMeta({ progMode: m });
+    renderProgress();
+  }
   function renderProgress() {
     if (state.tab !== "progress") return;
-    renderChart();
-    renderStats();
-    renderWeeks();
-    renderHistory();
+    var def = progMode() === "deficit";
+    Array.prototype.forEach.call(document.querySelectorAll(".ptabs button"), function (b) {
+      var on = b.getAttribute("data-pm") === (def ? "deficit" : "weight");
+      b.setAttribute("aria-selected", on ? "true" : "false");
+      b.tabIndex = on ? 0 : -1;
+    });
+    $("trendT").textContent = def ? "Deficit" : "Weight";
+    $("trendQ").setAttribute("data-help", def ? "deficit" : "weigh");
+    $("trendQ").setAttribute("aria-label", def ? "Help: deficit" : "Help: weigh-ins and the chart");
+    ["wOut", "wBurnNote", "wStatus", "weeksBlock", "histBlock"].forEach(function (id) { $(id).hidden = def; });
+    ["dOut", "dWeeksBlock", "dDaysBlock"].forEach(function (id) { $(id).hidden = !def; });
+    if (!def) { $("dNote").hidden = true; $("dStatus").hidden = true; }
+    renderTrend();
+    if (def) { renderDefStats(); renderDefWeeks(); renderDefDays(); }
+    else { renderStats(); renderWeeks(); renderHistory(); }
+  }
+  function renderTrend() {
+    if (progMode() === "deficit") renderDefChart();
+    else { $("defKey").hidden = true; renderChart(); }
   }
   function renderStats() {
     var w = weighStatus(), rb = realBurn();
@@ -4309,6 +4433,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var box = $("chart");
     box.textContent = "";
     box.onkeydown = null;
+    box.onblur = null;
     box.removeAttribute("tabindex");
     var all = weighIns(), t = today(), range = chartRange();
     Array.prototype.forEach.call(document.querySelectorAll(".rangebar button"), function (b) {
@@ -4537,6 +4662,254 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var more = $("histMore");
     more.hidden = items.length <= HIST_LIMIT;
     more.textContent = state.histAll ? "Show fewer" : "Show all " + items.length;
+  }
+
+  // ---------- Progress: Deficit view ----------
+  function defRange() { var r = meta().defRange; return r === "90" || r === "all" ? r : "30"; }
+  function kcalTicks(lo, hi) {
+    lo = Math.min(0, lo);
+    hi = Math.max(0, hi);
+    if (hi - lo < 500) { if (hi >= -lo) hi = lo + 500; else lo = hi - 500; }
+    var steps = [100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000], step = steps[steps.length - 1];
+    for (var i = 0; i < steps.length; i++) { if ((hi - lo) / steps[i] <= 4) { step = steps[i]; break; } }
+    var out = [], b = Math.ceil(hi / step) * step;
+    for (var v = Math.floor(lo / step) * step; v <= b + 1e-9; v += step) out.push(v);
+    return out;
+  }
+  // A bar from the zero line to y1, rounded at the data end only.
+  function barPath(x, w, y0, y1) {
+    var up = y1 < y0, r = Math.max(0, Math.min(4, w / 2, Math.abs(y1 - y0))), s = up ? 1 : -1;
+    function f(n) { return n.toFixed(1); }
+    return "M" + f(x) + " " + f(y0) + "V" + f(y1 + s * r) + "Q" + f(x) + " " + f(y1) + " " + f(x + r) + " " + f(y1) +
+      "H" + f(x + w - r) + "Q" + f(x + w) + " " + f(y1) + " " + f(x + w) + " " + f(y1 + s * r) + "V" + f(y0) + "Z";
+  }
+  function netCell(cls, n) {
+    var c = el("span", cls + " dnet " + (n >= 0 ? "earn" : "sur"));
+    c.appendChild(document.createTextNode(fmt(Math.abs(n))));
+    c.appendChild(el("small", null, netWord(n)));
+    return c;
+  }
+  function renderDefChart() {
+    var box = $("chart");
+    box.textContent = "";
+    box.onkeydown = null;
+    box.onblur = null;
+    box.removeAttribute("tabindex");
+    $("chartKey").hidden = true;
+    $("wTableWrap").hidden = true;
+    var t = today(), range = defRange(), all = balances();
+    Array.prototype.forEach.call(document.querySelectorAll(".rangebar button"), function (b) {
+      b.setAttribute("aria-checked", b.getAttribute("data-range") === range ? "true" : "false");
+    });
+    var start = range === "all" ? (all.length ? all[0].date : t) : addDays(t, -(+range - 1));
+    var series = all.filter(function (b) { return b.date >= start; });
+    $("defKey").hidden = !series.length;
+    if (!ready() || !series.length) {
+      box.appendChild(el("p", "chart-empty", !ready() ? "Enter your height, age and sex in Settings to estimate your burn." :
+        all.length ? "Nothing logged in this range." : "Log a day to see its deficit or surplus here."));
+      return;
+    }
+    var width = Math.max(260, Math.round(box.getBoundingClientRect().width || 340)), height = width >= 560 ? 270 : 200;
+    var m = { l: 40, r: 8, t: 12, b: 26 };
+    var first = series[0].date, n = daysBetween(first, t) + 1, slot = (width - m.l - m.r) / n;
+    var bw = Math.max(1, Math.min(22, slot - (slot >= 6 ? 2 : 1)));
+    var nets = series.map(function (b) { return b.net; });
+    var ticks = kcalTicks(Math.min.apply(null, nets), Math.max.apply(null, nets));
+    var y0 = ticks[0], y1 = ticks[ticks.length - 1];
+    function X(date) { return m.l + (daysBetween(first, date) + 0.5) * slot; }
+    function Y(v) { return m.t + (y1 - v) / (y1 - y0) * (height - m.t - m.b); }
+    var NS = "http://www.w3.org/2000/svg";
+    function S(tag, attrs, parent) {
+      var nd = document.createElementNS(NS, tag);
+      Object.keys(attrs).forEach(function (k) { nd.setAttribute(k, attrs[k]); });
+      if (parent) parent.appendChild(nd);
+      return nd;
+    }
+    var last = series[series.length - 1];
+    var svg = S("svg", { viewBox: "0 0 " + width + " " + height, width: width, height: height, role: "img",
+      "aria-label": "Daily deficit chart. " + fmtShort(last.date) + ": " + fmt(Math.abs(last.net)) + " " + netWord(last.net) + "." });
+    ticks.forEach(function (v) {
+      var yy = Math.round(Y(v)) + 0.5;
+      S("line", { x1: m.l, x2: width - m.r, y1: yy, y2: yy, "class": v === 0 ? "zero" : "grid" }, svg);
+      S("text", { x: m.l - 6, y: yy + 4, "class": "ylab", "text-anchor": "end" }, svg).textContent = fmt(Math.abs(v));
+    });
+    var xt = n >= 5 ? [0, 0.5, 1] : n >= 2 ? [0, 1] : [1];
+    xt.forEach(function (f) {
+      var d = addDays(first, Math.round(f * (n - 1)));
+      var anchor = n === 1 ? "middle" : f === 0 ? "start" : f === 1 ? "end" : "middle";
+      var x = n === 1 ? X(d) : f === 0 ? m.l : f === 1 ? width - m.r : X(d);
+      S("text", { x: x, y: height - 6, "class": "xlab", "text-anchor": anchor }, svg).textContent = fmtShort(d);
+    });
+    var zy = Y(0), bars = [];
+    var gb = S("g", {}, svg);
+    series.forEach(function (b) {
+      var top = Y(b.net);
+      if (Math.abs(top - zy) < 1.5) top = zy + (b.net >= 0 ? -1.5 : 1.5);
+      bars.push(S("path", { d: barPath(X(b.date) - bw / 2, bw, zy, top), "class": "bar " + (b.net >= 0 ? "def" : "sur") + (b.partial ? " now" : "") }, gb));
+    });
+    S("rect", { x: m.l, y: 0, width: width - m.l - m.r, height: height, fill: "transparent" }, svg);
+    box.appendChild(svg);
+    var tip = el("div", "tip");
+    tip.hidden = true;
+    box.appendChild(tip);
+    state.chartIdx = -1;
+    function show(i) {
+      var b = series[i];
+      if (state.chartIdx >= 0 && bars[state.chartIdx]) bars[state.chartIdx].classList.remove("on");
+      state.chartIdx = i;
+      bars[i].classList.add("on");
+      tip.textContent = "";
+      var r1 = el("div", "r");
+      r1.appendChild(el("span", "tk-bar " + (b.net >= 0 ? "def" : "sur")));
+      r1.appendChild(el("b", null, fmt(Math.abs(b.net))));
+      r1.appendChild(el("span", "d", netWord(b.net) + (b.partial ? " so far" : "")));
+      tip.appendChild(r1);
+      tip.appendChild(el("div", null, "Ate " + fmt(b.ate) + " · Burned " + fmt(b.burn)));
+      tip.appendChild(el("div", "d", fmtDay(b.date)));
+      tip.hidden = false;
+      var scale = box.getBoundingClientRect().width / width || 1;
+      var tw = tip.offsetWidth, bwid = box.clientWidth;
+      tip.style.left = Math.max(tw / 2, Math.min(bwid - tw / 2, X(b.date) * scale)) + "px";
+    }
+    function hide() {
+      if (state.chartIdx >= 0 && bars[state.chartIdx]) bars[state.chartIdx].classList.remove("on");
+      tip.hidden = true;
+      state.chartIdx = -1;
+    }
+    function nearest(clientX) {
+      var r = svg.getBoundingClientRect();
+      var px = (clientX - r.left) * (width / r.width), best = 0, bd = Infinity;
+      series.forEach(function (b, i) { var dd = Math.abs(X(b.date) - px); if (dd < bd) { bd = dd; best = i; } });
+      return best;
+    }
+    svg.addEventListener("pointermove", function (e) { show(nearest(e.clientX)); });
+    svg.addEventListener("pointerdown", function (e) { show(nearest(e.clientX)); });
+    svg.addEventListener("pointerleave", function (e) { if (e.pointerType === "mouse") hide(); });
+    box.tabIndex = 0;
+    box.setAttribute("aria-label", "Daily deficit chart. Use the left and right arrow keys to read each day.");
+    box.onkeydown = function (e) {
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        e.preventDefault();
+        var i = state.chartIdx < 0 ? series.length - 1 : state.chartIdx + (e.key === "ArrowRight" ? 1 : -1);
+        show(Math.max(0, Math.min(series.length - 1, i)));
+      } else if (e.key === "Escape") hide();
+    };
+    box.onblur = hide;
+  }
+  function renderDefStats() {
+    var t = today(), all = balances(), from = addDays(t, -7), to = addDays(t, -1);
+    var wk = all.filter(function (b) { return b.date >= from && b.date <= to; });
+    var avgEl = $("dAvg"), paceEl = $("dPace"), note = $("dNote"), st = $("dStatus");
+    avgEl.className = "";
+    paceEl.className = "";
+    st.hidden = true;
+    if (!wk.length) {
+      $("dAvgK").textContent = "7-day average";
+      avgEl.textContent = "—";
+      paceEl.textContent = "—";
+      note.textContent = all.length ? "The average uses the last 7 full days. It shows once you've logged one." : "";
+    } else {
+      var avg = mean(wk.map(function (b) { return b.net; }));
+      $("dAvgK").textContent = "Avg " + netWord(avg);
+      avgEl.textContent = fmt(Math.abs(avg)) + "/day";
+      avgEl.className = avg >= 0 ? "down" : "sur";
+      var p = avg * 7 / KCAL_PER_LB;
+      paceEl.textContent = paceText(p);
+      paceEl.className = p >= 0 ? "down" : "sur";
+      note.textContent = "Last 7 full days" + (wk.length < 7 ? ", " + wk.length + " of them logged" : "") + ". Burn is BMR, plus 20% for daily life, plus activity.";
+      var W = wk[wk.length - 1].lb || settings().weight || 250;
+      if (avg > DEFICIT_PER_LB * W) {
+        st.textContent = "Averaging over " + fmt(near50(DEFICIT_PER_LB * W)) + " a day, well past the 1%-a-week pace. Eat some of your points.";
+        st.hidden = false;
+      }
+    }
+    note.hidden = !note.textContent;
+    var ws = weighIns(), lb = ws.length ? ws[ws.length - 1].lb : settings().weight;
+    $("dBmr").textContent = lb && ready() ? fmt(bmr(lb)) : "—";
+  }
+  function renderDefWeeks() {
+    var list = $("dWeeks");
+    list.textContent = "";
+    var all = balances(), wsAll = weighIns(), t = today();
+    if (!all.length) {
+      list.appendChild(el("li", "empty", state.loaded ? "Your weekly totals show here once you log a day." : "Loading…"));
+      $("dWeeksMore").hidden = true;
+      return;
+    }
+    var first = wsAll.length && wsAll[0].date < all[0].date ? wsAll[0].date : all[0].date;
+    var rows = [], prevAvg = null;
+    for (var s = weekStart(first); s <= t; s = addDays(s, 7)) {
+      var e = addDays(s, 6);
+      var days = all.filter(function (b) { return b.date >= s && b.date <= e; });
+      var wk = wsAll.filter(function (w) { return w.date >= s && w.date <= e; }).map(function (w) { return w.lb; });
+      var avg = wk.length ? mean(wk) : null;
+      if (s >= weekStart(all[0].date)) {
+        rows.push({ start: s, end: e, n: days.length, ate: sum(days, function (b) { return b.ate; }), burn: sum(days, function (b) { return b.burn; }),
+          net: sum(days, function (b) { return b.net; }), change: avg != null && prevAvg != null ? avg - prevAvg : null });
+      }
+      if (avg != null) prevAvg = avg;
+    }
+    rows.reverse();
+    var shown = state.dWeeksAll ? rows : rows.slice(0, WEEKS_LIMIT);
+    shown.forEach(function (r) {
+      var li = el("li"), box = el("div", "wk");
+      var sameMonth = parseISO(r.start).getMonth() === parseISO(r.end).getMonth();
+      box.appendChild(el("span", "wk-when", fmtShort(r.start) + " – " + (sameMonth ? parseISO(r.end).getDate() : fmtShort(r.end)) + (r.start === weekStart(t) ? " (this week)" : "")));
+      if (r.n) {
+        box.appendChild(el("span", "wk-sub", "Ate " + fmt(r.ate) + " · Burned " + fmt(r.burn) + " · " + r.n + " day" + (r.n === 1 ? "" : "s") + " logged"));
+        var est = r.net / KCAL_PER_LB;
+        box.appendChild(el("span", "wk-sub", "Est. " + (est >= 0 ? "−" : "+") + lbStr(Math.abs(est)) + " lb" +
+          (r.change != null ? " · Scale " + (r.change <= 0 ? "−" : "+") + lbStr(Math.abs(r.change)) + " lb" : "")));
+        box.appendChild(netCell("wk-net", r.net));
+      } else {
+        box.appendChild(el("span", "wk-sub", "Nothing logged"));
+        box.appendChild(el("span", "wk-net", "—"));
+      }
+      li.appendChild(box);
+      list.appendChild(li);
+    });
+    var more = $("dWeeksMore");
+    more.hidden = rows.length <= WEEKS_LIMIT;
+    more.textContent = state.dWeeksAll ? "Show fewer" : "Show all " + rows.length;
+  }
+  function renderDefDays() {
+    var list = $("dDays");
+    list.textContent = "";
+    var all = balances().reverse();
+    if (!all.length) {
+      list.appendChild(el("li", "empty", state.loaded ? "Nothing logged yet." : "Loading…"));
+      $("dDaysMore").hidden = true;
+      return;
+    }
+    var shown = state.dDaysAll ? all : all.slice(0, HIST_LIMIT);
+    shown.forEach(function (b) {
+      var li = el("li"), open = inStrip(b.date);
+      var row = el(open ? "button" : "div", "hrow" + (open ? "" : " static"));
+      var NB = " ";
+      var when = fmtDay(b.date) + (b.partial ? " (so far)" : "");
+      var beyond = "Ate " + fmt(b.ate) + " · Burned " + fmt(b.life + b.act) + " beyond" + NB + "BMR";
+      var parts = "Daily life" + NB + fmt(b.life) + " + activity" + NB + fmt(b.act);
+      var rest = "BMR " + fmt(b.bmr) + " at" + NB + lbStr(b.lb) + NB + "lb" + (b.lbDate && b.lbDate !== b.date ? " (" + fmtShort(b.lbDate) + ")" : "");
+      if (open) {
+        row.type = "button";
+        row.setAttribute("aria-label", "Open " + when + ". " + beyond + ". " + parts + ". " + rest + ". " + fmt(Math.abs(b.net)) + " " + netWord(b.net) + ".");
+        row.addEventListener("click", function () {
+          showTab("today", { keepScroll: true });
+          selectDay(b.date);
+          scrollToLog();
+        });
+      }
+      row.appendChild(el("span", "when", when));
+      row.appendChild(el("span", "what", beyond));
+      row.appendChild(el("span", "what", parts));
+      row.appendChild(el("span", "what", rest));
+      row.appendChild(netCell("amt", b.net));
+      li.appendChild(row);
+      list.appendChild(li);
+    });
+    var more = $("dDaysMore");
+    more.hidden = all.length <= HIST_LIMIT;
+    more.textContent = state.dDaysAll ? "Show fewer" : "Show all " + all.length;
   }
 
   // ---------- Your numbers ----------
@@ -5456,13 +5829,28 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   $("tNo").addEventListener("click", function () { setTally("n"); });
   $("histMore").addEventListener("click", function () { state.histAll = !state.histAll; renderHistory(); });
   $("weeksMore").addEventListener("click", function () { state.weeksAll = !state.weeksAll; renderWeeks(); });
+  $("dDaysMore").addEventListener("click", function () { state.dDaysAll = !state.dDaysAll; renderDefDays(); });
+  $("dWeeksMore").addEventListener("click", function () { state.dWeeksAll = !state.dWeeksAll; renderDefWeeks(); });
+  Array.prototype.forEach.call(document.querySelectorAll(".ptabs button"), function (b, i, all) {
+    b.addEventListener("click", function () { setProgMode(b.getAttribute("data-pm")); });
+    b.addEventListener("keydown", function (e) {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      var next = all[(i + 1) % all.length];
+      setProgMode(next.getAttribute("data-pm"));
+      next.focus();
+    });
+  });
   $("toProgress").addEventListener("click", function () { showTab("progress"); });
 
   $("wLb").addEventListener("input", noteWeighDraft);
   $("wSave").addEventListener("click", saveWeigh);
 
   Array.prototype.forEach.call(document.querySelectorAll(".rangebar button"), function (b) {
-    b.addEventListener("click", function () { setMeta({ chartRange: b.getAttribute("data-range") }); renderChart(); });
+    b.addEventListener("click", function () {
+      setMeta(progMode() === "deficit" ? { defRange: b.getAttribute("data-range") } : { chartRange: b.getAttribute("data-range") });
+      renderTrend();
+    });
   });
   // With a mouse, the wheel scrolls the day strip back through the month (and the page once it reaches an end).
   $("week").addEventListener("wheel", function (e) {
@@ -5489,7 +5877,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   var resizeTimer = null;
   window.addEventListener("resize", function () {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(function () { if (state.tab === "progress") renderChart(); }, 150);
+    resizeTimer = setTimeout(function () { if (state.tab === "progress") renderTrend(); }, 150);
   });
 
   $("pfSave").addEventListener("click", saveProfile);
