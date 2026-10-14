@@ -223,6 +223,7 @@ h2 {
   overflow: hidden;
   isolation: isolate;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   padding: 16px 16px 14px;
   border: 1px solid var(--board-line);
@@ -366,7 +367,7 @@ h2 {
   mask-image: linear-gradient(90deg, transparent 0, #000 var(--fl), #000 calc(100% - var(--fr)), transparent 100%);
 }
 .strip::-webkit-scrollbar { display: none; }
-.stripwrap { position: relative; }
+.stripwrap { position: relative; min-width: 0; }
 /* With a mouse, arrows page the strip a week at a time (touch screens just swipe). */
 .stripnav {
   position: absolute;
@@ -1619,7 +1620,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.14.3","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.14.4","profile":null};</script>
 <script>
 (function () {
   "use strict";
