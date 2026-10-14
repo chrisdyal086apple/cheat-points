@@ -366,6 +366,36 @@ h2 {
   mask-image: linear-gradient(90deg, transparent 0, #000 var(--fl), #000 calc(100% - var(--fr)), transparent 100%);
 }
 .strip::-webkit-scrollbar { display: none; }
+.stripwrap { position: relative; }
+/* With a mouse, arrows page the strip a week at a time (touch screens just swipe). */
+.stripnav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-top: -14px;
+  padding: 0;
+  border: 1px solid rgba(127, 214, 255, 0.7);
+  border-radius: 50%;
+  background: rgba(5, 8, 35, 0.92);
+  color: var(--accent);
+  box-shadow: 0 0 12px var(--glow-cyan);
+  cursor: pointer;
+}
+.stripnav.prev { left: -17px; }
+.stripnav.next { right: -17px; }
+.stripnav svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.stripnav:hover { background: rgba(21, 32, 105, 0.98); color: #ffffff; }
+.stripnav:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) {
+  .stripnav { display: grid; }
+  .stripnav[hidden] { display: none; }
+  .strip.dragging { cursor: grabbing; scroll-snap-type: none; }
+  .strip.dragging .day { cursor: grabbing; }
+}
 .strip.more-left { --fl: 22px; }
 .strip.more-right { --fr: 22px; }
 .day {
@@ -656,24 +686,43 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 }
 .ptabs button[aria-selected="true"] { background: linear-gradient(180deg, #6f8bff 0%, #3b55e8 100%); border-color: #b4c3ff; color: #ffffff; box-shadow: 0 0 14px var(--glow); }
 .ptabs button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-/* Deficit bars: one cyan, one hot pink, both inside the chart's lightness band (validated). */
+/* Deficit bars: blue under the goal, green at or past it, magenta for a surplus (all three validated for
+   lightness and color-blind separation on the chart surface). Past 1,500, a glowing red outline. */
+#defKey { gap: 4px 12px; }
+.ki { display: inline-flex; align-items: center; gap: 6px; }
 .k-bar { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
-.k-bar.def, .tk-bar.def { background: #1c9be0; box-shadow: 0 0 6px rgba(116, 228, 255, 0.55); }
-.k-bar.sur, .tk-bar.sur { background: #ee4569; box-shadow: 0 0 6px rgba(255, 92, 122, 0.55); }
-.k-bar.sur { margin-left: 10px; }
 .tk-bar { display: inline-block; width: 8px; height: 8px; border-radius: 2px; }
+.k-bar.def, .tk-bar.def { background: #1c9be0; box-shadow: 0 0 6px rgba(116, 228, 255, 0.55); }
+.k-bar.goal, .tk-bar.goal { background: #3aa64a; box-shadow: 0 0 6px rgba(126, 224, 138, 0.55); }
+.k-bar.sur, .tk-bar.sur { background: #e8459a; box-shadow: 0 0 6px rgba(255, 92, 180, 0.55); }
+.k-bar.high, .tk-bar.high { outline: 2px solid #ff3b3b; outline-offset: 1px; box-shadow: 0 0 8px rgba(255, 59, 59, 0.9); }
 .chart .zero { stroke: rgba(185, 195, 255, 0.55); stroke-width: 1; }
 .chart .bar.def { fill: #1c9be0; filter: drop-shadow(0 0 3px rgba(116, 228, 255, 0.45)); }
-.chart .bar.sur { fill: #ee4569; filter: drop-shadow(0 0 3px rgba(255, 92, 122, 0.5)); }
+.chart .bar.goal { fill: #3aa64a; filter: drop-shadow(0 0 3px rgba(126, 224, 138, 0.5)); }
+.chart .bar.sur { fill: #e8459a; filter: drop-shadow(0 0 3px rgba(255, 92, 180, 0.5)); }
+.chart .bar.high { stroke: #ff3b3b; stroke-width: 2; filter: drop-shadow(0 0 4px rgba(255, 59, 59, 0.95)) drop-shadow(0 0 8px rgba(255, 59, 59, 0.6)); }
 .chart .bar.now { fill-opacity: 0.45; stroke-dasharray: 3 2; }
 .chart .bar.now.def { stroke: #1c9be0; }
-.chart .bar.now.sur { stroke: #ee4569; }
+.chart .bar.now.goal { stroke: #3aa64a; }
+.chart .bar.now.sur { stroke: #e8459a; }
+.chart .bar.now.high { stroke: #ff3b3b; }
 .chart .bar.on { stroke: #ffffff; stroke-width: 1.5; stroke-dasharray: none; fill-opacity: 1; }
-.wstat b.sur { color: #ff8fa3; text-shadow: 0 0 10px rgba(255, 92, 122, 0.55); }
+.chart .goalline { stroke: #7ee08a; stroke-width: 1.5; stroke-dasharray: 5 4; filter: drop-shadow(0 0 3px rgba(126, 224, 138, 0.6)); pointer-events: none; }
+.chart .goallab { fill: #7ee08a; font-family: var(--body); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; pointer-events: none; }
+.chart .tip .tag { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.chart .tip .tag.goal { color: #7ee08a; }
+.chart .tip .tag.high { color: #ff6b6b; }
+.wstat b.def { color: var(--earn); }
+.wstat b.goal { color: #7ee08a; text-shadow: 0 0 10px rgba(126, 224, 138, 0.5); }
+.wstat b.high { color: #7ee08a; text-shadow: 0 0 6px rgba(255, 59, 59, 0.9), 0 0 14px rgba(255, 59, 59, 0.6); }
+.wstat b.sur { color: #ff8fd0; text-shadow: 0 0 10px rgba(255, 92, 180, 0.55); }
 .dnet { line-height: 1; }
 .hrow .amt.dnet { grid-row: 1 / span 4; }
 .dnet small { display: block; margin-top: 2px; font: 700 0.6rem/1 var(--body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
-.amt.sur, .wk-net.sur { color: #ff8fa3; }
+.dnet.def { color: var(--earn); }
+.dnet.goal, .dnet.high { color: #7ee08a; }
+.dnet.high small { color: #ff6b6b; text-shadow: 0 0 6px rgba(255, 59, 59, 0.8); }
+.dnet.sur { color: #ff8fd0; }
 /* Plain buttons (not a fieldset) so desktop browsers can't clip or stretch them. */
 .rangebar { display: inline-flex; flex: none; gap: 5px; margin-left: auto; }
 .rangebar button {
@@ -1227,7 +1276,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         <div class="meter" id="goalMeter" role="progressbar" aria-label="Savings goal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="meter-fill" id="goalFill"></div></div>
         <div class="goal-eta" id="goalEta"></div>
       </div>
-      <div class="strip" id="week" role="group" aria-label="The last 31 days. Pick a day to view or change it."></div>
+      <div class="stripwrap">
+        <div class="strip" id="week" role="group" aria-label="The last 31 days. Pick a day to view or change it."></div>
+        <button type="button" class="stripnav prev" id="weekPrev" aria-label="Earlier days" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <button type="button" class="stripnav next" id="weekNext" aria-label="Later days" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div>
       <div class="viewing" id="viewing" hidden><span id="viewingTxt"></span><button type="button" class="linkbtn" id="toToday">Back to today</button></div>
     </section>
 
@@ -1363,7 +1416,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         </div>
       </div>
       <p class="chart-key" id="chartKey" hidden><span class="k-line"></span>7-day average<span class="k-dot"></span>Daily weigh-in</p>
-      <p class="chart-key" id="defKey" hidden><span class="k-bar def"></span>Deficit<span class="k-bar sur"></span>Surplus</p>
+      <p class="chart-key" id="defKey" hidden><span class="ki"><span class="k-bar def"></span>Deficit</span><span class="ki"><span class="k-bar goal"></span>Goal met</span><span class="ki"><span class="k-bar goal high"></span>Over 1,500</span><span class="ki"><span class="k-bar sur"></span>Surplus</span></p>
       <div class="chart" id="chart"></div>
       <details class="tview" id="wTableWrap" hidden><summary>Table view</summary><div class="tbl"><table id="wTable"></table></div></details>
       <div class="wout" id="wOut">
@@ -1560,7 +1613,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.14.1","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.14.2","profile":null};</script>
 <script>
 (function () {
   "use strict";
@@ -1588,6 +1641,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   var TIGHT = 2 / 3, NO_LABEL = 1.25, HIST_LIMIT = 10, WEEKS_LIMIT = 8;
   // Warnings explain; nothing is capped.
   var BIG_DAY = 400, BIG_FOOD = 2000, BIG_BANK = 2000;
+  var DEF_GOAL = 1200, DEF_HIGH = 1500;  // daily deficit: the goal, and past it, too steep
   var ON_PLAN_BONUS = 25;     // a day on the meal plan, first logged on time
   var BURN_PER_PT = 2.3;      // standard points to mid-range calories burned
   var DEFICIT_PER_LB = 7;     // daily deficit above weight x 7 is well past 1% a week
@@ -2441,6 +2495,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     return Object.keys(byDate).sort().map(function (date) { return dayBalance(date, byDate[date], ws, sp[date]); });
   }
   function netWord(n) { return n >= 0 ? "deficit" : "surplus"; }
+  // A day's (or average's) standing against the goal: surplus, under the goal, goal met, or too high.
+  function netKind(n) { return n < 0 ? "sur" : n > DEF_HIGH ? "high" : n >= DEF_GOAL ? "goal" : "def"; }
+  function netLabel(n) { var k = netKind(n); return k === "high" ? "too high" : k === "goal" ? "goal met" : netWord(n); }
 
   // ---------- Model for the Guide ----------
   // A full routine week: 6 lifts (2 of each), 6 forty-five-minute walks (about 5,000 steps), 7 on-plan days.
@@ -2599,6 +2656,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         "<b>Ate</b>: your plan calories" + (c.ok ? " (" + fmt(planKcal()) + ")" : "") + ", with that day's changes from your log: different meals, skipped meals, extra food and drinks.",
         "<b>BMR</b>: your resting burn at that morning's weigh-in, from your height, age and sex (Mifflin-St Jeor). A day without a weigh-in uses the last one before it.",
         "<b>Beyond BMR</b>: daily life, 20% of BMR, which covers an easy day up to 3,000 steps; plus your activity at about " + BURN_PER_PT + " calories per point, before Tight. Activity logged late still counts here.",
+        "<b>Goal</b>: a " + fmt(DEF_GOAL) + " deficit a day, the dashed line. Days that reach it turn green. Over " + fmt(DEF_HIGH) + " is too steep, so those bars get a red outline: eat some of your points.",
         "<b>Today</b> shows so far. It assumes you finish your plan and counts the activity logged.",
         "Days you didn't log are left out. The 7-day average uses the last 7 full days.",
         "<b>Weeks</b> add up the logged days, with the estimated change in pounds next to the change in your weekly average weigh-in. Water moves the scale for a few days after salty, carb-heavy or drinking days, so compare over several weeks.",
@@ -4177,6 +4235,14 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var w = $("week"), max = w.scrollWidth - w.clientWidth;
     w.classList.toggle("more-left", w.scrollLeft > 2);
     w.classList.toggle("more-right", w.scrollLeft < max - 2);
+    $("weekPrev").hidden = !(w.scrollLeft > 2);
+    $("weekNext").hidden = !(w.scrollLeft < max - 2);
+  }
+  // Page the strip by a week, or as much as shows.
+  function stripPage(dir) {
+    var w = $("week"), day = w.querySelector(".day");
+    var step = day ? (day.getBoundingClientRect().width + 6) * 7 : w.clientWidth;
+    w.scrollBy({ left: dir * Math.min(step, w.clientWidth), behavior: reduceMotion ? "auto" : "smooth" });
   }
   // The day strip: 30 days back to today. mode: "sel" keeps the picked day in view, "end" shows today,
   // "none" leaves the scroll where it is.
@@ -4684,9 +4750,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       "H" + f(x + w - r) + "Q" + f(x + w) + " " + f(y1) + " " + f(x + w) + " " + f(y1 + s * r) + "V" + f(y0) + "Z";
   }
   function netCell(cls, n) {
-    var c = el("span", cls + " dnet " + (n >= 0 ? "earn" : "sur"));
+    var c = el("span", cls + " dnet " + netKind(n));
     c.appendChild(document.createTextNode(fmt(Math.abs(n))));
-    c.appendChild(el("small", null, netWord(n)));
+    c.appendChild(el("small", null, netLabel(n)));
     return c;
   }
   function renderDefChart() {
@@ -4714,7 +4780,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var first = series[0].date, n = daysBetween(first, t) + 1, slot = (width - m.l - m.r) / n;
     var bw = Math.max(1, Math.min(22, slot - (slot >= 6 ? 2 : 1)));
     var nets = series.map(function (b) { return b.net; });
-    var ticks = kcalTicks(Math.min.apply(null, nets), Math.max.apply(null, nets));
+    var ticks = kcalTicks(Math.min.apply(null, nets), Math.max(DEF_HIGH, Math.max.apply(null, nets)));
     var y0 = ticks[0], y1 = ticks[ticks.length - 1];
     function X(date) { return m.l + (daysBetween(first, date) + 0.5) * slot; }
     function Y(v) { return m.t + (y1 - v) / (y1 - y0) * (height - m.t - m.b); }
@@ -4745,8 +4811,13 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     series.forEach(function (b) {
       var top = Y(b.net);
       if (Math.abs(top - zy) < 1.5) top = zy + (b.net >= 0 ? -1.5 : 1.5);
-      bars.push(S("path", { d: barPath(X(b.date) - bw / 2, bw, zy, top), "class": "bar " + (b.net >= 0 ? "def" : "sur") + (b.partial ? " now" : "") }, gb));
+      var k = netKind(b.net);
+      bars.push(S("path", { d: barPath(X(b.date) - bw / 2, bw, zy, top), "class": "bar " + (k === "high" ? "goal high" : k) + (b.partial ? " now" : "") }, gb));
     });
+    // The goal line, labeled at the right end above it.
+    var gy = Math.round(Y(DEF_GOAL)) + 0.5;
+    S("line", { x1: m.l, x2: width - m.r, y1: gy, y2: gy, "class": "goalline" }, svg);
+    S("text", { x: width - m.r - 2, y: gy - 5, "class": "goallab", "text-anchor": "end" }, svg).textContent = "Goal " + fmt(DEF_GOAL);
     S("rect", { x: m.l, y: 0, width: width - m.l - m.r, height: height, fill: "transparent" }, svg);
     box.appendChild(svg);
     var tip = el("div", "tip");
@@ -4760,9 +4831,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       bars[i].classList.add("on");
       tip.textContent = "";
       var r1 = el("div", "r");
-      r1.appendChild(el("span", "tk-bar " + (b.net >= 0 ? "def" : "sur")));
+      var k = netKind(b.net);
+      r1.appendChild(el("span", "tk-bar " + (k === "high" ? "goal high" : k)));
       r1.appendChild(el("b", null, fmt(Math.abs(b.net))));
       r1.appendChild(el("span", "d", netWord(b.net) + (b.partial ? " so far" : "")));
+      if (k === "goal" || k === "high") r1.appendChild(el("span", "tag " + k, k === "high" ? "too high" : "goal met"));
       tip.appendChild(r1);
       tip.appendChild(el("div", null, "Ate " + fmt(b.ate) + " · Burned " + fmt(b.burn)));
       tip.appendChild(el("div", "d", fmtDay(b.date)));
@@ -4812,14 +4885,13 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       var avg = mean(wk.map(function (b) { return b.net; }));
       $("dAvgK").textContent = "Avg " + netWord(avg);
       avgEl.textContent = fmt(Math.abs(avg)) + "/day";
-      avgEl.className = avg >= 0 ? "down" : "sur";
+      avgEl.className = netKind(avg);
       var p = avg * 7 / KCAL_PER_LB;
       paceEl.textContent = paceText(p);
-      paceEl.className = p >= 0 ? "down" : "sur";
+      paceEl.className = netKind(avg);
       note.textContent = "Last 7 full days" + (wk.length < 7 ? ", " + wk.length + " of them logged" : "") + ". Burn is BMR, plus 20% for daily life, plus activity.";
-      var W = wk[wk.length - 1].lb || settings().weight || 250;
-      if (avg > DEFICIT_PER_LB * W) {
-        st.textContent = "Averaging over " + fmt(near50(DEFICIT_PER_LB * W)) + " a day, well past the 1%-a-week pace. Eat some of your points.";
+      if (avg > DEF_HIGH) {
+        st.textContent = "Averaging over " + fmt(DEF_HIGH) + " a day, past your " + fmt(DEF_GOAL) + " goal by too much. Eat some of your points.";
         st.hidden = false;
       }
     }
@@ -4857,10 +4929,13 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       box.appendChild(el("span", "wk-when", fmtShort(r.start) + " – " + (sameMonth ? parseISO(r.end).getDate() : fmtShort(r.end)) + (r.start === weekStart(t) ? " (this week)" : "")));
       if (r.n) {
         box.appendChild(el("span", "wk-sub", "Ate " + fmt(r.ate) + " · Burned " + fmt(r.burn) + " · " + r.n + " day" + (r.n === 1 ? "" : "s") + " logged"));
-        var est = r.net / KCAL_PER_LB;
-        box.appendChild(el("span", "wk-sub", "Est. " + (est >= 0 ? "−" : "+") + lbStr(Math.abs(est)) + " lb" +
+        var est = r.net / KCAL_PER_LB, per = r.net / r.n;
+        box.appendChild(el("span", "wk-sub", "Avg " + fmt(Math.abs(per)) + " " + netWord(per) + "/day · Est. " + (est >= 0 ? "−" : "+") + lbStr(Math.abs(est)) + " lb" +
           (r.change != null ? " · Scale " + (r.change <= 0 ? "−" : "+") + lbStr(Math.abs(r.change)) + " lb" : "")));
-        box.appendChild(netCell("wk-net", r.net));
+        var nc = netCell("wk-net", r.net);
+        nc.className = "wk-net dnet " + netKind(per);
+        nc.lastChild.textContent = netLabel(per);
+        box.appendChild(nc);
       } else {
         box.appendChild(el("span", "wk-sub", "Nothing logged"));
         box.appendChild(el("span", "wk-net", "—"));
@@ -4892,7 +4967,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       var rest = "BMR " + fmt(b.bmr) + " at" + NB + lbStr(b.lb) + NB + "lb" + (b.lbDate && b.lbDate !== b.date ? " (" + fmtShort(b.lbDate) + ")" : "");
       if (open) {
         row.type = "button";
-        row.setAttribute("aria-label", "Open " + when + ". " + beyond + ". " + parts + ". " + rest + ". " + fmt(Math.abs(b.net)) + " " + netWord(b.net) + ".");
+        row.setAttribute("aria-label", "Open " + when + ". " + beyond + ". " + parts + ". " + rest + ". " + fmt(Math.abs(b.net)) + " " + netWord(b.net) +
+          (netKind(b.net) === "high" ? ", too high" : netKind(b.net) === "goal" ? ", goal met" : "") + ".");
         row.addEventListener("click", function () {
           showTab("today", { keepScroll: true });
           selectDay(b.date);
@@ -5853,13 +5929,44 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     });
   });
   // With a mouse, the wheel scrolls the day strip back through the month (and the page once it reaches an end).
+  // With a mouse wheel, scrolling down goes back through the month and up comes forward to today; at
+  // either end the page scrolls as usual. Sideways trackpad swipes work natively.
   $("week").addEventListener("wheel", function (e) {
     var w = $("week"), max = w.scrollWidth - w.clientWidth, dy = e.deltaY;
     if (e.ctrlKey || !dy || Math.abs(e.deltaX) >= Math.abs(dy) || max <= 0) return;
-    if ((dy < 0 && w.scrollLeft <= 0) || (dy > 0 && w.scrollLeft >= max - 1)) return;
-    w.scrollLeft += e.deltaMode === 1 ? dy * 40 : dy;
+    if ((dy > 0 && w.scrollLeft <= 0) || (dy < 0 && w.scrollLeft >= max - 1)) return;
+    w.scrollLeft -= e.deltaMode === 1 ? dy * 40 : dy;
     e.preventDefault();
   }, { passive: false });
+  $("weekPrev").addEventListener("click", function () { stripPage(-1); });
+  $("weekNext").addEventListener("click", function () { stripPage(1); });
+  // With a mouse, drag the strip sideways. A drag doesn't also pick the day it started on.
+  (function () {
+    var w = $("week"), x0 = 0, left0 = 0, down = false, moved = false;
+    w.addEventListener("pointerdown", function (e) {
+      if (e.pointerType !== "mouse" || e.button !== 0) return;
+      down = true; moved = false; x0 = e.clientX; left0 = w.scrollLeft;
+    });
+    window.addEventListener("pointermove", function (e) {
+      if (!down) return;
+      var dx = e.clientX - x0;
+      if (!moved && Math.abs(dx) < 5) return;
+      if (!moved) { moved = true; w.classList.add("dragging"); }
+      w.scrollLeft = left0 - dx;
+      e.preventDefault();
+    });
+    window.addEventListener("pointerup", function () {
+      if (!down) return;
+      down = false;
+      if (moved) {
+        w.classList.remove("dragging");
+        var eat = function (ev) { ev.stopPropagation(); ev.preventDefault(); };
+        w.addEventListener("click", eat, true);
+        setTimeout(function () { w.removeEventListener("click", eat, true); moved = false; }, 0);
+      }
+    });
+    w.addEventListener("dragstart", function (e) { e.preventDefault(); });
+  })();
   // On a computer, the left column stays put while the right one scrolls, as long as it fits the window.
   var wideMQ = window.matchMedia ? window.matchMedia("(min-width: 1080px)") : null;
   function fitSticky() {
