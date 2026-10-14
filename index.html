@@ -1241,6 +1241,12 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 @media (min-width: 1080px) {
   #tab-today .col-a.stick, #tab-progress .col-a.stick { position: sticky; top: 34px; }
 }
+
+/* Treadmill: speed and incline under the minutes */
+.arow.tread { grid-template-columns: minmax(0, 1fr) auto; }
+.tinputs { display: flex; gap: 10px; }
+.tunit { display: inline-flex; align-items: center; gap: 5px; }
+.arow .tunit input[type="number"] { width: 4.4em; }
 </style>
 <div class="statusfill" aria-hidden="true"></div>
 <main class="wrap" id="main">
@@ -1613,7 +1619,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.14.2","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.14.3","profile":null};</script>
 <script>
 (function () {
   "use strict";
@@ -1837,6 +1843,32 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     if (rate === "L" || rate === "U" || rate === "C") return b[rate] * 2 / LIFT_STD;
     if (rate === "tread") return b.cs * 2 / 10;
     return Math.max(0, (rate === "cardio" ? b.c : b.o[rate] || b.o.moderate) - (steps ? b.s : 0)) * 2 / 10;
+  }
+  // Treadmill by speed and incline: the ACSM walking equation (net of resting burn), blending into the running
+  // one between 4 and 5 mph, at your weight. Steps your phone counts on it already earn through your step
+  // total, so their value comes off. Points are the calories over BURN_PER_PT, like every other estimate.
+  var TREAD_MPH = [0.5, 12], TREAD_GRADE = [0, 15];
+  function treadSpeed(v) { v = num(v); return v >= TREAD_MPH[0] ? Math.min(TREAD_MPH[1], Math.round(v * 10) / 10) : 0; }
+  function treadGrade(v) { v = num(v); return Math.max(TREAD_GRADE[0], Math.min(TREAD_GRADE[1], Math.round(v * 10) / 10)); }
+  function treadBlend(mph) { return Math.max(0, Math.min(1, mph - 4)); }
+  function treadKcalMin(mph, grade, lb) {
+    var S = mph * 26.8224, G = grade / 100, t = treadBlend(mph);
+    var vo2 = (0.1 * S + 1.8 * S * G) * (1 - t) + (0.2 * S + 0.9 * S * G) * t;  // ml/kg/min above rest
+    return vo2 * kg(lb) / 1000 * 5;
+  }
+  function treadStepsMin(mph) {
+    var h = (profile().heightIn || 70) * 0.0254, t = treadBlend(mph);
+    return mph * 26.8224 / (0.415 * h * (1 - t) + 0.6 * h * t);
+  }
+  function treadPts(b, k, min, mph, grade, lb, steps) {
+    min = Math.max(0, +min || 0);
+    var std = treadKcalMin(mph, grade, lb) * min / BURN_PER_PT - (steps ? treadStepsMin(mph) * min / 1000 * b.s : 0);
+    return Math.max(0, Math.round(std * k));
+  }
+  // Points for a logged entry or form row, with the treadmill's speed and incline when it has them.
+  function entryPts(b, k, rate, min, steps, mph, grade, lb) {
+    var v = treadSpeed(mph);
+    return rate === "tread" && v ? treadPts(b, k, min, v, treadGrade(grade), lb || 250, steps) : ratePts(b, k, rate, min, steps);
   }
   function screenPts(b, k, kcal, stepMin) { return Math.max(0, Math.round(((+kcal || 0) * SCREEN_SHARE - Math.max(0, +stepMin || 0) / 10 * b.s) * k)); }
   function otherPts(b, k, min, level) { return Math.round(Math.max(0, +min || 0) / 10 * (b.o[level] || b.o.moderate) * k); }
@@ -2072,13 +2104,15 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       var es = earnFor(prev && prev.steps, stepPts(b, k, st), lateNow, true);
       day.steps = { total: st, late: es.late, pts: es.pts };
     }
-    var rows = formActs(f), sc = scoreActs(prev, rows, b, k, lateNow);
+    var rows = formActs(f), sc = scoreActs(prev, rows, b, k, lateNow, day.weight || 250);
     rows.forEach(function (a, i) {
       var r = sc[i], d = rowDef(a);
       if (!r || !d) return;
       var m = Math.round(num(a.min)), kc = a.mode === "kcal";
-      day.acts.push({ act: d.id, name: d.name, rate: d.rate, steps: d.steps, mode: kc ? "kcal" : "min",
-        min: !kc || d.steps ? m : 0, kcal: kc ? Math.round(num(a.kcal)) : 0, late: r.late, pts: r.pts });
+      var entry = { act: d.id, name: d.name, rate: d.rate, steps: d.steps, mode: kc ? "kcal" : "min",
+        min: !kc || d.steps ? m : 0, kcal: kc ? Math.round(num(a.kcal)) : 0, late: r.late, pts: r.pts };
+      if (d.rate === "tread" && !kc && treadSpeed(a.mph)) { entry.mph = treadSpeed(a.mph); entry.grade = treadGrade(a.grade); }
+      day.acts.push(entry);
     });
     if (f.plan === "no") {
       var fr = settleForm(f.food || [], date).rows;
@@ -2144,7 +2178,16 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   // A row is { act, mode, min, kcal } for an activity on the list, logged by minutes or by screen calories.
   // act "new" is a one-off you name and price by effort; Save activity adds it to the list. keepId holds the
   // activity a saved one-off came from, if it was deleted from the list since.
-  function newRow(act) { return { act: act || "", mode: "min", min: "", kcal: "", name: "", rate: "moderate", steps: false, keepId: "" }; }
+  function newRow(act) { return { act: act || "", mode: "min", min: "", kcal: "", name: "", rate: "moderate", steps: false, keepId: "", mph: "", grade: "" }; }
+  // A new treadmill row starts at the speed and incline you used last.
+  function lastTread() {
+    var m = meta().tread;
+    return m && treadSpeed(m.mph) ? { mph: treadSpeed(m.mph), grade: treadGrade(m.grade) } : null;
+  }
+  function fillTread(a) {
+    var d = rowDef(a), lt = lastTread();
+    if (d && d.rate === "tread" && lt && !num(a.mph) && a.grade === "") { a.mph = lt.mph; a.grade = lt.grade; }
+  }
   function rowDef(a) {
     if (a.act === "new") return { id: a.keepId || "", name: String(a.name || "").trim().slice(0, 40) || "Other activity", rate: levelOf(a.rate), steps: !!a.steps, group: "other" };
     var x = a.act ? actById(a.act) : null;
@@ -2168,15 +2211,15 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   }
   // What a row was logged with: minutes, or screen calories. 0 means it isn't filled in.
   function actAmount(a) { return rowDef(a) ? Math.round(num(a.mode === "kcal" ? a.kcal : a.min)) : 0; }
-  function actPts(a, b, k) {
+  function actPts(a, b, k, lb) {
     var d = rowDef(a), m = Math.round(num(a.min));
     if (!d) return 0;
-    return a.mode === "kcal" ? screenPts(b, k, num(a.kcal), d.steps ? m : 0) : ratePts(b, k, d.rate, m, d.steps);
+    return a.mode === "kcal" ? screenPts(b, k, num(a.kcal), d.steps ? m : 0) : entryPts(b, k, d.rate, m, d.steps, a.mph, a.grade, lb);
   }
   function entryKey(id, name) { return id || "name:" + String(name || "").trim().toLowerCase(); }
   // Points for each row. Past the deadline, each activity can earn up to what it earned on time before, and one
   // that wasn't logged on time earns nothing.
-  function scoreActs(prev, rows, b, k, lateNow) {
+  function scoreActs(prev, rows, b, k, lateNow, lb) {
     var budget = {};
     if (prev && lateNow) prev.acts.forEach(function (e) {
       if (e.late) return;
@@ -2185,7 +2228,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     });
     return rows.map(function (a) {
       if (!actAmount(a)) return null;
-      var d = rowDef(a), key = entryKey(d.id, d.name), fresh = actPts(a, b, k), pts = fresh, late = false;
+      var d = rowDef(a), key = entryKey(d.id, d.name), fresh = actPts(a, b, k, lb), pts = fresh, late = false;
       if (lateNow) {
         if (budget[key] == null) { pts = 0; late = true; }
         else { pts = Math.min(fresh, budget[key]); budget[key] -= pts; }
@@ -2197,7 +2240,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   function freshPts(f, basis) {
     var b = bandFor(basis.weight || 250), k = rateK(basis.tight);
     var st = stepPts(b, k, num(f.steps));
-    var ac = sum(formActs(f), function (a) { return actAmount(a) ? actPts(a, b, k) : 0; });
+    var ac = sum(formActs(f), function (a) { return actAmount(a) ? actPts(a, b, k, basis.weight || 250) : 0; });
     return { steps: st, acts: ac, total: st + ac };
   }
   // Activity in standard points (no Tight, no late rule), for burn estimates.
@@ -2205,7 +2248,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     if (!day) return 0;
     var b = bandFor(day.weight);
     return (day.steps ? stepPts(b, 1, day.steps.total) : 0) + sum(day.acts, function (e) {
-      return e.mode === "kcal" ? screenPts(b, 1, e.kcal, e.steps ? e.min : 0) : ratePts(b, 1, e.rate, e.min, e.steps);
+      return e.mode === "kcal" ? screenPts(b, 1, e.kcal, e.steps ? e.min : 0) : entryPts(b, 1, e.rate, e.min, e.steps, e.mph, e.grade, day.weight);
     });
   }
   function ledger(days, spends) {
@@ -2623,7 +2666,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     cardio: { title: "Cardio", html: function (c) {
       return ul([
         "Moderate effort: you can talk but not sing.",
-        "<b>Treadmill</b> pays " + fmt(c.b.cs * c.k) + " per 10 minutes. <b>Elliptical</b>, <b>Rower</b> and <b>Bike</b> pay " + fmt(c.b.c * c.k) + ". Treadmill pays less because its steps already count in your step total.",
+        "<b>Treadmill</b>: enter your speed and incline. It's priced from the standard walking equation (running past 4–5 mph) at your weight, less what its steps already earn in your step total. At 3 mph and 2%, that's about " + (c.ok ? fmt(treadPts(c.b, c.k, 10, 3, 2, c.w, true)) : "10") + " per 10 minutes plus its steps. New treadmill rows start at the speed and incline you used last.",
+        "Without speed and incline, Treadmill pays a flat " + fmt(c.b.cs * c.k) + " per 10 minutes, which assumes a brisk, inclined walk. <b>Elliptical</b>, <b>Rower</b> and <b>Bike</b> pay " + fmt(c.b.c * c.k) + ".",
         "Split a session? Add each machine as its own workout.",
         "If your watch counts steps on the elliptical, turn on <b>Counts steps</b> for it in Edit activities.",
         "Logging a machine that counts steps by <b>kcal</b> also asks for the minutes, so its steps aren't paid twice."
@@ -3421,9 +3465,16 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var p = lift ? fmt(b[x.rate] * k) + " pts per 45 min, counted up to 60" : fmt(ratePts(b, k, x.rate, 10, x.steps)) + " pts per 10 min";
     return (x.builtin ? "" : effortName(x.rate) + " effort · ") + p;
   }
-  function actHow(a, b, k) {
+  function actHow(a, b, k, lb) {
     var d = rowDef(a);
     if (!d) return "";
+    if (a.mode !== "kcal" && d.rate === "tread") {
+      var v = treadSpeed(a.mph);
+      if (!v) return "Add speed and incline for a closer estimate. Without them: " + rateText(b, k, d.rate, d.steps);
+      var g = treadGrade(a.grade);
+      return v + " mph at " + g + "% ≈ " + (Math.round(treadKcalMin(v, g, lb || 250) * 10) / 10) + " cal/min: " +
+        fmt(treadPts(b, k, 10, v, g, lb || 250, d.steps)) + " per 10 min" + (d.steps ? "; its steps count separately" : "");
+    }
     if (a.mode === "kcal") return Math.round(SCREEN_SHARE * 100) + "% of the screen's calories" + (d.steps ? ", less " + fmt(b.s * k) + " per 10 min for its steps" : "");
     return (a.act === "new" ? effortName(d.rate) + ": " : "") + rateText(b, k, d.rate, d.steps);
   }
@@ -3466,7 +3517,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     }, 0);
   }
   function addAct(act) {
-    state.acts.push(newRow(act));
+    var row = newRow(act);
+    fillTread(row);
+    state.acts.push(row);
     renderActList();
     updatePreview();
     var i = state.acts.length - 1, li = $("actList").children[i];
@@ -3596,6 +3649,30 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         cb.addEventListener("change", function () { a.steps = cb.checked; renderActList(); updatePreview(); });
         li.appendChild(chk);
       }
+      if (a.act && !kcalMode && d && d.rate === "tread") {
+        var trow = el("div", "arow tread");
+        trow.appendChild(el("span", "flabel small", "Speed, incline"));
+        var tin = el("div", "tinputs");
+        [["mph", "actMph", "Speed in mph", "0.1", "mph"], ["grade", "actGrade", "Incline in percent", "0.5", "%"]].forEach(function (x) {
+          var inp = el("input");
+          inp.type = "number";
+          inp.id = x[1] + i;
+          inp.inputMode = "decimal";
+          inp.min = "0";
+          inp.max = x[0] === "mph" ? String(TREAD_MPH[1]) : String(TREAD_GRADE[1]);
+          inp.step = x[3];
+          inp.placeholder = x[0] === "mph" ? "3.0" : "0";
+          inp.setAttribute("aria-label", x[2]);
+          inp.value = a[x[0]] === "" || a[x[0]] == null ? "" : String(a[x[0]]);
+          inp.addEventListener("input", function () { a[x[0]] = inp.value; updatePreview(); });
+          var u = el("label", "tunit");
+          u.appendChild(inp);
+          u.appendChild(el("span", "unit", x[4]));
+          tin.appendChild(u);
+        });
+        trow.appendChild(tin);
+        li.appendChild(trow);
+      }
       if (a.act && kcalMode && d && d.steps) {
         var srow = el("div", "arow");
         srow.appendChild(el("span", "flabel small", "Minutes, for its steps"));
@@ -3632,6 +3709,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 
       sel.addEventListener("change", function () {
         a.act = sel.value;
+        fillTread(a);
         renderActList();
         updatePreview();
         focusAct(i, a.act === "new" ? "actName" : "actAmt");
@@ -3810,6 +3888,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       row.mode = e.mode === "kcal" ? "kcal" : "min";
       row.min = e.min || "";
       row.kcal = e.kcal || "";
+      if (e.mph) { row.mph = e.mph; row.grade = e.grade || 0; }
       f.acts.push(row);
     });
     return f;
@@ -3843,6 +3922,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       var d = rowDef(a), kc = a.mode === "kcal", m = Math.round(num(a.min));
       var w = [a.act === "new" ? "new:" + (a.keepId || "") : a.act, kc ? "kcal" : "min", kc ? Math.round(num(a.kcal)) : m, kc && d.steps ? m : 0];
       if (a.act === "new") w.push(d.name, d.rate, d.steps);
+      if (!kc && d.rate === "tread" && treadSpeed(a.mph)) w.push(treadSpeed(a.mph), treadGrade(a.grade));
       return w;
     });
     return JSON.stringify([f.plan || "", food, Math.round(num(f.steps)), aw]);
@@ -3997,12 +4077,12 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     if (f.plan !== "yes") { day.bonus = 0; day.pts = day.activityPts; }
     var fresh = freshPts(f, basis);
     setPts("stepPts", day.steps ? day.steps.pts : 0, fresh.steps);
-    var sc = scoreActs(prev, f.acts, b, k, lateNow);
+    var sc = scoreActs(prev, f.acts, b, k, lateNow, basis.weight || 250);
     state.acts.forEach(function (a, i) {
       var els = state.actEls[i], r = sc[i];
       if (!els) return;
       setPts(els.pts, r ? r.pts : 0, r ? r.fresh : 0);
-      els.how.textContent = actHow(a, b, k);
+      els.how.textContent = actHow(a, b, k, basis.weight || 250);
       if (els.save) els.save.disabled = state.readOnly || !String(a.name || "").trim();
     });
 
@@ -4088,6 +4168,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var now = Date.now();
     var before = prev ? prev.pts - prev.spent : 0;
     var day = buildDay(prev, f, date, now);
+    var tr = day.acts.filter(function (e) { return e.mph; }).pop();
+    if (tr) setMeta({ tread: { mph: tr.mph, grade: tr.grade } });
     var fresh = freshPts(f, prev ? { weight: prev.weight, tight: prev.tight } : settings());
     var late = now > deadline(date) && fresh.total > day.activityPts;
     var btn = $("saveDay");
