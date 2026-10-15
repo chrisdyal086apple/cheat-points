@@ -307,7 +307,7 @@ h2 {
 }
 @keyframes floor-run { from { transform: translateY(0); } to { transform: translateY(22px); } }
 .edge { position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px rgba(127, 214, 255, 0.8), inset 0 0 26px rgba(127, 214, 255, 0.42); opacity: 0; }
-.scene.paused, .scene.paused * { animation-play-state: paused !important; }
+.scene.paused, .scene.paused *, .hero.offscreen * { animation-play-state: paused !important; }
 .scene.live .sunwrap { will-change: transform; }
 .scene.live .sunpulse, .scene.live .edge, .scene.live .stars, .scene.live .floor { will-change: opacity; }
 .board-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px 20px; flex-wrap: wrap; }
@@ -1013,10 +1013,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   .seg span { font-size: 0.92rem; }
   .stat .v { font-size: 1.85rem; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .snack, .meter-fill, .topic { transition: none; }
-  dialog.sheet[open] { animation: none; }
-}
+/* html.still: animations off (Settings > Animations, or the device's reduce-motion setting). */
+html.still .snack, html.still .meter-fill, html.still .topic { transition: none; }
+html.still dialog.sheet[open] { animation: none; }
 
 /* ---------- Workout rows ---------- */
 .arow { display: grid; grid-template-columns: minmax(0, 1fr) 6.4em 3.4em; gap: 8px; align-items: center; }
@@ -1177,9 +1176,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 .songbtn.playing .eq i:nth-child(2) { animation-delay: -0.3s; }
 .songbtn.playing .eq i:nth-child(3) { animation-delay: -0.6s; }
 @keyframes eq { from { transform: scaleY(0.25); } to { transform: scaleY(1); } }
-@media (prefers-reduced-motion: reduce) {
-  .songbtn.playing .eq i { animation: none; transform: scaleY(0.8); }
-}
+html.still .songbtn.playing .eq i { animation: none; transform: scaleY(0.8); }
 
 /* ---------- Motion ---------- */
 /* A faint VHS band rolls down the screen. */
@@ -1196,9 +1193,10 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   animation: vhs 11s linear infinite;
 }
 @keyframes vhs { from { transform: translateY(-18vh); } to { transform: translateY(104vh); } }
-/* The title is a neon sign: it stutters now and then, and glows brighter on the snare while a song plays. */
-.brand { position: relative; animation: neon 9s linear 2.5s infinite; }
-.brand::after {
+/* Page titles are neon signs: they stutter now and then, and glow brighter on the snare while a song plays. */
+.neon { position: relative; animation: neon 9s linear 2.5s infinite; }
+.hero .neon { animation-delay: 4.5s; }
+.neon::after {
   content: attr(data-glow);
   position: absolute;
   inset: 0;
@@ -1238,10 +1236,198 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 }
 /* While a song plays, the script drives the playing song's bars (and the speaker's waves) from its beat map. */
 .songs.live .songbtn.playing .eq i { animation: none; }
-@media (prefers-reduced-motion: reduce) {
-  .scene *, .vhs, .brand, .bankfloat, .shoot, .day .chain { animation: none !important; }
-  .vhs, .shoot, .bankfloat { display: none !important; }
+html.still .scene *, html.still .hero *, html.still .vhs, html.still .neon, html.still .bankfloat, html.still .day .chain, html.still .tabbtn svg * { animation: none !important; }
+html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !important; }
+
+/* ---------- Page scenes ---------- */
+/* Every page opens with a scene in the scoreboard's frame: the same stars and running floor, each with its own
+   centerpiece. Redeem: a neon shop sign over the city. Progress: the sun rising behind mountains. Guide: a ringed
+   planet. Settings: a cassette whose reels turn while a song plays. */
+.hero {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 150px;
+  padding: 16px 16px 14px;
+  border: 1px solid var(--board-line);
+  border-radius: 18px;
+  color: var(--board-ink);
+  background: linear-gradient(180deg, #050823 0%, #0c1356 62%, var(--base) 100%);
+  box-shadow: 0 0 0 1px rgba(127, 214, 255, 0.08), 0 0 26px rgba(95, 124, 255, 0.35);
 }
+.hero h1 { align-self: flex-start; }
+.hero .stars { height: 72%; }
+.hero .floor { height: 64%; left: -60%; right: -60%; }
+.pagesub { margin: -4px 0 0; color: var(--muted); font-size: 0.92rem; max-width: 60ch; }
+
+/* Redeem: the shop sign hangs from two chains. In the red, one chain lets go: the sign swings crooked and only
+   RED stays lit, the rest sputtering. */
+.hero-row { display: flex; align-items: center; gap: 14px; }
+.signwrap { position: relative; display: inline-block; margin-top: 10px; }
+.hang {
+  position: absolute;
+  top: -64px;
+  width: 2px;
+  height: 64px;
+  background: repeating-linear-gradient(180deg, rgba(160, 176, 240, 0.85) 0 3px, transparent 3px 5px);
+}
+.hang.l { left: 18px; }
+.hang.r { right: 18px; transform-origin: 50% 0; }
+.sign {
+  position: relative;
+  padding: 7px 14px 4px;
+  border: 2px solid #ff6ac8;
+  border-radius: 10px;
+  background: rgba(24, 6, 44, 0.45);
+  box-shadow: 0 0 6px rgba(255, 106, 200, 0.9), 0 0 18px rgba(255, 79, 184, 0.5), inset 0 0 10px rgba(255, 79, 184, 0.35);
+  transform-origin: 19px 0;
+}
+.sign::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 13px;
+  box-shadow: 0 0 24px 6px rgba(255, 95, 193, 0.7);
+  opacity: var(--tg, 0);
+  pointer-events: none;
+}
+.neon.pink { color: #ffe0f4; text-shadow: 0 0 4px #ff8fd8, 0 0 12px rgba(255, 79, 184, 0.95), 0 0 26px rgba(255, 79, 184, 0.55); }
+.neon.pink::after { display: none; }
+.neon.pink span { transition: color 0.3s ease, text-shadow 0.3s ease; }
+.shop.broken .sign { transform: rotate(9deg); animation: sway 3.4s ease-in-out infinite alternate; }
+.shop.broken .neon.pink { animation: none; }
+.shop.broken .hang.r { height: 50px; animation: dangle 2.7s ease-in-out infinite alternate; }
+.shop.broken .hang.r::after {
+  content: "";
+  position: absolute;
+  left: -3px;
+  bottom: -5px;
+  width: 4px;
+  height: 5px;
+  border: 2px solid rgba(160, 176, 240, 0.85);
+  border-top: 0;
+  border-radius: 0 0 4px 4px;
+}
+.shop.broken .sign .x { color: #3a2350; text-shadow: none; }
+.shop.broken .sign .xf { animation: sputter 4.8s steps(1) infinite; }
+@keyframes sway { from { transform: rotate(7.5deg); } to { transform: rotate(10.5deg); } }
+@keyframes dangle { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+@keyframes sputter {
+  0%, 58%, 63%, 71%, 100% { color: #3a2350; text-shadow: none; }
+  59%, 61%, 68% { color: #ffe0f4; text-shadow: 0 0 4px #ff8fd8, 0 0 12px rgba(255, 79, 184, 0.95); }
+}
+.spark { position: absolute; right: 16px; top: -3px; width: 3px; height: 3px; border-radius: 50%; background: #fff4cf; box-shadow: 0 0 6px 1px #ffd27a; opacity: 0; }
+.shop.broken .spark { animation: spark 4.8s linear infinite; }
+.shop.broken .spark.s2 { animation-delay: 0.08s; --sx: -7px; }
+.shop.broken .spark.s3 { animation-delay: 0.16s; --sx: 10px; }
+@keyframes spark {
+  0%, 58% { opacity: 0; transform: translate(0, 0); }
+  59% { opacity: 1; transform: translate(0, 0); }
+  70% { opacity: 0; transform: translate(var(--sx, 4px), 22px); }
+  100% { opacity: 0; transform: translate(var(--sx, 4px), 22px); }
+}
+.skyline { position: absolute; left: 0; bottom: 30px; width: 100%; height: 46px; overflow: hidden; }
+.skyline .bld { fill: #080c38; stroke: rgba(95, 124, 255, 0.6); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.skyline .ant { fill: none; stroke: rgba(95, 124, 255, 0.7); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.skyline .win { fill: #a8e9ff; opacity: 0.8; }
+.skyline .w2 { fill: #ff9ad8; }
+.skyline .w1 { animation: lights 8s steps(1) infinite; }
+.skyline .w2 { animation: lights 11s steps(1) -4s infinite; }
+.skyline .w3 { animation: lights 6.5s steps(1) -2s infinite; }
+@keyframes lights { 0%, 100% { opacity: 0.8; } 37% { opacity: 0.35; } 52% { opacity: 0.8; } 81% { opacity: 0.55; } }
+
+/* Progress: the striped sun rising behind two ridges, a light running along the front one. */
+.sunrise { position: absolute; width: 104px; height: 104px; right: 17%; bottom: 38px; animation: sunrise 11s ease-in-out infinite alternate; }
+.sunrise .sunwrap { position: relative; inset: auto; right: auto; top: auto; width: 100%; height: 100%; }
+@keyframes sunrise { from { transform: translateY(12px); } to { transform: translateY(-6px); } }
+.ridges { position: absolute; left: 0; bottom: 26px; width: 100%; height: 58px; overflow: visible; }
+.ridges .rbf { fill: #0d1459; }
+.ridges .rff { fill: #080c3a; }
+.ridges .rbl, .ridges .rfl { fill: none; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.ridges .rbl { stroke: rgba(95, 124, 255, 0.75); stroke-width: 1.2; }
+.ridges .rfl { stroke: #7fd6ff; stroke-width: 1.5; filter: drop-shadow(0 0 3px rgba(127, 214, 255, 0.75)); }
+.ridges .rl { fill: none; stroke: #effaff; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 22 978; stroke-dashoffset: 1000; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 4px #bfeeff); animation: ridgerun 8s linear infinite; }
+@keyframes ridgerun { to { stroke-dashoffset: 0; } }
+
+/* Guide: a ringed planet drifting, its bands turning. */
+.planetwrap { position: absolute; right: 7%; top: 30px; width: 170px; height: 102px; animation: drift 7s ease-in-out infinite alternate; }
+.planetbody { position: relative; width: 100%; height: 100%; }
+.planet { position: relative; display: block; width: 100%; height: 100%; overflow: visible; }
+.planetglow { position: absolute; left: 22%; right: 22%; top: -8%; bottom: -8%; border-radius: 50%; background: radial-gradient(closest-side, rgba(143, 168, 255, 0.45), rgba(95, 124, 255, 0) 100%); opacity: 0.5; }
+.planet .ring { fill: none; stroke: #7fd6ff; stroke-width: 2.4; filter: drop-shadow(0 0 3px rgba(127, 214, 255, 0.9)); }
+.planet .ring2 { fill: none; stroke: rgba(95, 124, 255, 0.85); stroke-width: 1.4; }
+.planet .bands path { fill: none; stroke-linecap: round; }
+.planet .bands .bd { stroke: rgba(22, 30, 120, 0.38); stroke-width: 4.5; }
+.planet .bands .bl { stroke: rgba(235, 242, 255, 0.22); stroke-width: 3; }
+.planet .bands { animation: bands 16s linear infinite; }
+@keyframes bands { to { transform: translateX(-200px); } }
+@keyframes drift { from { transform: translateY(4px) rotate(-1deg); } to { transform: translateY(-4px) rotate(1deg); } }
+
+/* Settings: a cassette. Its reels turn and the tape winds across while a song plays. */
+.tapewrap { position: absolute; right: 9%; bottom: 12px; width: 122px; animation: tapefloat 6s ease-in-out infinite alternate; }
+.tape { display: block; width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 0 10px rgba(95, 124, 255, 0.5)); }
+@keyframes tapefloat { from { transform: rotate(-8deg) translateY(2px); } to { transform: rotate(-5deg) translateY(-4px); } }
+.tape .tb { stroke: #5f7cff; stroke-width: 1.5; }
+.tape .tl { fill: #0a0f3d; stroke: rgba(127, 214, 255, 0.45); stroke-width: 1; }
+.tape .st1 { fill: #ff5fc1; }
+.tape .st2 { fill: #7fd6ff; }
+.tape .st3 { fill: #5f7cff; }
+.tape text { font-family: var(--display); font-size: 13px; letter-spacing: 0.06em; }
+.tape .side { fill: #ff8fd8; }
+.tape .song { fill: #dfe8ff; }
+.tape .tw { fill: #04061e; stroke: #3446c4; }
+.tape .pack { fill: #2b1d44; stroke: rgba(255, 143, 216, 0.3); stroke-width: 0.8; }
+.tape .reel { transform-box: fill-box; transform-origin: center; }
+.tape .reel circle { fill: #dfe8ff; }
+.tape .reel path { fill: none; stroke: #dfe8ff; stroke-width: 2; stroke-linecap: round; }
+.tape .tbot { fill: #0c1250; stroke: #3446c4; stroke-width: 1; }
+.tape .screw { fill: #0a0f3d; stroke: #5f7cff; stroke-width: 1; }
+
+/* Off the Today page, the speaker sits inside the scene's corner on a phone. */
+@media (max-width: 1079px) {
+  html[data-tab="redeem"] .music, html[data-tab="progress"] .music, html[data-tab="guide"] .music, html[data-tab="settings"] .music {
+    top: calc(26px + env(safe-area-inset-top, 0px));
+    right: calc(max(16px, env(safe-area-inset-right, 0px)) + 10px);
+  }
+}
+
+/* ---------- Tab icons ---------- */
+/* Each icon acts out its page when hovered (or tapped): the sun rises, the ticket wiggles, the chart climbs, the
+   question mark bobs, the sliders slide. */
+.tabbtn svg * { transform-box: fill-box; }
+.ti-line { stroke-dasharray: 1; }
+.ti-t1 { stroke-dasharray: 9 4 30; }
+.ti-t2 { stroke-dasharray: 3 4 30; }
+.ti-t3 { stroke-dasharray: 11 4 30; }
+.tabbtn.play .ti-sun { animation: ti-rise 0.9s cubic-bezier(0.2, 0.8, 0.3, 1); }
+.tabbtn.play .ti-rays { animation: ti-rays 0.9s ease-out; }
+.tabbtn.play .ti-ticket { transform-origin: 50% 50%; animation: ti-wiggle 0.7s ease-in-out; }
+.tabbtn.play .ti-perf { animation: ti-perf 0.7s steps(2) ; }
+.tabbtn.play .ti-line { animation: ti-draw 0.75s ease-out; }
+.tabbtn.play .ti-head { animation: ti-head 0.9s cubic-bezier(0.2, 0.8, 0.3, 1); }
+.tabbtn.play .ti-q { transform-origin: 50% 100%; animation: ti-bob 0.8s ease-in-out; }
+.tabbtn.play .ti-t1 { animation: ti-t1 0.9s ease-in-out; }
+.tabbtn.play .ti-t2 { animation: ti-t2 0.9s ease-in-out; }
+.tabbtn.play .ti-t3 { animation: ti-t3 0.9s ease-in-out; }
+.tabbtn.play .ti-k1 { animation: ti-k1 0.9s ease-in-out; }
+.tabbtn.play .ti-k2 { animation: ti-k2 0.9s ease-in-out; }
+.tabbtn.play .ti-k3 { animation: ti-k3 0.9s ease-in-out; }
+@keyframes ti-rise { from { transform: translateY(8px); } to { transform: none; } }
+@keyframes ti-rays { 0%, 45% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes ti-wiggle { 0%, 100% { transform: none; } 25% { transform: rotate(-12deg); } 55% { transform: rotate(9deg); } 80% { transform: rotate(-4deg); } }
+@keyframes ti-perf { 50% { opacity: 0.2; } }
+@keyframes ti-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes ti-head { 0%, 55% { opacity: 0; transform: translate(-4px, 4px); } 100% { opacity: 1; transform: none; } }
+@keyframes ti-bob { 0%, 100% { transform: none; } 30% { transform: translateY(-3px) rotate(-10deg); } 60% { transform: translateY(0) rotate(7deg); } 80% { transform: translateY(-1px) rotate(-3deg); } }
+@keyframes ti-t1 { 50% { stroke-dasharray: 2 4 30; } }
+@keyframes ti-t2 { 50% { stroke-dasharray: 10 4 30; } }
+@keyframes ti-t3 { 50% { stroke-dasharray: 5 4 30; } }
+@keyframes ti-k1 { 50% { transform: translateX(-7px); } }
+@keyframes ti-k2 { 50% { transform: translateX(7px); } }
+@keyframes ti-k3 { 50% { transform: translateX(-6px); } }
 
 /* ---------- Desktop ---------- */
 /* Column wrappers only matter on wide screens; on a phone their contents sit in the tab's single column. */
@@ -1325,12 +1511,18 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   #tab-progress { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); align-items: start; }
 
   /* Guide: one readable column */
-  #tab-guide > .top, #tab-guide .guide { max-width: 820px; }
+  #tab-guide > .hero, #tab-guide > .pagesub, #tab-guide .guide { max-width: 820px; }
   .topic > summary:hover { color: var(--accent); }
 
   /* Settings: two columns */
   #tab-settings { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
-  #tab-settings > .top { grid-column: 1 / -1; }
+  #tab-settings > .hero, #tab-progress > .hero { grid-column: 1 / -1; }
+  .hero { min-height: 170px; padding: 20px 22px 16px; }
+  .skyline { height: 62px; }
+  .ridges { height: 78px; }
+  .sunrise { width: 150px; height: 150px; }
+  .planetwrap { width: 200px; height: 120px; }
+  .tapewrap { width: 150px; }
 
   /* Sheets open as a centered window over the page */
   dialog.sheet {
@@ -1379,14 +1571,14 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     <div class="col col-a">
     <header class="top">
       <div>
-        <h1 class="brand" id="brand" data-glow="Cheat Points">Cheat Points</h1>
+        <h1 class="brand neon" id="brand" data-glow="Cheat Points">Cheat Points</h1>
         <p class="jp" lang="ja">チートポイント</p>
       </div>
       <button type="button" class="qm qm-lg" data-help="points" aria-label="Help: how points work">?</button>
     </header>
     <section class="board" aria-label="Points bank">
       <div class="scene" id="scene" aria-hidden="true">
-        <div class="stars" id="stars">
+        <div class="stars" id="stars" data-rx="stars">
           <i style="--x:5%;--y:10%;--t:3.4s;--d:-0.6s"></i>
           <i style="--x:14%;--y:30%;--t:2.7s;--d:-2.1s"></i>
           <i class="b" style="--x:23%;--y:7%;--t:4.1s;--d:-1.3s"></i>
@@ -1404,9 +1596,9 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
           <i class="b" style="--x:78%;--y:12%;--t:4.6s;--d:-3.8s"></i>
         </div>
         <i class="shoot"></i>
-        <div class="sunwrap" id="sunWrap">
+        <div class="sunwrap" id="sunWrap" data-rx="scale">
           <i class="sunglow"></i>
-          <i class="sunpulse" id="sunPulse"></i>
+          <i class="sunpulse" id="sunPulse" data-rx="pulse"></i>
           <svg class="sun" id="sunSvg" viewBox="0 0 200 200" focusable="false">
             <defs>
               <linearGradient id="sunGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e3ebff"/><stop offset="0.4" stop-color="#8fa8ff"/><stop offset="0.7" stop-color="#4d6bff"/><stop offset="1" stop-color="#1c2a8c"/></linearGradient>
@@ -1422,8 +1614,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
             <circle cx="100" cy="100" r="100" fill="url(#sunGrad)" mask="url(#sunCut)"/>
           </svg>
         </div>
-        <div class="floor" id="floor"><div class="floorplane"><div class="floorgrid" id="floorGrid"></div></div></div>
-        <i class="edge" id="boardEdge"></i>
+        <div class="floor" id="floor" data-rx="floor"><div class="floorplane"><div class="floorgrid" id="floorGrid"></div></div></div>
+        <i class="edge" id="boardEdge" data-rx="edge"></i>
       </div>
       <div class="board-head">
         <span class="label">Bank<button type="button" class="qm qm-sm" data-help="bank" aria-label="Help: the bank">?</button></span>
@@ -1542,11 +1734,43 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 
   <!-- ===================== REDEEM ===================== -->
   <section class="tab" id="tab-redeem" aria-label="Redeem" hidden>
-    <header class="top">
-      <div>
-        <h1 class="h1-sm">Redeem</h1>
+    <header class="hero shop" id="shopHero">
+      <div class="scene" aria-hidden="true">
+        <div class="stars" data-rx="stars">
+          <i class="b" style="--x:4%;--y:34%;--t:3.3s;--d:-2.7s"></i>
+          <i style="--x:20%;--y:11%;--t:4.0s;--d:-0.6s"></i>
+          <i style="--x:97%;--y:6%;--t:2.7s;--d:-2.1s"></i>
+          <i style="--x:60%;--y:37%;--t:4.6s;--d:-0.4s"></i>
+          <i style="--x:5%;--y:53%;--t:3.3s;--d:-0.8s"></i>
+          <i style="--x:45%;--y:29%;--t:4.5s;--d:-0.8s"></i>
+          <i style="--x:30%;--y:30%;--t:3.6s;--d:-3.8s"></i>
+          <i class="b" style="--x:26%;--y:26%;--t:2.7s;--d:-3.2s"></i>
+          <i class="b" style="--x:51%;--y:5%;--t:3.6s;--d:-1.8s"></i>
+          <i style="--x:30%;--y:17%;--t:4.0s;--d:-0.8s"></i>
+          <i style="--x:85%;--y:18%;--t:3.0s;--d:-1.2s"></i>
+          <i style="--x:76%;--y:29%;--t:3.8s;--d:-1.3s"></i>
+        </div>
+        <i class="shoot"></i>
+        <svg class="skyline" viewBox="0 0 2400 90" preserveAspectRatio="xMidYMax slice" focusable="false">
+          <path class="bld" d="M0 90V74H5V64H41V74H46V90ZM46 90V49H51V42H104V49H109V90ZM109 90V35H170V90ZM174 90V56H225V90ZM225 90V48H235V36H250V48H260V90ZM260 90V65H267V56H294V65H301V90ZM301 90V65H341V90ZM341 90V34H372V90ZM372 90V39H411V90ZM411 90V38H419V32H431V38H439V90ZM441 90V56H474V90ZM474 90V44H510V90ZM514 90V65H524V53H566V65H576V90ZM576 90V32H635V90ZM635 90V58H682V90ZM686 90V30H720V90ZM720 90V56H727V45H753V56H760V90ZM762 90V49H770V43H809V49H817V90ZM819 90V54H824V46H847V54H852V90ZM852 90V22H905V90ZM907 90V56H952V90ZM952 90V40H1014V90ZM1014 90V53H1046V90ZM1046 90V34H1091V90ZM1091 90V23H1134V90ZM1134 90V28H1144V18H1176V28H1186V90ZM1186 90V55H1191V47H1207V55H1212V90ZM1212 90V37H1257V90ZM1259 90V17H1305V90ZM1309 90V36H1340V90ZM1342 90V52H1351V44H1368V52H1377V90ZM1377 90V45H1386V37H1428V45H1437V90ZM1441 90V58H1446V52H1490V58H1495V90ZM1495 90V61H1537V90ZM1537 90V54H1573V90ZM1573 90V56H1612V90ZM1614 90V73H1624V61H1636V73H1646V90ZM1646 90V58H1692V90ZM1692 90V45H1718V90ZM1718 90V57H1764V90ZM1766 90V53H1808V90ZM1808 90V43H1861V90ZM1865 90V36H1902V90ZM1904 90V68H1912V57H1948V68H1956V90ZM1956 90V22H2008V90ZM2012 90V54H2043V90ZM2043 90V24H2079V90ZM2079 90V36H2127V90ZM2131 90V59H2173V90ZM2173 90V48H2178V42H2224V48H2229V90ZM2233 90V16H2262V90ZM2262 90V64H2267V52H2283V64H2288V90ZM2292 90V44H2349V90ZM2353 90V36H2359V30H2374V36H2380V90ZM2380 90V66H2386V56H2438V66H2444V90Z"/>
+          <path class="ant" d="M231 36V25M524 53V41M673 58V50M797 43V34M1057 34V22M1204 47V32M1404 37V28M1448 52V38M1580 56V48M1640 61V49"/>
+          <path class="win w1" d="M5 80h3v4h-3zM40 80h3v4h-3zM58 71h3v4h-3zM65 63h3v4h-3zM114 57h3v4h-3zM149 73h3v4h-3zM163 57h3v4h-3zM186 62h3v4h-3zM186 70h3v4h-3zM193 78h3v4h-3zM320 71h3v4h-3zM346 48h3v4h-3zM353 80h3v4h-3zM398 69h3v4h-3zM405 69h3v4h-3zM446 78h3v4h-3zM486 66h3v4h-3zM526 79h3v4h-3zM533 71h3v4h-3zM554 71h3v4h-3zM581 54h3v4h-3zM640 64h3v4h-3zM654 64h3v4h-3zM698 36h3v4h-3zM698 76h3v4h-3zM705 60h3v4h-3zM725 78h3v4h-3zM746 78h3v4h-3zM795 79h3v4h-3zM831 76h3v4h-3zM864 28h3v4h-3zM871 60h3v4h-3zM899 60h3v4h-3zM940 70h3v4h-3zM940 78h3v4h-3zM985 70h3v4h-3zM1019 59h3v4h-3zM1019 75h3v4h-3zM1026 67h3v4h-3zM1033 75h3v4h-3zM1051 56h3v4h-3zM1072 64h3v4h-3zM1096 37h3v4h-3zM1110 69h3v4h-3zM1124 29h3v4h-3zM1124 45h3v4h-3zM1160 74h3v4h-3zM1191 69h3v4h-3zM1224 51h3v4h-3zM1231 59h3v4h-3zM1245 75h3v4h-3zM1271 63h3v4h-3zM1299 71h3v4h-3zM1314 42h3v4h-3zM1347 66h3v4h-3zM1403 83h3v4h-3zM1424 51h3v4h-3zM1424 75h3v4h-3zM1453 64h3v4h-3zM1578 62h3v4h-3zM1585 62h3v4h-3zM1592 62h3v4h-3zM1665 80h3v4h-3zM1686 72h3v4h-3zM1744 71h3v4h-3zM1792 83h3v4h-3zM1891 82h3v4h-3zM1923 82h3v4h-3zM1982 52h3v4h-3zM1989 28h3v4h-3zM2055 30h3v4h-3zM2084 66h3v4h-3zM2098 42h3v4h-3zM2112 82h3v4h-3zM2119 58h3v4h-3zM2136 81h3v4h-3zM2178 54h3v4h-3zM2178 78h3v4h-3zM2206 70h3v4h-3zM2206 78h3v4h-3zM2238 38h3v4h-3zM2245 70h3v4h-3zM2365 82h3v4h-3zM2372 58h3v4h-3zM2420 72h3v4h-3zM2427 80h3v4h-3zM2434 80h3v4h-3z"/>
+          <path class="win w2" d="M86 55h3v4h-3zM121 41h3v4h-3zM237 54h3v4h-3zM313 71h3v4h-3zM377 53h3v4h-3zM479 50h3v4h-3zM479 74h3v4h-3zM486 82h3v4h-3zM602 78h3v4h-3zM712 68h3v4h-3zM809 71h3v4h-3zM809 79h3v4h-3zM838 60h3v4h-3zM957 70h3v4h-3zM964 78h3v4h-3zM992 62h3v4h-3zM999 54h3v4h-3zM1146 74h3v4h-3zM1167 82h3v4h-3zM1231 83h3v4h-3zM1299 31h3v4h-3zM1299 79h3v4h-3zM1328 42h3v4h-3zM1361 74h3v4h-3zM1382 75h3v4h-3zM1431 75h3v4h-3zM1528 75h3v4h-3zM1592 78h3v4h-3zM1651 64h3v4h-3zM1679 80h3v4h-3zM1870 42h3v4h-3zM1891 50h3v4h-3zM1975 36h3v4h-3zM1975 68h3v4h-3zM1982 68h3v4h-3zM1996 60h3v4h-3zM2091 82h3v4h-3zM2245 46h3v4h-3zM2311 66h3v4h-3zM2413 72h3v4h-3z"/>
+          <path class="win w3" data-rx="tick" d="M12 80h3v4h-3zM93 71h3v4h-3zM128 49h3v4h-3zM156 73h3v4h-3zM207 78h3v4h-3zM467 70h3v4h-3zM479 58h3v4h-3zM588 54h3v4h-3zM609 46h3v4h-3zM675 72h3v4h-3zM712 52h3v4h-3zM857 44h3v4h-3zM871 68h3v4h-3zM885 68h3v4h-3zM912 78h3v4h-3zM940 62h3v4h-3zM978 62h3v4h-3zM985 46h3v4h-3zM1051 40h3v4h-3zM1058 48h3v4h-3zM1096 45h3v4h-3zM1153 74h3v4h-3zM1238 83h3v4h-3zM1292 31h3v4h-3zM1299 47h3v4h-3zM1403 59h3v4h-3zM1474 72h3v4h-3zM1481 64h3v4h-3zM1813 65h3v4h-3zM1848 65h3v4h-3zM1855 81h3v4h-3zM1877 42h3v4h-3zM2024 60h3v4h-3zM2062 38h3v4h-3zM2091 66h3v4h-3zM2150 81h3v4h-3zM2178 70h3v4h-3zM2339 50h3v4h-3zM2339 66h3v4h-3zM2427 72h3v4h-3z"/>
+        </svg>
+        <div class="floor" data-rx="floor"><div class="floorplane"><div class="floorgrid"></div></div></div>
+        <i class="edge" data-rx="edge"></i>
       </div>
-      <button type="button" class="qm qm-lg" data-help="redeem" aria-label="Help: redeeming cheats">?</button>
+      <div class="hero-row">
+        <div class="signwrap">
+          <i class="hang l"></i><i class="hang r"></i>
+          <div class="sign" id="shopSign" data-rx="glow">
+            <h1 class="neon pink" data-glow="Redeem"><span>R</span><span>e</span><span>d</span><span class="x">e</span><span class="x">e</span><span class="x xf">m</span></h1>
+            <i class="spark"></i><i class="spark s2"></i><i class="spark s3"></i>
+          </div>
+        </div>
+        <button type="button" class="qm qm-lg" data-help="redeem" aria-label="Help: redeeming cheats">?</button>
+      </div>
     </header>
     <div class="rhead">
       <div class="rbankwrap">
@@ -1568,8 +1792,56 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 
   <!-- ===================== PROGRESS ===================== -->
   <section class="tab" id="tab-progress" aria-label="Progress" hidden>
+    <header class="hero climb">
+      <div class="scene" aria-hidden="true">
+        <div class="stars" data-rx="stars">
+          <i style="--x:48%;--y:8%;--t:3.4s;--d:-1.4s"></i>
+          <i style="--x:68%;--y:28%;--t:2.5s;--d:-1.7s"></i>
+          <i class="b" style="--x:6%;--y:10%;--t:4.5s;--d:-3.2s"></i>
+          <i class="b" style="--x:95%;--y:38%;--t:4.2s;--d:-1.3s"></i>
+          <i style="--x:57%;--y:18%;--t:3.5s;--d:-1.8s"></i>
+          <i style="--x:33%;--y:6%;--t:4.0s;--d:-1.4s"></i>
+          <i style="--x:46%;--y:39%;--t:2.8s;--d:-3.2s"></i>
+          <i class="b" style="--x:96%;--y:6%;--t:2.6s;--d:-2.3s"></i>
+          <i style="--x:68%;--y:38%;--t:2.6s;--d:-3.5s"></i>
+          <i style="--x:32%;--y:48%;--t:2.9s;--d:-3.0s"></i>
+          <i style="--x:56%;--y:42%;--t:4.3s;--d:-3.5s"></i>
+          <i style="--x:33%;--y:39%;--t:3.2s;--d:-2.3s"></i>
+          <i style="--x:64%;--y:23%;--t:3.3s;--d:-3.8s"></i>
+        </div>
+        <div class="sunrise">
+          <div class="sunwrap" data-rx="scale">
+            <i class="sunglow"></i>
+            <i class="sunpulse" data-rx="pulse"></i>
+          <svg class="sun" viewBox="0 0 200 200" focusable="false">
+            <defs>
+              <linearGradient id="sunGrad2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e3ebff"/><stop offset="0.4" stop-color="#8fa8ff"/><stop offset="0.7" stop-color="#4d6bff"/><stop offset="1" stop-color="#1c2a8c"/></linearGradient>
+              <mask id="sunCut2" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+                <rect width="200" height="200" fill="#fff"/>
+                <rect width="200" fill="#000"><animate attributeName="y" dur="6s" begin="0s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="200;184.2;169.3;155.3;142.2;130.2;119.3;109.7;101.7;95.4;92"/><animate attributeName="height" dur="6s" begin="0s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="18;16;14.1;12.2;10.3;8.4;6.6;4.8;3.1;1.4;0"/></rect>
+                <rect width="200" fill="#000"><animate attributeName="y" dur="6s" begin="-1.2s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="200;184.2;169.3;155.3;142.2;130.2;119.3;109.7;101.7;95.4;92"/><animate attributeName="height" dur="6s" begin="-1.2s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="18;16;14.1;12.2;10.3;8.4;6.6;4.8;3.1;1.4;0"/></rect>
+                <rect width="200" fill="#000"><animate attributeName="y" dur="6s" begin="-2.4s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="200;184.2;169.3;155.3;142.2;130.2;119.3;109.7;101.7;95.4;92"/><animate attributeName="height" dur="6s" begin="-2.4s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="18;16;14.1;12.2;10.3;8.4;6.6;4.8;3.1;1.4;0"/></rect>
+                <rect width="200" fill="#000"><animate attributeName="y" dur="6s" begin="-3.6s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="200;184.2;169.3;155.3;142.2;130.2;119.3;109.7;101.7;95.4;92"/><animate attributeName="height" dur="6s" begin="-3.6s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="18;16;14.1;12.2;10.3;8.4;6.6;4.8;3.1;1.4;0"/></rect>
+                <rect width="200" fill="#000"><animate attributeName="y" dur="6s" begin="-4.8s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="200;184.2;169.3;155.3;142.2;130.2;119.3;109.7;101.7;95.4;92"/><animate attributeName="height" dur="6s" begin="-4.8s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="18;16;14.1;12.2;10.3;8.4;6.6;4.8;3.1;1.4;0"/></rect>
+              </mask>
+            </defs>
+            <circle cx="100" cy="100" r="100" fill="url(#sunGrad2)" mask="url(#sunCut2)"/>
+          </svg>
+          </div>
+        </div>
+        <svg class="ridges" viewBox="0 0 2400 110" preserveAspectRatio="xMidYMax slice" focusable="false">
+          <path class="rbf" d="M0 71 L65 50 L100 67 L129 77 L200 29 L245 70 L269 47 L281 33 L348 62 L388 26 L431 64 L501 35 L540 57 L557 72 L628 35 L649 44 L670 63 L710 49 L732 36 L770 49 L786 73 L855 27 L876 46 L905 70 L948 49 L1020 66 L1055 60 L1076 49 L1095 66 L1113 77 L1161 54 L1181 59 L1209 66 L1261 49 L1284 31 L1328 71 L1364 61 L1381 39 L1450 62 L1523 45 L1549 53 L1562 68 L1637 52 L1690 69 L1744 35 L1785 67 L1859 45 L1889 53 L1907 62 L1974 49 L2035 74 L2098 34 L2143 54 L2164 72 L2186 62 L2200 42 L2236 62 L2261 74 L2310 51 L2372 78 L2390 57 L2400 42 L2400 110 L0 110 Z"/>
+          <path class="rbl" d="M0 71 L65 50 L100 67 L129 77 L200 29 L245 70 L269 47 L281 33 L348 62 L388 26 L431 64 L501 35 L540 57 L557 72 L628 35 L649 44 L670 63 L710 49 L732 36 L770 49 L786 73 L855 27 L876 46 L905 70 L948 49 L1020 66 L1055 60 L1076 49 L1095 66 L1113 77 L1161 54 L1181 59 L1209 66 L1261 49 L1284 31 L1328 71 L1364 61 L1381 39 L1450 62 L1523 45 L1549 53 L1562 68 L1637 52 L1690 69 L1744 35 L1785 67 L1859 45 L1889 53 L1907 62 L1974 49 L2035 74 L2098 34 L2143 54 L2164 72 L2186 62 L2200 42 L2236 62 L2261 74 L2310 51 L2372 78 L2390 57 L2400 42"/>
+          <path class="rff" d="M0 86 L37 69 L63 95 L76 83 L95 65 L106 78 L117 95 L156 75 L177 89 L199 77 L216 85 L223 95 L235 76 L252 65 L291 87 L334 72 L352 82 L368 94 L411 75 L440 90 L460 80 L485 62 L518 91 L556 58 L572 75 L590 93 L603 87 L619 68 L658 89 L695 75 L725 98 L760 75 L790 87 L814 54 L853 91 L864 76 L874 59 L903 97 L929 84 L941 64 L962 87 L1002 75 L1033 92 L1050 86 L1060 66 L1104 84 L1140 74 L1167 90 L1185 79 L1209 55 L1233 96 L1246 82 L1256 66 L1281 89 L1314 53 L1356 95 L1369 86 L1376 64 L1387 75 L1403 94 L1445 60 L1465 79 L1479 97 L1523 60 L1545 78 L1556 92 L1568 90 L1584 78 L1623 90 L1644 69 L1677 89 L1702 53 L1729 94 L1748 82 L1767 64 L1811 85 L1843 71 L1883 93 L1919 74 L1956 87 L1986 68 L2008 79 L2030 98 L2042 81 L2054 66 L2085 86 L2108 69 L2123 57 L2151 70 L2167 89 L2179 76 L2192 68 L2206 76 L2223 93 L2238 85 L2247 77 L2259 82 L2268 91 L2278 83 L2288 66 L2317 86 L2336 78 L2358 66 L2383 95 L2393 92 L2400 75 L2400 110 L0 110 Z"/>
+          <path class="rfl" d="M0 86 L37 69 L63 95 L76 83 L95 65 L106 78 L117 95 L156 75 L177 89 L199 77 L216 85 L223 95 L235 76 L252 65 L291 87 L334 72 L352 82 L368 94 L411 75 L440 90 L460 80 L485 62 L518 91 L556 58 L572 75 L590 93 L603 87 L619 68 L658 89 L695 75 L725 98 L760 75 L790 87 L814 54 L853 91 L864 76 L874 59 L903 97 L929 84 L941 64 L962 87 L1002 75 L1033 92 L1050 86 L1060 66 L1104 84 L1140 74 L1167 90 L1185 79 L1209 55 L1233 96 L1246 82 L1256 66 L1281 89 L1314 53 L1356 95 L1369 86 L1376 64 L1387 75 L1403 94 L1445 60 L1465 79 L1479 97 L1523 60 L1545 78 L1556 92 L1568 90 L1584 78 L1623 90 L1644 69 L1677 89 L1702 53 L1729 94 L1748 82 L1767 64 L1811 85 L1843 71 L1883 93 L1919 74 L1956 87 L1986 68 L2008 79 L2030 98 L2042 81 L2054 66 L2085 86 L2108 69 L2123 57 L2151 70 L2167 89 L2179 76 L2192 68 L2206 76 L2223 93 L2238 85 L2247 77 L2259 82 L2268 91 L2278 83 L2288 66 L2317 86 L2336 78 L2358 66 L2383 95 L2393 92 L2400 75"/>
+          <path class="rl" data-rx="snap" pathLength="1000" d="M0 86 L37 69 L63 95 L76 83 L95 65 L106 78 L117 95 L156 75 L177 89 L199 77 L216 85 L223 95 L235 76 L252 65 L291 87 L334 72 L352 82 L368 94 L411 75 L440 90 L460 80 L485 62 L518 91 L556 58 L572 75 L590 93 L603 87 L619 68 L658 89 L695 75 L725 98 L760 75 L790 87 L814 54 L853 91 L864 76 L874 59 L903 97 L929 84 L941 64 L962 87 L1002 75 L1033 92 L1050 86 L1060 66 L1104 84 L1140 74 L1167 90 L1185 79 L1209 55 L1233 96 L1246 82 L1256 66 L1281 89 L1314 53 L1356 95 L1369 86 L1376 64 L1387 75 L1403 94 L1445 60 L1465 79 L1479 97 L1523 60 L1545 78 L1556 92 L1568 90 L1584 78 L1623 90 L1644 69 L1677 89 L1702 53 L1729 94 L1748 82 L1767 64 L1811 85 L1843 71 L1883 93 L1919 74 L1956 87 L1986 68 L2008 79 L2030 98 L2042 81 L2054 66 L2085 86 L2108 69 L2123 57 L2151 70 L2167 89 L2179 76 L2192 68 L2206 76 L2223 93 L2238 85 L2247 77 L2259 82 L2268 91 L2278 83 L2288 66 L2317 86 L2336 78 L2358 66 L2383 95 L2393 92 L2400 75"/>
+        </svg>
+        <div class="floor" data-rx="floor"><div class="floorplane"><div class="floorgrid"></div></div></div>
+        <i class="edge" data-rx="edge"></i>
+      </div>
+      <h1 class="neon h1-sm" data-glow="Progress">Progress</h1>
+    </header>
     <div class="col col-a">
-    <header class="top"><div><h1 class="h1-sm">Progress</h1></div></header>
     <div class="ptabs" role="tablist" aria-label="Chart">
       <button type="button" role="tab" id="ptWeight" data-pm="weight" aria-selected="true" aria-controls="trendBlock">Weight</button>
       <button type="button" role="tab" id="ptDeficit" data-pm="deficit" aria-selected="false" aria-controls="trendBlock" tabindex="-1">Deficit</button>
@@ -1634,18 +1906,95 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 
   <!-- ===================== GUIDE ===================== -->
   <section class="tab" id="tab-guide" aria-label="Guide" hidden>
-    <header class="top">
-      <div>
-        <h1 class="h1-sm">Guide</h1>
-        <p class="sub">How points work, what they cost, and what every number means. Tap any ? in the app to jump to its topic.</p>
+    <header class="hero orbit">
+      <div class="scene" aria-hidden="true">
+        <div class="stars" data-rx="stars">
+          <i style="--x:81%;--y:58%;--t:3.4s;--d:-2.8s"></i>
+          <i style="--x:94%;--y:37%;--t:3.4s;--d:-0.1s"></i>
+          <i style="--x:7%;--y:14%;--t:3.2s;--d:-0.5s"></i>
+          <i class="b" style="--x:10%;--y:14%;--t:2.9s;--d:-0.8s"></i>
+          <i style="--x:19%;--y:12%;--t:4.1s;--d:-3.4s"></i>
+          <i style="--x:68%;--y:46%;--t:4.5s;--d:-1.3s"></i>
+          <i style="--x:22%;--y:9%;--t:3.6s;--d:-1.5s"></i>
+          <i style="--x:34%;--y:46%;--t:4.1s;--d:-1.8s"></i>
+          <i style="--x:64%;--y:18%;--t:3.7s;--d:-3.4s"></i>
+          <i class="b" style="--x:21%;--y:9%;--t:3.9s;--d:-3.3s"></i>
+          <i style="--x:9%;--y:53%;--t:3.3s;--d:-1.3s"></i>
+          <i style="--x:33%;--y:7%;--t:2.7s;--d:-3.7s"></i>
+          <i style="--x:28%;--y:38%;--t:3.2s;--d:-0.8s"></i>
+          <i style="--x:31%;--y:37%;--t:3.2s;--d:-1.9s"></i>
+        </div>
+        <i class="shoot"></i>
+        <div class="planetwrap">
+          <div class="planetbody" data-rx="scale">
+          <i class="planetglow" data-rx="pulse"></i>
+          <svg class="planet" viewBox="0 0 200 120" focusable="false">
+            <defs>
+              <linearGradient id="plGrad" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#d9e3ff"/><stop offset="0.45" stop-color="#7f97ff"/><stop offset="1" stop-color="#2a2f9a"/></linearGradient>
+              <clipPath id="plClip"><circle cx="100" cy="60" r="38"/></clipPath>
+              <clipPath id="plBack"><rect x="0" y="0" width="200" height="60"/></clipPath>
+              <clipPath id="plFront"><rect x="0" y="60" width="200" height="60"/></clipPath>
+            </defs>
+            <g clip-path="url(#plBack)"><ellipse class="ring" cx="100" cy="60" rx="78" ry="17" transform="rotate(-12 100 60)"/><ellipse class="ring2" cx="100" cy="60" rx="64" ry="13" transform="rotate(-12 100 60)"/></g>
+            <circle cx="100" cy="60" r="38" fill="url(#plGrad)"/>
+            <g clip-path="url(#plClip)"><g transform="rotate(-12 100 60)"><g class="bands"><path class="bd" d="M0 37h52M200 37h52M64 37h35M264 37h35M126 37h53M326 37h53M190 37h38M390 37h38M0 44h42M200 44h42M65 44h24M265 44h24M104 44h29M304 44h29M144 44h21M344 44h21M179 44h46M379 44h46M0 57h39M200 57h39M57 57h35M257 57h35M103 57h26M303 57h26M139 57h40M339 57h40M190 57h38M390 57h38M0 64h22M200 64h22M32 64h29M232 64h29M84 64h21M284 64h21M134 64h14M334 64h14M161 64h51M361 64h51M0 78h45M200 78h45M72 78h26M272 78h26M121 78h18M321 78h18M161 78h26M361 78h26M0 86h19M200 86h19M47 86h23M247 86h23M85 86h52M285 86h52M148 86h17M348 86h17M183 86h49M383 86h49"/><path class="bl" d="M0 31h43M200 31h43M72 31h37M272 31h37M127 31h22M327 31h22M164 31h14M364 31h14M198 31h46M398 31h46M0 51h18M200 51h18M40 51h20M240 51h20M79 51h27M279 51h27M123 51h40M323 51h40M175 51h31M375 51h31M0 71h26M200 71h26M46 71h14M246 71h14M72 71h22M272 71h22M121 71h15M321 71h15M162 71h19M362 71h19"/></g></g></g>
+            <g clip-path="url(#plFront)"><ellipse class="ring" cx="100" cy="60" rx="78" ry="17" transform="rotate(-12 100 60)"/><ellipse class="ring2" cx="100" cy="60" rx="64" ry="13" transform="rotate(-12 100 60)"/></g>
+          </svg>
+          </div>
+        </div>
+        <div class="floor" data-rx="floor"><div class="floorplane"><div class="floorgrid"></div></div></div>
+        <i class="edge" data-rx="edge"></i>
       </div>
+      <h1 class="neon h1-sm" data-glow="Guide">Guide</h1>
     </header>
+    <p class="pagesub">How points work, what they cost, and what every number means. Tap any ? in the app to jump to its topic.</p>
     <div class="guide" id="guideList"></div>
   </section>
 
   <!-- ===================== SETTINGS ===================== -->
   <section class="tab" id="tab-settings" aria-label="Settings" hidden>
-    <header class="top"><div><h1 class="h1-sm">Settings</h1></div></header>
+    <header class="hero deck">
+      <div class="scene" aria-hidden="true">
+        <div class="stars" data-rx="stars">
+          <i style="--x:12%;--y:11%;--t:4.5s;--d:-1.7s"></i>
+          <i style="--x:79%;--y:31%;--t:3.0s;--d:-3.6s"></i>
+          <i style="--x:85%;--y:6%;--t:3.0s;--d:-0.6s"></i>
+          <i style="--x:26%;--y:11%;--t:3.5s;--d:-1.0s"></i>
+          <i style="--x:78%;--y:4%;--t:3.6s;--d:-3.5s"></i>
+          <i style="--x:93%;--y:14%;--t:4.5s;--d:-2.1s"></i>
+          <i style="--x:92%;--y:32%;--t:4.2s;--d:-2.6s"></i>
+          <i style="--x:89%;--y:28%;--t:4.3s;--d:-0.6s"></i>
+          <i style="--x:74%;--y:55%;--t:3.7s;--d:-1.8s"></i>
+          <i class="b" style="--x:33%;--y:5%;--t:2.4s;--d:-0.7s"></i>
+          <i style="--x:33%;--y:51%;--t:2.6s;--d:-3.7s"></i>
+          <i style="--x:36%;--y:55%;--t:2.7s;--d:-0.8s"></i>
+        </div>
+        <div class="floor" data-rx="floor"><div class="floorplane"><div class="floorgrid"></div></div></div>
+        <div class="tapewrap">
+          <svg class="tape" viewBox="0 0 150 96" focusable="false">
+            <defs>
+              <linearGradient id="tapeBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22309a"/><stop offset="1" stop-color="#0c1250"/></linearGradient>
+              <clipPath id="tapeWin"><rect x="34" y="42" width="82" height="20" rx="10"/></clipPath>
+            </defs>
+            <rect class="tb" x="2" y="2" width="146" height="92" rx="8" fill="url(#tapeBody)"/>
+            <rect class="tl" x="12" y="9" width="126" height="58" rx="4"/>
+            <rect class="st1" x="12" y="13" width="126" height="3"/>
+            <rect class="st2" x="12" y="17" width="126" height="3"/>
+            <rect class="st3" x="12" y="21" width="126" height="3"/>
+            <text class="side" x="20" y="38">A</text>
+            <text class="song" id="tapeSong" x="32" y="38"></text>
+            <rect class="tw" x="34" y="42" width="82" height="20" rx="10"/>
+            <g clip-path="url(#tapeWin)"><circle class="pack" id="tapeL" cx="48" cy="52" r="16"/><circle class="pack" id="tapeR" cx="102" cy="52" r="7.5"/></g>
+            <g class="reel" id="reelL"><circle cx="48" cy="52" r="6.5"/><path d="M48 46.5v-2M48 57.5v2M43.2 49.2l-1.7-1M52.8 54.8l1.7 1M43.2 54.8l-1.7 1M52.8 49.2l1.7-1"/></g>
+            <g class="reel" id="reelR"><circle cx="102" cy="52" r="6.5"/><path d="M102 46.5v-2M102 57.5v2M97.2 49.2l-1.7-1M106.8 54.8l1.7 1M97.2 54.8l-1.7 1M106.8 49.2l1.7-1"/></g>
+            <path class="tbot" d="M32 94l8-18h70l8 18z"/>
+            <circle class="screw" cx="9" cy="9" r="2.2"/><circle class="screw" cx="141" cy="9" r="2.2"/><circle class="screw" cx="9" cy="87" r="2.2"/><circle class="screw" cx="141" cy="87" r="2.2"/>
+          </svg>
+        </div>
+        <i class="edge" data-rx="edge"></i>
+      </div>
+      <h1 class="neon h1-sm" data-glow="Settings">Settings</h1>
+    </header>
 
     <div class="col col-a">
     <section class="block first" aria-labelledby="pfH">
@@ -1680,6 +2029,19 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       <h2 id="musicH">Music</h2>
       <div class="songs" id="songList" role="group" aria-label="Songs"></div>
       <p class="hint">Tap a song to play it now. Each time the app starts, it shuffles to a random one. While a song plays, the scoreboard moves to its beat.</p>
+    </section>
+
+    <section class="block" id="motionBlock" aria-labelledby="motionH">
+      <h2 id="motionH">Animations</h2>
+      <fieldset class="seg three">
+        <legend class="sr">Animations</legend>
+        <div class="opts">
+          <label><input type="radio" name="motion" id="motionAuto" value="auto"><span>Match device</span></label>
+          <label><input type="radio" name="motion" id="motionOn" value="on"><span>On</span></label>
+          <label><input type="radio" name="motion" id="motionOff" value="off"><span>Off</span></label>
+        </div>
+      </fieldset>
+      <p class="hint" id="motionHint"></p>
     </section>
     </div>
 
@@ -1749,23 +2111,23 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 <nav class="tabbar" aria-label="Sections">
   <div class="tabbar-in">
     <button type="button" class="tabbtn" data-tab="today" aria-current="page">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 14a6 6 0 0 1 12 0"/><path d="M2.5 14h19"/><path d="M5 17.5h14"/><path d="M8.5 21h7"/><path d="M12 3.5v2.2M5.3 6.6l1.5 1.5M18.7 6.6l-1.5 1.5"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><defs><clipPath id="tiSky"><rect width="24" height="14.9"/></clipPath></defs><g clip-path="url(#tiSky)"><g class="ti-sun"><path d="M6 14a6 6 0 0 1 12 0"/><path class="ti-rays" d="M12 3.5v2.2M5.3 6.6l1.5 1.5M18.7 6.6l-1.5 1.5"/></g></g><path d="M2.5 14h19"/><path d="M5 17.5h14"/><path d="M8.5 21h7"/></svg>
       <span>Today</span>
     </button>
     <button type="button" class="tabbtn" data-tab="redeem">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5h17v3a2 2 0 0 0 0 4v3h-17v-3a2 2 0 0 0 0-4z"/><path d="M14.5 8v1.5M14.5 11.25v1.5M14.5 14.5V16"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><g class="ti-ticket"><path d="M3.5 7.5h17v3a2 2 0 0 0 0 4v3h-17v-3a2 2 0 0 0 0-4z"/><path class="ti-perf" d="M14.5 8v1.5M14.5 11.25v1.5M14.5 14.5V16"/></g></svg>
       <span>Redeem</span>
     </button>
     <button type="button" class="tabbtn" data-tab="progress">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20.5h18"/><path d="M4 16l5-5 4 3 7-8"/><path d="M16 6h4v4"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20.5h18"/><path class="ti-line" pathLength="1" d="M4 16l5-5 4 3 7-8"/><path class="ti-head" d="M16 6h4v4"/></svg>
       <span>Progress</span>
     </button>
     <button type="button" class="tabbtn" data-tab="guide">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .8-1 1.5v.7"/><path d="M12 17.3v.1"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><g class="ti-q"><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .8-1 1.5v.7"/><path d="M12 17.3v.1"/></g></svg>
       <span>Guide</span>
     </button>
     <button type="button" class="tabbtn" data-tab="settings">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path class="ti-t1" d="M4 7h16"/><path class="ti-t2" d="M4 12h16"/><path class="ti-t3" d="M4 17h16"/><circle class="ti-k1" cx="15" cy="7" r="2"/><circle class="ti-k2" cx="9" cy="12" r="2"/><circle class="ti-k3" cx="17" cy="17" r="2"/></svg>
       <span>Settings</span>
     </button>
   </div>
@@ -1781,7 +2143,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.15.1","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.15.2","profile":null};</script>
 <script>
 /* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
    strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
@@ -1914,9 +2276,15 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     standalone: (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true,
     hasClaude: !!(window.claude && typeof window.claude.use === "function")
   };
-  var reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  // Animation state (see Motion, after Music). on = animations allowed (off with Reduce Motion).
-  var motion = { on: !reduceMotion, maps: {}, raf: 0, live: false, seen: true, last: {}, bank: null, shown: null, countRaf: 0, sel: "" };
+  // Animations: Settings > Animations picks Match device (the phone or computer's reduce-motion setting), On or
+  // Off, per device. html.still turns the CSS ones off; motion.on gates the scripted ones (see Motion).
+  var osStill = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+  function motionPref() { var p = meta().motionPref; return p === "on" || p === "off" ? p : "auto"; }
+  function stillNow() { var p = motionPref(); return p === "off" || (p === "auto" && !!(osStill && osStill.matches)); }
+  var reduceMotion = stillNow();
+  document.documentElement.classList.toggle("still", reduceMotion);
+  var motion = { on: !reduceMotion, maps: {}, raf: 0, live: false, lastFrame: 0, reel: 0, titles: {}, bank: null, shown: null, countRaf: 0, sel: "" };
+  document.documentElement.setAttribute("data-tab", "today");
 
   // ---------- State ----------
   var state = {
@@ -3365,6 +3733,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var rb = $("rBank");
     rb.textContent = money(bank);
     rb.classList.toggle("neg", bank < 0);
+    $("shopHero").classList.toggle("broken", bank < 0);
     var tab = redeemTab(), mealTab = MEAL_KEYS.indexOf(tab) >= 0, snack = !mealTab, favs = redeemFavs(), favOnly = !!favs[tab];
     var meal = mealTab ? tab : tab === "drink" ? "drink" : "extra";
     Array.prototype.forEach.call(document.querySelectorAll(".rtabs button"), function (b) {
@@ -6046,6 +6415,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     if (TABS.indexOf(name) < 0) name = "today";
     var was = state.tab;
     state.tab = name;
+    document.documentElement.setAttribute("data-tab", name);
     TABS.forEach(function (t) { $("tab-" + t).hidden = t !== name; });
     if (was !== name) riseIn($("tab-" + name));
     Array.prototype.forEach.call(document.querySelectorAll(".tabbtn"), function (b) {
@@ -6388,6 +6758,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   }
   function renderMusic() {
     var b = $("musicBtn"), on = !music.off;
+    var song = SONGS.filter(function (x) { return x.id === music.cur; })[0];
+    $("tapeSong").textContent = song ? song.name.toUpperCase() : "";
     b.classList.toggle("off", !on);
     b.setAttribute("aria-pressed", on ? "true" : "false");
     b.title = on ? "Mute music" : "Play music";
@@ -6422,16 +6794,28 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   playMusic();
 
   // ---------- Motion ----------
-  // The scoreboard scene (stars, striped sun, neon floor) moves on its own through CSS and the sun's SVG.
-  // While a song plays, it also follows that song's beat map (window.CP_BEATS, made from the audio by
-  // tools/beatmap.py): the sun and floor pulse on the kick, the board's edge and the title flash on the snare,
-  // the stars catch the hats, and the floor runs faster in the loud parts. Muted, paused or in the background,
-  // it's back to the plain animations. Reduce Motion stills everything.
+  // Each page's scene (Today's scoreboard, the other pages' headers) moves on its own through CSS and SVG, and only
+  // while it's on screen. While a song plays, the scenes also follow that song's beat map (window.CP_BEATS, made
+  // from the audio by tools/beatmap.py): suns and the planet swell on the kick, edges and neon titles flash on the
+  // snare, stars and city windows catch the hats, floors run faster in the loud parts, and the cassette's reels
+  // turn. Muted, paused or in the background, it's back to the plain animations. Settings > Animations (or the
+  // device's reduce-motion setting) stills everything.
   var B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
   var mx = {
-    scene: $("scene"), sun: $("sunWrap"), sunPulse: $("sunPulse"), sunSvg: $("sunSvg"), floor: $("floor"), grid: $("floorGrid"),
-    edge: $("boardEdge"), stars: $("stars"), brand: $("brand"), w1: $("musicW1"), w2: $("musicW2"), songs: $("songList")
+    w1: $("musicW1"), w2: $("musicW2"), songs: $("songList"),
+    reelL: $("reelL"), reelR: $("reelR"), tapeL: $("tapeL"), tapeR: $("tapeR")
   };
+  // Parts of a scene that follow the music, by role (data-rx): scale (kick swell), pulse (kick glow), floor, edge
+  // (snare flash), stars and tick (hats), snap (snare), glow (a sign's halo).
+  var ROLES = ["scale", "pulse", "floor", "edge", "stars", "tick", "snap", "glow"];
+  var scenes = Array.prototype.map.call(document.querySelectorAll(".scene"), function (el) {
+    var sc = { el: el, stage: el.parentNode, seen: false, rx: {} };
+    ROLES.forEach(function (r) { sc.rx[r] = Array.prototype.slice.call(sc.stage.querySelectorAll('[data-rx="' + r + '"]')); });
+    sc.grids = Array.prototype.slice.call(el.querySelectorAll(".floorgrid"));
+    sc.clocks = Array.prototype.filter.call(el.querySelectorAll("svg"), function (svg) { return !!(svg.pauseAnimations && svg.querySelector("animate")); });
+    sc.tape = !!el.querySelector(".tape");
+    return sc;
+  });
   // A song's map: 16th-note slot times (s) with kick/snare/hat strengths 0-7, and loudness 0-1 every 100 ms.
   function beatMap(id) {
     if (Object.prototype.hasOwnProperty.call(motion.maps, id)) return motion.maps[id];
@@ -6492,50 +6876,76 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     return p;
   }
   function setLive(node, prop, val) {
-    var key = node.id + "|" + prop;
-    if (motion.last[key] === val) return;
-    motion.last[key] = val;
+    var key = "_rx" + prop;
+    if (node[key] === val) return;
+    node[key] = val;
     if (prop.charAt(0) === "-") node.style.setProperty(prop, val); else node.style[prop] = val;
   }
-  function floorAnim() {
-    if (!mx.grid.getAnimations) return null;
-    var list = mx.grid.getAnimations();
+  function clearLive(node) {
+    node.style.transform = "";
+    node.style.opacity = "";
+    node.style.removeProperty("--tg");
+    node._rxtransform = node._rxopacity = node["_rx--tg"] = undefined;
+  }
+  // A floor's speed. The browser restarts a floor's animation whenever its page is shown again, so this checks the
+  // running one rather than remembering what it set.
+  function gridAnim(g) {
+    if (!g.getAnimations) return null;
+    var list = g.getAnimations();
     return list.length ? list[0] : null;
   }
-  // The floor's speed. The browser restarts its animation whenever the Today page is shown again, so this
-  // checks the running one rather than remembering what it set.
-  function setFloorRate(r) {
-    var a = floorAnim();
+  function setGridRate(g, r) {
+    var a = gridAnim(g);
     if (!a || Math.abs(a.playbackRate - r) < 0.01) return;
     if (a.updatePlaybackRate) a.updatePlaybackRate(r); else a.playbackRate = r;
   }
   function motionLive() {
     return motion.on && !music.off && !!music.audio && !music.audio.paused && !document.hidden;
   }
+  function titlesOn(tab) {
+    if (!motion.titles[tab]) motion.titles[tab] = Array.prototype.slice.call(document.querySelectorAll("#tab-" + tab + " .neon:not(.pink)"));
+    return motion.titles[tab];
+  }
   function motionFrame(now) {
     motion.raf = 0;
     if (!motionLive()) { motionRest(); return; }
     if (!motion.live) {
       motion.live = true;
-      mx.scene.classList.add("live");
+      scenes.forEach(function (sc) { sc.el.classList.add("live"); });
       mx.songs.classList.add("live");
     }
-    var p = beatAt(beatMap(music.cur), music.audio.currentTime || 0);
-    if (motion.seen) {
-      setLive(mx.sun, "transform", "scale(" + (1 + 0.05 * p.beat).toFixed(3) + ")");
-      setLive(mx.sunPulse, "opacity", Math.min(1, 0.15 * p.energy + 0.85 * p.beat).toFixed(2));
-      setLive(mx.floor, "opacity", Math.min(1, 0.5 + 0.12 * p.energy + 0.36 * Math.max(p.beat, 0.6 * p.snap)).toFixed(2));
-      setLive(mx.edge, "opacity", Math.min(1, 0.85 * p.snap + 0.2 * p.beat).toFixed(2));
-      setLive(mx.stars, "opacity", Math.min(1, 0.55 + 0.6 * p.tick).toFixed(2));
-      // Faster in the loud parts, in quarter steps, with some slack so it doesn't flip back and forth.
-      var fa = floorAnim(), speed = 0.7 + 1.4 * p.energy;
-      if (fa && Math.abs(speed - fa.playbackRate) > 0.18) setFloorRate(Math.round(speed * 4) / 4);
-      // The sun's stripes keep pace with the floor: nudge the SVG's clock by the difference.
-      var rate = fa ? fa.playbackRate : 1, svg = mx.sunSvg, dt = motion.lastFrame ? (now - motion.lastFrame) / 1000 : 0;
-      if (svg.setCurrentTime && dt > 0 && dt < 0.25 && Math.abs(rate - 1) > 0.01) svg.setCurrentTime(Math.max(0, svg.getCurrentTime() + (rate - 1) * dt));
-    }
+    var a = music.audio, p = beatAt(beatMap(music.cur), a.currentTime || 0);
+    var dt = motion.lastFrame ? Math.min(0.25, Math.max(0, (now - motion.lastFrame) / 1000)) : 0;
     motion.lastFrame = now;
-    if (state.tab === "today") setLive(mx.brand, "--tg", Math.min(1, 0.7 * p.snap + 0.3 * p.beat).toFixed(2));
+    var v = {
+      scale: "scale(" + (1 + 0.05 * p.beat).toFixed(3) + ")",
+      pulse: Math.min(1, 0.15 * p.energy + 0.85 * p.beat).toFixed(2),
+      floor: Math.min(1, 0.5 + 0.12 * p.energy + 0.36 * Math.max(p.beat, 0.6 * p.snap)).toFixed(2),
+      edge: Math.min(1, 0.85 * p.snap + 0.2 * p.beat).toFixed(2),
+      stars: Math.min(1, 0.55 + 0.6 * p.tick).toFixed(2),
+      tick: Math.min(1, 0.3 + 0.7 * p.tick).toFixed(2),
+      snap: Math.min(1, 0.35 + 0.65 * p.snap).toFixed(2),
+      glow: Math.min(1, 0.7 * p.snap + 0.3 * p.beat).toFixed(2)
+    };
+    var speed = 0.7 + 1.4 * p.energy;
+    scenes.forEach(function (sc) {
+      if (!sc.seen) return;
+      sc.rx.scale.forEach(function (n) { setLive(n, "transform", v.scale); });
+      ["pulse", "floor", "edge", "stars", "tick", "snap"].forEach(function (r) { sc.rx[r].forEach(function (n) { setLive(n, "opacity", v[r]); }); });
+      sc.rx.glow.forEach(function (n) { setLive(n, "--tg", v.glow); });
+      // Faster in the loud parts, in quarter steps, with some slack so it doesn't flip back and forth.
+      var rate = 1;
+      sc.grids.forEach(function (g) {
+        var ga = gridAnim(g);
+        if (!ga) return;
+        if (Math.abs(speed - ga.playbackRate) > 0.18) setGridRate(g, Math.round(speed * 4) / 4);
+        rate = ga.playbackRate;
+      });
+      // Sun stripes keep pace with the floor: nudge the SVG's clock by the difference.
+      if (dt > 0 && Math.abs(rate - 1) > 0.01) sc.clocks.forEach(function (svg) { svg.setCurrentTime(Math.max(0, svg.getCurrentTime() + (rate - 1) * dt)); });
+      if (sc.tape) turnTape(p, dt, a);
+    });
+    titlesOn(state.tab).forEach(function (n) { setLive(n, "--tg", v.glow); });
     setLive(mx.w1, "opacity", (0.35 + 0.65 * p.beat).toFixed(2));
     setLive(mx.w2, "opacity", (0.25 + 0.75 * Math.max(p.snap, p.tick)).toFixed(2));
     var eq = state.tab === "settings" ? mx.songs.querySelector(".songbtn.playing .eq") : null;
@@ -6545,39 +6955,98 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     }
     motion.raf = requestAnimationFrame(motionFrame);
   }
+  // The cassette's reels turn, faster in the loud parts, and the tape winds from left to right over the song.
+  function turnTape(p, dt, a) {
+    motion.reel = (motion.reel + dt * (150 + 230 * p.energy)) % 360;
+    var turn = "rotate(" + motion.reel.toFixed(1) + "deg)";
+    mx.reelL.style.transform = turn;
+    mx.reelR.style.transform = turn;
+    var d = a.duration, f = d && isFinite(d) ? Math.max(0, Math.min(1, a.currentTime / d)) : 0;
+    var rl = (7.5 + 8.5 * Math.sqrt(1 - f)).toFixed(1), rr = (7.5 + 8.5 * Math.sqrt(f)).toFixed(1);
+    if (mx.tapeL.getAttribute("r") !== rl) mx.tapeL.setAttribute("r", rl);
+    if (mx.tapeR.getAttribute("r") !== rr) mx.tapeR.setAttribute("r", rr);
+  }
   // Back to the plain animations.
   function motionRest() {
     if (motion.raf) { cancelAnimationFrame(motion.raf); motion.raf = 0; }
     if (!motion.live) return;
     motion.live = false;
-    mx.scene.classList.remove("live");
+    scenes.forEach(function (sc) {
+      sc.el.classList.remove("live");
+      ROLES.forEach(function (r) { sc.rx[r].forEach(clearLive); });
+      sc.grids.forEach(function (g) { setGridRate(g, 1); });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".neon"), clearLive);
+    [mx.w1, mx.w2].forEach(clearLive);
     mx.songs.classList.remove("live");
-    [mx.sun, mx.sunPulse, mx.floor, mx.edge, mx.stars, mx.w1, mx.w2].forEach(function (n) { n.style.transform = ""; n.style.opacity = ""; });
-    mx.brand.style.removeProperty("--tg");
     Array.prototype.forEach.call(mx.songs.querySelectorAll(".eq i"), function (i) { i.style.transform = ""; });
-    motion.last = {};
     motion.lastFrame = 0;
-    setFloorRate(1);
   }
   function motionWake() {
     if (!motion.raf && motionLive()) motion.raf = requestAnimationFrame(motionFrame);
   }
-  // The scene only runs while the scoreboard is on screen.
-  function sunClock(run) {
-    var svg = mx.sunSvg;
-    if (!svg || !svg.pauseAnimations) return;
-    if (run && motion.on) svg.unpauseAnimations(); else svg.pauseAnimations();
+  // A scene only runs while it's on screen (its page shown and scrolled into view).
+  function sceneClock(sc) {
+    sc.clocks.forEach(function (svg) { if (sc.seen && motion.on) svg.unpauseAnimations(); else svg.pauseAnimations(); });
   }
-  if (!motion.on) sunClock(false);
+  scenes.forEach(sceneClock);
   if (window.IntersectionObserver) {
-    new IntersectionObserver(function (entries) {
-      var seen = entries[entries.length - 1].isIntersecting;
-      motion.seen = seen;
-      mx.scene.classList.toggle("paused", !seen);
-      sunClock(seen);
-    }).observe(mx.scene.parentNode);
+    var sceneWatch = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        scenes.forEach(function (sc) {
+          if (sc.el !== en.target) return;
+          sc.seen = en.isIntersecting;
+          sc.el.classList.toggle("paused", !sc.seen);
+          sc.stage.classList.toggle("offscreen", !sc.seen);
+          sceneClock(sc);
+        });
+      });
+    });
+    scenes.forEach(function (sc) { sceneWatch.observe(sc.el); });
+  } else {
+    scenes.forEach(function (sc) { sc.seen = true; sceneClock(sc); });
   }
   document.addEventListener("visibilitychange", function () { if (!document.hidden) motionWake(); });
+
+  // Settings > Animations: Match device, On or Off, kept on this device.
+  function applyMotion() {
+    var still = stillNow();
+    reduceMotion = still;
+    motion.on = !still;
+    document.documentElement.classList.toggle("still", still);
+    scenes.forEach(sceneClock);
+    if (still) motionRest(); else motionWake();
+    renderMotionPref();
+  }
+  function renderMotionPref() {
+    var pref = motionPref();
+    $("motionAuto").checked = pref === "auto";
+    $("motionOn").checked = pref === "on";
+    $("motionOff").checked = pref === "off";
+    $("motionHint").textContent = pref === "on" ? "Always on here, whatever this device's motion setting."
+      : pref === "off" ? "Always off here."
+      : osStill && osStill.matches ? "Off for now: this device asks apps to reduce motion. Pick On to see them anyway."
+      : "Follows this device's reduce-motion setting.";
+  }
+  radios("motion").forEach(function (r) {
+    r.addEventListener("change", function () { if (r.checked) { setMeta({ motionPref: r.value }); applyMotion(); } });
+  });
+  if (osStill) {
+    if (osStill.addEventListener) osStill.addEventListener("change", applyMotion);
+    else if (osStill.addListener) osStill.addListener(applyMotion);
+  }
+  applyMotion();
+
+  // Tab icons act out their page when hovered or tapped.
+  Array.prototype.forEach.call(document.querySelectorAll(".tabbtn"), function (b) {
+    function play() {
+      if (!motion.on || b.classList.contains("play")) return;
+      b.classList.add("play");
+      setTimeout(function () { b.classList.remove("play"); }, 1000);
+    }
+    b.addEventListener("pointerenter", function (e) { if (e.pointerType === "mouse") play(); });
+    b.addEventListener("click", play);
+  });
 
   // Small one-off animations. Each is skipped with Reduce Motion.
   function riseIn(node) {

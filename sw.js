@@ -1,5 +1,5 @@
 /* Cheat Points service worker: keeps the app working offline and installs updates when you tap Restart. */
-const VERSION = "2026.10.15.1";
+const VERSION = "2026.10.15.2";
 const CORE = "cp-core-" + VERSION;
 const FONTS = "cp-fonts-1";
 const FONT_CSS = "https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,500;0,600;0,700;1,700&family=Monoton&family=VT323&display=swap";
