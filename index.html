@@ -62,6 +62,8 @@
   --board-cell: rgba(77, 107, 255, 0.28);
   --focus: #7fd6ff;
   --chart-surface: #0a0f3d;
+  --bad: #ff66b8;
+  --bad-glow: rgba(232, 69, 154, 0.55);
   --tabbar-h: 62px;
   --title: "Monoton", "Chakra Petch", system-ui, sans-serif;
   --display: "VT323", "Courier New", ui-monospace, monospace;
@@ -329,7 +331,7 @@ h2 {
   color: #ffffff;
   text-shadow: 0 0 6px rgba(255, 255, 255, 0.6), 0 0 16px var(--glow-cyan), 0 0 34px var(--glow);
 }
-.bank-num.neg { color: var(--spend); }
+.bank-num.neg { color: var(--bad); text-shadow: 0 0 6px rgba(255, 140, 200, 0.55), 0 0 16px var(--bad-glow), 0 0 34px rgba(232, 69, 154, 0.35); }
 .bank-unit { font-weight: 600; font-size: 0.85rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--board-dim); }
 .board-stats { display: flex; gap: 8px 20px; flex-wrap: wrap; }
 .stat .v { display: block; font-family: var(--display); font-weight: 400; font-size: 2.1rem; line-height: 1.05; text-shadow: 0 0 10px var(--glow); }
@@ -365,7 +367,7 @@ h2 {
 .redeem-pill svg, .rlist svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .rbank { display: flex; align-items: baseline; gap: 10px; }
 .rbank-num { font-family: var(--display); font-size: 3rem; line-height: 0.9; color: #ffffff; text-shadow: 0 0 6px rgba(255, 255, 255, 0.5), 0 0 16px var(--glow-cyan); }
-.rbank-num.neg { color: var(--spend); }
+.rbank-num.neg { color: var(--bad); text-shadow: 0 0 6px rgba(255, 140, 200, 0.5), 0 0 16px var(--bad-glow); }
 .rlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .ritem {
   appearance: none;
@@ -1227,7 +1229,7 @@ html.still .songbtn.playing .eq i { animation: none; transform: scaleY(0.8); }
   pointer-events: none;
   animation: bankfloat 1.5s ease-out forwards;
 }
-.bankfloat.neg { color: var(--spend); text-shadow: 0 0 10px var(--glow); }
+.bankfloat.neg { color: var(--bad); text-shadow: 0 0 10px var(--bad-glow); }
 @keyframes bankfloat {
   0% { opacity: 0; transform: translateY(12px); }
   15% { opacity: 1; }
@@ -1264,8 +1266,8 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 .hero .floor { height: 64%; left: -60%; right: -60%; }
 .pagesub { margin: -4px 0 0; color: var(--muted); font-size: 0.92rem; max-width: 60ch; }
 
-/* Redeem: the shop sign hangs from two chains. In the red, one chain lets go: the sign swings crooked and only
-   RED stays lit, the rest sputtering. */
+/* Redeem: the shop sign hangs from two chains, lit cyan and buzzing like real neon. In the red it turns pink, one
+   chain lets go, the sign swings crooked and only RED stays lit, the rest sputtering. */
 .hero-row { display: flex; align-items: center; gap: 14px; }
 .signwrap { position: relative; display: inline-block; margin-top: 10px; }
 .hang {
@@ -1278,45 +1280,71 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 .hang.l { left: 18px; }
 .hang.r { right: 18px; transform-origin: 50% 0; }
 .sign {
+  /* Lit cyan like the other titles; in the red it turns pink (see .shop.broken). */
+  --tube: #7fd6ff;
+  --tube-off: #233a6a;
+  --tube-dim: #4f86b8;
+  --tube-glow: 0 0 6px rgba(127, 214, 255, 0.9), 0 0 18px rgba(95, 124, 255, 0.55), inset 0 0 10px rgba(127, 214, 255, 0.3);
+  --tube-glow-dim: 0 0 4px rgba(127, 214, 255, 0.45);
+  --lit: #ffffff;
+  --lit-glow: 0 0 6px rgba(127, 214, 255, 0.65), 0 0 18px rgba(95, 124, 255, 0.6);
+  --lit-dim: #7d93c8;
+  --lit-dim-glow: 0 0 3px rgba(127, 214, 255, 0.4);
+  --dead: #26315f;
+  --halo: rgba(127, 214, 255, 0.55);
   position: relative;
   padding: 9px 16px 6px;
   border-radius: 10px;
-  background: rgba(24, 6, 44, 0.45);
+  background: rgba(5, 8, 40, 0.45);
   transform-origin: 19px 0;
+}
+.shop.broken .sign {
+  --tube: #ff6ac8;
+  --tube-off: #4f2a5c;
+  --tube-dim: #c4549f;
+  --tube-glow: 0 0 6px rgba(255, 106, 200, 0.9), 0 0 18px rgba(255, 79, 184, 0.5), inset 0 0 10px rgba(255, 79, 184, 0.35);
+  --tube-glow-dim: 0 0 4px rgba(255, 106, 200, 0.6);
+  --lit: #ffe0f4;
+  --lit-glow: 0 0 4px #ff8fd8, 0 0 12px rgba(255, 79, 184, 0.95), 0 0 26px rgba(255, 79, 184, 0.55);
+  --lit-dim: #a0558a;
+  --lit-dim-glow: 0 0 3px rgba(255, 79, 184, 0.5);
+  --dead: #3a2350;
+  --halo: rgba(255, 95, 193, 0.7);
+  background: rgba(24, 6, 44, 0.45);
 }
 /* The tube around the sign. Like a real one it hums: now and then it drops out for a blink or two. */
 .sign::before {
   content: "";
   position: absolute;
   inset: 0;
-  border: 2px solid #ff6ac8;
+  border: 2px solid var(--tube);
   border-radius: inherit;
-  box-shadow: 0 0 6px rgba(255, 106, 200, 0.9), 0 0 18px rgba(255, 79, 184, 0.5), inset 0 0 10px rgba(255, 79, 184, 0.35);
+  box-shadow: var(--tube-glow);
   pointer-events: none;
   animation: tube 7.3s steps(1) 1.2s infinite;
 }
 @keyframes tube {
-  0%, 100% { border-color: #ff6ac8; box-shadow: 0 0 6px rgba(255, 106, 200, 0.9), 0 0 18px rgba(255, 79, 184, 0.5), inset 0 0 10px rgba(255, 79, 184, 0.35); }
-  30%, 31.4%, 77% { border-color: #4f2a5c; box-shadow: none; }
-  30.7%, 32.2%, 77.8% { border-color: #ff6ac8; box-shadow: 0 0 6px rgba(255, 106, 200, 0.9), 0 0 18px rgba(255, 79, 184, 0.5), inset 0 0 10px rgba(255, 79, 184, 0.35); }
-  54% { border-color: #c4549f; box-shadow: 0 0 4px rgba(255, 106, 200, 0.6); }
-  55% { border-color: #ff6ac8; box-shadow: 0 0 6px rgba(255, 106, 200, 0.9), 0 0 18px rgba(255, 79, 184, 0.5), inset 0 0 10px rgba(255, 79, 184, 0.35); }
+  0%, 100% { border-color: var(--tube); box-shadow: var(--tube-glow); }
+  30%, 31.4%, 77% { border-color: var(--tube-off); box-shadow: none; }
+  30.7%, 32.2%, 77.8% { border-color: var(--tube); box-shadow: var(--tube-glow); }
+  54% { border-color: var(--tube-dim); box-shadow: var(--tube-glow-dim); }
+  55% { border-color: var(--tube); box-shadow: var(--tube-glow); }
 }
 /* Letters buzz on their own clocks: a stutter here, a dropout there. */
-.shop:not(.broken) .neon.pink span:nth-child(2) { animation: flick-a 5.9s steps(1) 0.7s infinite; }
-.shop:not(.broken) .neon.pink span:nth-child(4) { animation: flick-b 8.3s steps(1) 2.1s infinite; }
-.shop:not(.broken) .neon.pink span:nth-child(6) { animation: flick-a 4.7s steps(1) 3.4s infinite; }
-.shop:not(.broken) .neon.pink span:nth-child(1) { animation: flick-b 11.2s steps(1) 5s infinite; }
+.shop:not(.broken) .signtext span:nth-child(2) { animation: flick-a 5.9s steps(1) 0.7s infinite; }
+.shop:not(.broken) .signtext span:nth-child(4) { animation: flick-b 8.3s steps(1) 2.1s infinite; }
+.shop:not(.broken) .signtext span:nth-child(6) { animation: flick-a 4.7s steps(1) 3.4s infinite; }
+.shop:not(.broken) .signtext span:nth-child(1) { animation: flick-b 11.2s steps(1) 5s infinite; }
 @keyframes flick-a {
-  0%, 100% { color: #ffe0f4; text-shadow: 0 0 4px #ff8fd8, 0 0 12px rgba(255, 79, 184, 0.95), 0 0 26px rgba(255, 79, 184, 0.55); }
-  62%, 64%, 66.5% { color: #4f2a5c; text-shadow: none; }
-  63%, 65%, 67.5% { color: #ffe0f4; text-shadow: 0 0 4px #ff8fd8, 0 0 12px rgba(255, 79, 184, 0.95), 0 0 26px rgba(255, 79, 184, 0.55); }
+  0%, 100% { color: var(--lit); text-shadow: var(--lit-glow); }
+  62%, 64%, 66.5% { color: var(--dead); text-shadow: none; }
+  63%, 65%, 67.5% { color: var(--lit); text-shadow: var(--lit-glow); }
 }
 @keyframes flick-b {
-  0%, 100% { color: #ffe0f4; text-shadow: 0 0 4px #ff8fd8, 0 0 12px rgba(255, 79, 184, 0.95), 0 0 26px rgba(255, 79, 184, 0.55); }
-  40% { color: #a0558a; text-shadow: 0 0 3px rgba(255, 79, 184, 0.5); }
-  41.5%, 43% { color: #4f2a5c; text-shadow: none; }
-  42%, 44% { color: #ffe0f4; text-shadow: 0 0 4px #ff8fd8, 0 0 12px rgba(255, 79, 184, 0.95), 0 0 26px rgba(255, 79, 184, 0.55); }
+  0%, 100% { color: var(--lit); text-shadow: var(--lit-glow); }
+  40% { color: var(--lit-dim); text-shadow: var(--lit-dim-glow); }
+  41.5%, 43% { color: var(--dead); text-shadow: none; }
+  42%, 44% { color: var(--lit); text-shadow: var(--lit-glow); }
 }
 .sign::after {
   content: "";
@@ -1324,16 +1352,16 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
   inset: -4px;
   z-index: -1;
   border-radius: 13px;
-  box-shadow: 0 0 24px 6px rgba(255, 95, 193, 0.7);
+  box-shadow: 0 0 24px 6px var(--halo);
   opacity: var(--tg, 0);
   pointer-events: none;
 }
-.neon.pink { color: #ffe0f4; text-shadow: 0 0 4px #ff8fd8, 0 0 12px rgba(255, 79, 184, 0.95), 0 0 26px rgba(255, 79, 184, 0.55); }
-.neon.pink::after { display: none; }
-.neon.pink span { transition: color 0.3s ease, text-shadow 0.3s ease; }
+.signtext { color: var(--lit); text-shadow: var(--lit-glow); }
+.signtext::after { display: none; }
+.signtext span { transition: color 0.3s ease, text-shadow 0.3s ease; }
 .shop.broken .sign { transform: rotate(9deg); animation: sway 3.4s ease-in-out infinite alternate; }
 .shop.broken .sign::before { animation: tube 3.1s steps(1) 0.4s infinite; }
-.shop.broken .neon.pink { animation: none; }
+.shop.broken .signtext { animation: none; }
 .shop.broken .hang.r { height: 50px; animation: dangle 2.7s ease-in-out infinite alternate; }
 .shop.broken .hang.r::after {
   content: "";
@@ -1346,13 +1374,13 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
   border-top: 0;
   border-radius: 0 0 4px 4px;
 }
-.shop.broken .sign .x { color: #3a2350; text-shadow: none; }
+.shop.broken .sign .x { color: var(--dead); text-shadow: none; }
 .shop.broken .sign .xf { animation: sputter 4.8s steps(1) infinite; }
 @keyframes sway { from { transform: rotate(7.5deg); } to { transform: rotate(10.5deg); } }
 @keyframes dangle { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
 @keyframes sputter {
-  0%, 58%, 63%, 71%, 100% { color: #3a2350; text-shadow: none; }
-  59%, 61%, 68% { color: #ffe0f4; text-shadow: 0 0 4px #ff8fd8, 0 0 12px rgba(255, 79, 184, 0.95); }
+  0%, 58%, 63%, 71%, 100% { color: var(--dead); text-shadow: none; }
+  59%, 61%, 68% { color: var(--lit); text-shadow: var(--lit-glow); }
 }
 .spark { position: absolute; right: 16px; top: -3px; width: 3px; height: 3px; border-radius: 50%; background: #fff4cf; box-shadow: 0 0 6px 1px #ffd27a; opacity: 0; }
 .shop.broken .spark { animation: spark 4.8s linear infinite; }
@@ -1803,7 +1831,7 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
         <div class="signwrap">
           <i class="hang l"></i><i class="hang r"></i>
           <div class="sign" id="shopSign" data-rx="glow">
-            <h1 class="neon pink" data-glow="Redeem"><span>R</span><span>e</span><span>d</span><span class="x">e</span><span class="x">e</span><span class="x xf">m</span></h1>
+            <h1 class="neon signtext" data-glow="Redeem"><span>R</span><span>e</span><span>d</span><span class="x">e</span><span class="x">e</span><span class="x xf">m</span></h1>
             <i class="spark"></i><i class="spark s2"></i><i class="spark s3"></i>
           </div>
         </div>
@@ -2181,7 +2209,7 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.15.3","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.15.4","profile":null};</script>
 <script>
 /* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
    strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
@@ -6947,7 +6975,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     return motion.on && !music.off && !!music.audio && !music.audio.paused && !document.hidden;
   }
   function titlesOn(tab) {
-    if (!motion.titles[tab]) motion.titles[tab] = Array.prototype.slice.call(document.querySelectorAll("#tab-" + tab + " .neon:not(.pink)"));
+    if (!motion.titles[tab]) motion.titles[tab] = Array.prototype.slice.call(document.querySelectorAll("#tab-" + tab + " .neon:not(.signtext)"));
     return motion.titles[tab];
   }
   function motionFrame(now) {
@@ -6974,7 +7002,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     // On each bigger hit, a soft glow lands on a box in view.
     if (p.slot !== motion.slot) {
       motion.slot = p.slot;
-      if (p.hit >= 0.4) hopGlow(p.hit);
+      if (p.hit >= 0.3) hopGlow(p.hit);
     }
     var speed = 0.7 + 1.4 * p.energy;
     scenes.forEach(function (sc) {
@@ -7019,7 +7047,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function hopGlow(strength) {
     var tab = $("tab-" + state.tab);
     if (!tab || !hops[0].animate) return;
-    var bottom = window.innerHeight - (document.querySelector(".tabbar").getBoundingClientRect().height || 0);
+    // Boxes fully in view, above the tab bar on a phone (on a computer the bar is a sidebar on the left).
+    var bar = document.querySelector(".tabbar").getBoundingClientRect();
+    var bottom = bar.top > window.innerHeight / 2 ? bar.top : window.innerHeight;
     var seen = Array.prototype.filter.call(tab.querySelectorAll(HOP_BOXES), function (n) {
       if (n === motion.hopLast) return false;
       var r = n.getBoundingClientRect();
@@ -7034,8 +7064,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     h.style.width = r.width + "px";
     h.style.height = r.height + "px";
     h.style.borderRadius = getComputedStyle(box).borderRadius;
-    h.style.boxShadow = "0 0 22px 4px rgba(" + c + ", 0.32), 0 0 7px 1px rgba(" + c + ", 0.3)";
-    h.animate([{ opacity: 0 }, { opacity: Math.min(1, 0.5 + 0.5 * strength), offset: 0.15 }, { opacity: 0 }], { duration: 620, easing: "ease-out" });
+    h.style.boxShadow = "0 0 0 1.5px rgba(" + c + ", 0.85), 0 0 14px 2px rgba(" + c + ", 0.55), 0 0 32px 6px rgba(" + c + ", 0.22)";
+    h.animate([{ opacity: 0 }, { opacity: Math.min(1, 0.65 + 0.35 * strength), offset: 0.12 }, { opacity: 0 }], { duration: 760, easing: "ease-out" });
   }
   // The cassette's reels turn, faster in the loud parts, and the tape winds from left to right over the song.
   function turnTape(p, dt, a) {
