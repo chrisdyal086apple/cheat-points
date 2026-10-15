@@ -63,6 +63,7 @@
   --focus: #7fd6ff;
   --chart-surface: #0a0f3d;
   --bad: #ff66b8;
+  --glow-ring: 0 0 0 1px rgba(127, 214, 255, 0.7), 0 0 16px rgba(127, 214, 255, 0.42);
   --bad-glow: rgba(232, 69, 154, 0.55);
   --tabbar-h: 62px;
   --title: "Monoton", "Chakra Petch", system-ui, sans-serif;
@@ -1457,8 +1458,41 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
   }
 }
 
-/* Shadow pulses that hop between boxes while a song plays (placed by the script). */
-.hop { position: fixed; z-index: 30; pointer-events: none; opacity: 0; background: transparent; }
+/* ---------- Hover and tap glow ---------- */
+/* Buttons and boxed sections light up cyan under the mouse; on a touch screen, whatever you tap glows for a
+   moment (the script adds .tap). */
+.btn, .songbtn, .rtabs button, .ptabs button, .rangebar button, .qm, .redeem-pill, .stripnav, .seg span, .day, .ritem,
+.fitem, .aitem, .board, .hero, .tally, input, select { transition: border-color 0.25s ease, box-shadow 0.25s ease; }
+.topic > summary, .linkbtn, .tabbtn { transition: color 0.25s ease, text-shadow 0.25s ease; }
+.tabbtn svg { transition: color 0.25s ease, filter 0.25s ease; }
+@media (hover: hover) and (pointer: fine) {
+  .btn:not(:disabled):hover, .songbtn:hover, .rtabs button:hover, .ptabs button:hover, .rangebar button:hover, .qm:hover, .redeem-pill:hover, .music:hover, .stripnav:hover { border-color: var(--accent); box-shadow: var(--glow-ring); }
+  .seg label:hover span { border-color: var(--accent); box-shadow: var(--glow-ring); }
+  .day:hover { border-color: var(--accent); box-shadow: var(--glow-ring); }
+  .day.sel:hover { box-shadow: inset 0 0 0 2px var(--accent), var(--glow-ring); }
+  .ritem:not(:disabled):hover { border-color: var(--accent); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5), var(--glow-ring); }
+  .fitem:hover, .aitem:hover { border-color: rgba(127, 214, 255, 0.75); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5), var(--glow-ring); }
+  .topic > summary:hover { color: var(--accent); }
+  .board:hover, .hero:hover { border-color: rgba(127, 214, 255, 0.75); box-shadow: 0 0 0 1px rgba(127, 214, 255, 0.35), 0 0 30px rgba(127, 214, 255, 0.4); }
+  .tally:hover { border-color: var(--accent); box-shadow: var(--glow-ring); }
+  .linkbtn:not(:disabled):hover { color: #ffffff; text-shadow: 0 0 10px var(--glow-cyan); }
+  .tabbtn:hover { color: #ffffff; }
+  .tabbtn:hover svg { color: var(--accent); filter: drop-shadow(0 0 6px var(--glow-cyan)); }
+  input:hover, select:hover { border-color: var(--accent); box-shadow: 0 0 12px rgba(127, 214, 255, 0.3); }
+  .block:hover { border-color: rgba(127, 214, 255, 0.6); box-shadow: inset 0 0 26px rgba(5, 8, 35, 0.45), 0 0 0 1px rgba(127, 214, 255, 0.25), 0 0 22px rgba(127, 214, 255, 0.22); }
+}
+.btn.tap, .songbtn.tap, .rtabs button.tap, .ptabs button.tap, .rangebar button.tap, .qm.tap, .redeem-pill.tap, .music.tap, .stripnav.tap { border-color: var(--accent); box-shadow: var(--glow-ring); }
+.seg label.tap span { border-color: var(--accent); box-shadow: var(--glow-ring); }
+.day.tap { border-color: var(--accent); box-shadow: var(--glow-ring); }
+.day.sel.tap { box-shadow: inset 0 0 0 2px var(--accent), var(--glow-ring); }
+.ritem.tap { border-color: var(--accent); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5), var(--glow-ring); }
+.fitem.tap, .aitem.tap { border-color: rgba(127, 214, 255, 0.75); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5), var(--glow-ring); }
+.topic > summary.tap { color: var(--accent); }
+.board.tap, .hero.tap { border-color: rgba(127, 214, 255, 0.75); box-shadow: 0 0 0 1px rgba(127, 214, 255, 0.35), 0 0 30px rgba(127, 214, 255, 0.4); }
+.tally.tap { border-color: var(--accent); box-shadow: var(--glow-ring); }
+.linkbtn.tap { color: #ffffff; text-shadow: 0 0 10px var(--glow-cyan); }
+.tabbtn.tap { color: #ffffff; }
+.tabbtn.tap svg { color: var(--accent); filter: drop-shadow(0 0 6px var(--glow-cyan)); }
 
 /* ---------- Tab icons ---------- */
 /* Each icon acts out its page when hovered (or tapped): the sun rises, the ticket wiggles, the chart climbs, the
@@ -1571,14 +1605,12 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
   .rtabs { max-width: 640px; }
   .rlist { grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
   .ritem { height: 100%; padding: 14px 16px; }
-  .ritem.ok:hover { border-color: var(--accent); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5), 0 0 16px rgba(127, 214, 255, 0.35); }
 
   /* Progress: the chart beside the weeks and days */
   #tab-progress { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); align-items: start; }
 
   /* Guide: one readable column */
   #tab-guide > .hero, #tab-guide > .pagesub, #tab-guide .guide { max-width: 820px; }
-  .topic > summary:hover { color: var(--accent); }
 
   /* Settings: two columns */
   #tab-settings { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
@@ -1609,8 +1641,6 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 
   /* Mouse-friendly touches */
   .btn.primary:hover, .btn.ghost:hover { filter: brightness(1.12); }
-  .day:hover { border-color: var(--accent); }
-  .linkbtn:hover { color: #ffffff; }
 }
 @media (min-width: 1280px) {
   .bank-num { font-size: 6.4rem; }
@@ -2209,7 +2239,7 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.15.4","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.15.5","profile":null};</script>
 <script>
 /* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
    strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
@@ -2349,7 +2379,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function stillNow() { var p = motionPref(); return p === "off" || (p === "auto" && !!(osStill && osStill.matches)); }
   var reduceMotion = stillNow();
   document.documentElement.classList.toggle("still", reduceMotion);
-  var motion = { on: !reduceMotion, maps: {}, raf: 0, live: false, lastFrame: 0, reel: 0, titles: {}, slot: -1, hopNext: 0, hopLast: null, bank: null, shown: null, countRaf: 0, sel: "" };
+  var motion = { on: !reduceMotion, maps: {}, raf: 0, live: false, lastFrame: 0, reel: 0, titles: {}, bank: null, shown: null, countRaf: 0, sel: "" };
   document.documentElement.setAttribute("data-tab", "today");
 
   // ---------- State ----------
@@ -6874,7 +6904,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     reelL: $("reelL"), reelR: $("reelR"), tapeL: $("tapeL"), tapeR: $("tapeR")
   };
   // Parts of a scene that follow the music, by role (data-rx): scale (kick swell), pulse (kick glow), floor, stars
-  // and tick (hats), snap (snare), glow (a sign's halo). The edge is no longer flashed; see hopGlow.
+  // and tick (hats), snap (snare), glow (a sign's halo).
   var ROLES = ["scale", "pulse", "floor", "edge", "stars", "tick", "snap", "glow"];
   var scenes = Array.prototype.map.call(document.querySelectorAll(".scene"), function (el) {
     var sc = { el: el, stage: el.parentNode, seen: false, rx: {} };
@@ -6915,11 +6945,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   }
   // The song at time t (s): beat (kick), snap (snare), tick (hats) as decaying pulses, and energy, all 0-1.
   function beatAt(m, t) {
-    var p = { beat: 0, snap: 0, tick: 0, energy: 0.5, slot: -1, hit: 0 };
+    var p = { beat: 0, snap: 0, tick: 0, energy: 0.5 };
     if (!m) {                                   // a song without a map gets a gentle 110 BPM throb
       p.beat = 0.5 * Math.exp(-(t % 0.545) / 0.2);
-      p.slot = Math.floor(t / 0.545);
-      p.hit = 0.5;
       return p;
     }
     var lo = 0, hi = m.n - 1, j = -1;
@@ -6943,8 +6971,6 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var lift = 0.45 + 0.55 * p.energy;           // quiet parts pulse softer
     p.beat *= lift;
     p.snap *= lift;
-    p.slot = j;
-    if (j >= 0 && ((j & 3) === 0 || (j & 3) === 2)) p.hit = Math.max(m.k[j], m.s[j]) / 7 * lift;
     return p;
   }
   function setLive(node, prop, val) {
@@ -6999,11 +7025,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       snap: Math.min(1, 0.4 + 0.45 * p.snap).toFixed(2),
       glow: Math.min(1, 0.45 * p.snap + 0.15 * p.beat).toFixed(2)
     };
-    // On each bigger hit, a soft glow lands on a box in view.
-    if (p.slot !== motion.slot) {
-      motion.slot = p.slot;
-      if (p.hit >= 0.3) hopGlow(p.hit);
-    }
+
     var speed = 0.7 + 1.4 * p.energy;
     scenes.forEach(function (sc) {
       if (!sc.seen) return;
@@ -7032,41 +7054,6 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     }
     motion.raf = requestAnimationFrame(motionFrame);
   }
-  // Shadow pulses: a soft glow lands around one of the boxes on screen (cards, tiles, buttons, the scene itself),
-  // a different one each hit, and fades. A few glow layers take turns so quick hits can overlap.
-  var HOP_BOXES = ".board, .hero, .day, .ritem, .rtabs button, .topic, .seg span, .songbtn, .ptabs button, .rangebar button, " +
-    ".btn, .fitem, .aitem, .chart, .tally, .redeem-pill, input[type=number]";
-  var HOP_COLORS = ["127, 214, 255", "95, 124, 255", "255, 106, 200"];
-  var hops = [0, 1, 2].map(function () {
-    var h = document.createElement("div");
-    h.className = "hop";
-    h.setAttribute("aria-hidden", "true");
-    document.body.appendChild(h);
-    return h;
-  });
-  function hopGlow(strength) {
-    var tab = $("tab-" + state.tab);
-    if (!tab || !hops[0].animate) return;
-    // Boxes fully in view, above the tab bar on a phone (on a computer the bar is a sidebar on the left).
-    var bar = document.querySelector(".tabbar").getBoundingClientRect();
-    var bottom = bar.top > window.innerHeight / 2 ? bar.top : window.innerHeight;
-    var seen = Array.prototype.filter.call(tab.querySelectorAll(HOP_BOXES), function (n) {
-      if (n === motion.hopLast) return false;
-      var r = n.getBoundingClientRect();
-      return r.width >= 24 && r.height >= 18 && r.top >= 0 && r.bottom <= bottom && r.left >= 0 && r.right <= window.innerWidth;
-    });
-    if (!seen.length) return;
-    var box = seen[Math.floor(Math.random() * seen.length)], r = box.getBoundingClientRect();
-    var h = hops[motion.hopNext = (motion.hopNext + 1) % hops.length], c = HOP_COLORS[motion.hopNext];
-    motion.hopLast = box;
-    h.style.left = r.left + "px";
-    h.style.top = r.top + "px";
-    h.style.width = r.width + "px";
-    h.style.height = r.height + "px";
-    h.style.borderRadius = getComputedStyle(box).borderRadius;
-    h.style.boxShadow = "0 0 0 1.5px rgba(" + c + ", 0.85), 0 0 14px 2px rgba(" + c + ", 0.55), 0 0 32px 6px rgba(" + c + ", 0.22)";
-    h.animate([{ opacity: 0 }, { opacity: Math.min(1, 0.65 + 0.35 * strength), offset: 0.12 }, { opacity: 0 }], { duration: 760, easing: "ease-out" });
-  }
   // The cassette's reels turn, faster in the loud parts, and the tape winds from left to right over the song.
   function turnTape(p, dt, a) {
     motion.reel = (motion.reel + dt * (150 + 230 * p.energy)) % 360;
@@ -7093,7 +7080,6 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     mx.songs.classList.remove("live");
     Array.prototype.forEach.call(mx.songs.querySelectorAll(".eq i"), function (i) { i.style.transform = ""; });
     motion.lastFrame = 0;
-    motion.slot = -1;
   }
   function motionWake() {
     if (!motion.raf && motionLive()) motion.raf = requestAnimationFrame(motionFrame);
@@ -7149,6 +7135,26 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     else if (osStill.addListener) osStill.addListener(applyMotion);
   }
   applyMotion();
+
+  // Buttons and boxed sections glow cyan under the mouse (CSS :hover). On a touch screen, whatever you tap glows
+  // for a moment instead; a scroll that starts on it cancels the glow.
+  var GLOW_TAP = ".btn, .songbtn, .seg label, .rtabs button, .ptabs button, .rangebar button, .day, .qm, .redeem-pill, .music, " +
+    ".stripnav, .ritem, .topic > summary, .tabbtn, .linkbtn, .board, .hero, .fitem, .aitem, .tally";
+  function untap(n) {
+    clearTimeout(n._tap);
+    n._tap = setTimeout(function () { n.classList.remove("tap"); }, 380);
+  }
+  document.addEventListener("pointerdown", function (e) {
+    if (e.pointerType === "mouse" || !e.target.closest) return;
+    var n = e.target.closest(GLOW_TAP);
+    if (!n || n.disabled) return;
+    n.classList.add("tap");
+    clearTimeout(n._tap);
+    var done = function () { untap(n); document.removeEventListener("pointerup", done, true); document.removeEventListener("pointercancel", cancel, true); };
+    var cancel = function () { clearTimeout(n._tap); n.classList.remove("tap"); done(); };
+    document.addEventListener("pointerup", done, true);
+    document.addEventListener("pointercancel", cancel, true);
+  }, { passive: true, capture: true });
 
   // Tab icons act out their page when hovered or tapped.
   Array.prototype.forEach.call(document.querySelectorAll(".tabbtn"), function (b) {
