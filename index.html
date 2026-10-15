@@ -307,7 +307,7 @@ h2 {
 }
 @keyframes floor-run { from { transform: translateY(0); } to { transform: translateY(22px); } }
 .edge { position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px rgba(127, 214, 255, 0.8), inset 0 0 26px rgba(127, 214, 255, 0.42); opacity: 0; }
-.scene.paused, .scene.paused *, .hero.offscreen * { animation-play-state: paused !important; }
+.scene.paused, .scene.paused *, .hero.offscreen *, .hero.offscreen *::before { animation-play-state: paused !important; }
 .scene.live .sunwrap { will-change: transform; }
 .scene.live .sunpulse, .scene.live .edge, .scene.live .stars, .scene.live .floor { will-change: opacity; }
 .board-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px 20px; flex-wrap: wrap; }
@@ -1236,6 +1236,7 @@ html.still .songbtn.playing .eq i { animation: none; transform: scaleY(0.8); }
 }
 /* While a song plays, the script drives the playing song's bars (and the speaker's waves) from its beat map. */
 .songs.live .songbtn.playing .eq i { animation: none; }
+html.still .hero *::before, html.still .hero *::after,
 html.still .scene *, html.still .hero *, html.still .vhs, html.still .neon, html.still .bankfloat, html.still .day .chain, html.still .tabbtn svg * { animation: none !important; }
 html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !important; }
 
@@ -1278,17 +1279,50 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 .hang.r { right: 18px; transform-origin: 50% 0; }
 .sign {
   position: relative;
-  padding: 7px 14px 4px;
-  border: 2px solid #ff6ac8;
+  padding: 9px 16px 6px;
   border-radius: 10px;
   background: rgba(24, 6, 44, 0.45);
-  box-shadow: 0 0 6px rgba(255, 106, 200, 0.9), 0 0 18px rgba(255, 79, 184, 0.5), inset 0 0 10px rgba(255, 79, 184, 0.35);
   transform-origin: 19px 0;
+}
+/* The tube around the sign. Like a real one it hums: now and then it drops out for a blink or two. */
+.sign::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid #ff6ac8;
+  border-radius: inherit;
+  box-shadow: 0 0 6px rgba(255, 106, 200, 0.9), 0 0 18px rgba(255, 79, 184, 0.5), inset 0 0 10px rgba(255, 79, 184, 0.35);
+  pointer-events: none;
+  animation: tube 7.3s steps(1) 1.2s infinite;
+}
+@keyframes tube {
+  0%, 100% { border-color: #ff6ac8; box-shadow: 0 0 6px rgba(255, 106, 200, 0.9), 0 0 18px rgba(255, 79, 184, 0.5), inset 0 0 10px rgba(255, 79, 184, 0.35); }
+  30%, 31.4%, 77% { border-color: #4f2a5c; box-shadow: none; }
+  30.7%, 32.2%, 77.8% { border-color: #ff6ac8; box-shadow: 0 0 6px rgba(255, 106, 200, 0.9), 0 0 18px rgba(255, 79, 184, 0.5), inset 0 0 10px rgba(255, 79, 184, 0.35); }
+  54% { border-color: #c4549f; box-shadow: 0 0 4px rgba(255, 106, 200, 0.6); }
+  55% { border-color: #ff6ac8; box-shadow: 0 0 6px rgba(255, 106, 200, 0.9), 0 0 18px rgba(255, 79, 184, 0.5), inset 0 0 10px rgba(255, 79, 184, 0.35); }
+}
+/* Letters buzz on their own clocks: a stutter here, a dropout there. */
+.shop:not(.broken) .neon.pink span:nth-child(2) { animation: flick-a 5.9s steps(1) 0.7s infinite; }
+.shop:not(.broken) .neon.pink span:nth-child(4) { animation: flick-b 8.3s steps(1) 2.1s infinite; }
+.shop:not(.broken) .neon.pink span:nth-child(6) { animation: flick-a 4.7s steps(1) 3.4s infinite; }
+.shop:not(.broken) .neon.pink span:nth-child(1) { animation: flick-b 11.2s steps(1) 5s infinite; }
+@keyframes flick-a {
+  0%, 100% { color: #ffe0f4; text-shadow: 0 0 4px #ff8fd8, 0 0 12px rgba(255, 79, 184, 0.95), 0 0 26px rgba(255, 79, 184, 0.55); }
+  62%, 64%, 66.5% { color: #4f2a5c; text-shadow: none; }
+  63%, 65%, 67.5% { color: #ffe0f4; text-shadow: 0 0 4px #ff8fd8, 0 0 12px rgba(255, 79, 184, 0.95), 0 0 26px rgba(255, 79, 184, 0.55); }
+}
+@keyframes flick-b {
+  0%, 100% { color: #ffe0f4; text-shadow: 0 0 4px #ff8fd8, 0 0 12px rgba(255, 79, 184, 0.95), 0 0 26px rgba(255, 79, 184, 0.55); }
+  40% { color: #a0558a; text-shadow: 0 0 3px rgba(255, 79, 184, 0.5); }
+  41.5%, 43% { color: #4f2a5c; text-shadow: none; }
+  42%, 44% { color: #ffe0f4; text-shadow: 0 0 4px #ff8fd8, 0 0 12px rgba(255, 79, 184, 0.95), 0 0 26px rgba(255, 79, 184, 0.55); }
 }
 .sign::after {
   content: "";
   position: absolute;
   inset: -4px;
+  z-index: -1;
   border-radius: 13px;
   box-shadow: 0 0 24px 6px rgba(255, 95, 193, 0.7);
   opacity: var(--tg, 0);
@@ -1298,6 +1332,7 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 .neon.pink::after { display: none; }
 .neon.pink span { transition: color 0.3s ease, text-shadow 0.3s ease; }
 .shop.broken .sign { transform: rotate(9deg); animation: sway 3.4s ease-in-out infinite alternate; }
+.shop.broken .sign::before { animation: tube 3.1s steps(1) 0.4s infinite; }
 .shop.broken .neon.pink { animation: none; }
 .shop.broken .hang.r { height: 50px; animation: dangle 2.7s ease-in-out infinite alternate; }
 .shop.broken .hang.r::after {
@@ -1393,6 +1428,9 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
     right: calc(max(16px, env(safe-area-inset-right, 0px)) + 10px);
   }
 }
+
+/* Shadow pulses that hop between boxes while a song plays (placed by the script). */
+.hop { position: fixed; z-index: 30; pointer-events: none; opacity: 0; background: transparent; }
 
 /* ---------- Tab icons ---------- */
 /* Each icon acts out its page when hovered (or tapped): the sun rises, the ticket wiggles, the chart climbs, the
@@ -2143,7 +2181,7 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.15.2","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.15.3","profile":null};</script>
 <script>
 /* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
    strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
@@ -2283,7 +2321,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function stillNow() { var p = motionPref(); return p === "off" || (p === "auto" && !!(osStill && osStill.matches)); }
   var reduceMotion = stillNow();
   document.documentElement.classList.toggle("still", reduceMotion);
-  var motion = { on: !reduceMotion, maps: {}, raf: 0, live: false, lastFrame: 0, reel: 0, titles: {}, bank: null, shown: null, countRaf: 0, sel: "" };
+  var motion = { on: !reduceMotion, maps: {}, raf: 0, live: false, lastFrame: 0, reel: 0, titles: {}, slot: -1, hopNext: 0, hopLast: null, bank: null, shown: null, countRaf: 0, sel: "" };
   document.documentElement.setAttribute("data-tab", "today");
 
   // ---------- State ----------
@@ -3782,13 +3820,15 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       return;
     }
     items.forEach(function (it) {
-      var fv = it.fv, need = it.need, ok = need === 0 || it.take === 0 || it.take <= bank, short = it.take - bank;
+      // In the red the shop is shut: nothing can be redeemed, not even free swaps, until the bank is back to zero.
+      var fv = it.fv, need = it.need, red = bank < 0, ok = !red && (need === 0 || it.take === 0 || it.take <= bank), short = it.take - bank;
+      var why = red && it.take <= 0 ? "bank in the red" : fmt(short) + " short";
       var li = el("li");
       var b = el("button", "ritem " + (ok ? "ok" : "short"));
       b.type = "button";
       b.disabled = state.readOnly || !ok;   // only what the bank covers can be redeemed
       var star = starredFor(fv, tab);
-      b.setAttribute("aria-label", (star ? (mealTab ? "Usually for " + tab + ": " : "Favorite: ") : "") + fv.name + ", needs " + fmt(need) + " points" + (ok ? ". Add to the log." : ", " + fmt(short) + " short"));
+      b.setAttribute("aria-label", (star ? (mealTab ? "Usually for " + tab + ": " : "Favorite: ") : "") + fv.name + ", needs " + fmt(need) + " points" + (ok ? ". Add to the log." : ", " + why));
       var rn = el("span", "rn");
       if (star) rn.appendChild(el("span", "rstar", "★ "));
       rn.appendChild(document.createTextNode(fv.name));
@@ -3796,7 +3836,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       b.appendChild(el("span", "rs", fmt(fv.kcal) + " cal" + (fv.posted === false ? " +25%" : "")));
       var v = el("span", "rv");
       v.appendChild(el("span", "rp", fmt(need)));
-      v.appendChild(el("span", "rq", !ok ? fmt(short) + " short" : need === 0 ? "free" : "pts"));
+      v.appendChild(el("span", "rq", !ok ? why : need === 0 ? "free" : "pts"));
       b.appendChild(v);
       b.addEventListener("click", function () { redeemFavorite(fv.id, meal); });
       li.appendChild(b);
@@ -6805,8 +6845,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     w1: $("musicW1"), w2: $("musicW2"), songs: $("songList"),
     reelL: $("reelL"), reelR: $("reelR"), tapeL: $("tapeL"), tapeR: $("tapeR")
   };
-  // Parts of a scene that follow the music, by role (data-rx): scale (kick swell), pulse (kick glow), floor, edge
-  // (snare flash), stars and tick (hats), snap (snare), glow (a sign's halo).
+  // Parts of a scene that follow the music, by role (data-rx): scale (kick swell), pulse (kick glow), floor, stars
+  // and tick (hats), snap (snare), glow (a sign's halo). The edge is no longer flashed; see hopGlow.
   var ROLES = ["scale", "pulse", "floor", "edge", "stars", "tick", "snap", "glow"];
   var scenes = Array.prototype.map.call(document.querySelectorAll(".scene"), function (el) {
     var sc = { el: el, stage: el.parentNode, seen: false, rx: {} };
@@ -6847,9 +6887,11 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   }
   // The song at time t (s): beat (kick), snap (snare), tick (hats) as decaying pulses, and energy, all 0-1.
   function beatAt(m, t) {
-    var p = { beat: 0, snap: 0, tick: 0, energy: 0.5 };
+    var p = { beat: 0, snap: 0, tick: 0, energy: 0.5, slot: -1, hit: 0 };
     if (!m) {                                   // a song without a map gets a gentle 110 BPM throb
       p.beat = 0.5 * Math.exp(-(t % 0.545) / 0.2);
+      p.slot = Math.floor(t / 0.545);
+      p.hit = 0.5;
       return p;
     }
     var lo = 0, hi = m.n - 1, j = -1;
@@ -6873,6 +6915,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var lift = 0.45 + 0.55 * p.energy;           // quiet parts pulse softer
     p.beat *= lift;
     p.snap *= lift;
+    p.slot = j;
+    if (j >= 0 && ((j & 3) === 0 || (j & 3) === 2)) p.hit = Math.max(m.k[j], m.s[j]) / 7 * lift;
     return p;
   }
   function setLive(node, prop, val) {
@@ -6917,21 +6961,26 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var a = music.audio, p = beatAt(beatMap(music.cur), a.currentTime || 0);
     var dt = motion.lastFrame ? Math.min(0.25, Math.max(0, (now - motion.lastFrame) / 1000)) : 0;
     motion.lastFrame = now;
+    // Kept soft: the scenes breathe with the song rather than flash.
     var v = {
-      scale: "scale(" + (1 + 0.05 * p.beat).toFixed(3) + ")",
-      pulse: Math.min(1, 0.15 * p.energy + 0.85 * p.beat).toFixed(2),
-      floor: Math.min(1, 0.5 + 0.12 * p.energy + 0.36 * Math.max(p.beat, 0.6 * p.snap)).toFixed(2),
-      edge: Math.min(1, 0.85 * p.snap + 0.2 * p.beat).toFixed(2),
-      stars: Math.min(1, 0.55 + 0.6 * p.tick).toFixed(2),
-      tick: Math.min(1, 0.3 + 0.7 * p.tick).toFixed(2),
-      snap: Math.min(1, 0.35 + 0.65 * p.snap).toFixed(2),
-      glow: Math.min(1, 0.7 * p.snap + 0.3 * p.beat).toFixed(2)
+      scale: "scale(" + (1 + 0.03 * p.beat).toFixed(3) + ")",
+      pulse: Math.min(1, 0.1 * p.energy + 0.5 * p.beat).toFixed(2),
+      floor: Math.min(1, 0.52 + 0.08 * p.energy + 0.18 * Math.max(p.beat, 0.6 * p.snap)).toFixed(2),
+      stars: Math.min(1, 0.55 + 0.45 * p.tick).toFixed(2),
+      tick: Math.min(1, 0.35 + 0.6 * p.tick).toFixed(2),
+      snap: Math.min(1, 0.4 + 0.45 * p.snap).toFixed(2),
+      glow: Math.min(1, 0.45 * p.snap + 0.15 * p.beat).toFixed(2)
     };
+    // On each bigger hit, a soft glow lands on a box in view.
+    if (p.slot !== motion.slot) {
+      motion.slot = p.slot;
+      if (p.hit >= 0.4) hopGlow(p.hit);
+    }
     var speed = 0.7 + 1.4 * p.energy;
     scenes.forEach(function (sc) {
       if (!sc.seen) return;
       sc.rx.scale.forEach(function (n) { setLive(n, "transform", v.scale); });
-      ["pulse", "floor", "edge", "stars", "tick", "snap"].forEach(function (r) { sc.rx[r].forEach(function (n) { setLive(n, "opacity", v[r]); }); });
+      ["pulse", "floor", "stars", "tick", "snap"].forEach(function (r) { sc.rx[r].forEach(function (n) { setLive(n, "opacity", v[r]); }); });
       sc.rx.glow.forEach(function (n) { setLive(n, "--tg", v.glow); });
       // Faster in the loud parts, in quarter steps, with some slack so it doesn't flip back and forth.
       var rate = 1;
@@ -6954,6 +7003,39 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       Array.prototype.forEach.call(eq.children, function (bar, i) { bar.style.transform = "scaleY(" + (0.2 + 0.8 * Math.min(1, lv[i] || 0)).toFixed(2) + ")"; });
     }
     motion.raf = requestAnimationFrame(motionFrame);
+  }
+  // Shadow pulses: a soft glow lands around one of the boxes on screen (cards, tiles, buttons, the scene itself),
+  // a different one each hit, and fades. A few glow layers take turns so quick hits can overlap.
+  var HOP_BOXES = ".board, .hero, .day, .ritem, .rtabs button, .topic, .seg span, .songbtn, .ptabs button, .rangebar button, " +
+    ".btn, .fitem, .aitem, .chart, .tally, .redeem-pill, input[type=number]";
+  var HOP_COLORS = ["127, 214, 255", "95, 124, 255", "255, 106, 200"];
+  var hops = [0, 1, 2].map(function () {
+    var h = document.createElement("div");
+    h.className = "hop";
+    h.setAttribute("aria-hidden", "true");
+    document.body.appendChild(h);
+    return h;
+  });
+  function hopGlow(strength) {
+    var tab = $("tab-" + state.tab);
+    if (!tab || !hops[0].animate) return;
+    var bottom = window.innerHeight - (document.querySelector(".tabbar").getBoundingClientRect().height || 0);
+    var seen = Array.prototype.filter.call(tab.querySelectorAll(HOP_BOXES), function (n) {
+      if (n === motion.hopLast) return false;
+      var r = n.getBoundingClientRect();
+      return r.width >= 24 && r.height >= 18 && r.top >= 0 && r.bottom <= bottom && r.left >= 0 && r.right <= window.innerWidth;
+    });
+    if (!seen.length) return;
+    var box = seen[Math.floor(Math.random() * seen.length)], r = box.getBoundingClientRect();
+    var h = hops[motion.hopNext = (motion.hopNext + 1) % hops.length], c = HOP_COLORS[motion.hopNext];
+    motion.hopLast = box;
+    h.style.left = r.left + "px";
+    h.style.top = r.top + "px";
+    h.style.width = r.width + "px";
+    h.style.height = r.height + "px";
+    h.style.borderRadius = getComputedStyle(box).borderRadius;
+    h.style.boxShadow = "0 0 22px 4px rgba(" + c + ", 0.32), 0 0 7px 1px rgba(" + c + ", 0.3)";
+    h.animate([{ opacity: 0 }, { opacity: Math.min(1, 0.5 + 0.5 * strength), offset: 0.15 }, { opacity: 0 }], { duration: 620, easing: "ease-out" });
   }
   // The cassette's reels turn, faster in the loud parts, and the tape winds from left to right over the song.
   function turnTape(p, dt, a) {
@@ -6981,6 +7063,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     mx.songs.classList.remove("live");
     Array.prototype.forEach.call(mx.songs.querySelectorAll(".eq i"), function (i) { i.style.transform = ""; });
     motion.lastFrame = 0;
+    motion.slot = -1;
   }
   function motionWake() {
     if (!motion.raf && motionLive()) motion.raf = requestAnimationFrame(motionFrame);
