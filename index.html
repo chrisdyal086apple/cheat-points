@@ -232,38 +232,84 @@ h2 {
   background: linear-gradient(180deg, #050823 0%, #0c1356 55%, var(--base) 100%);
   box-shadow: 0 0 0 1px rgba(127, 214, 255, 0.08), 0 0 26px rgba(95, 124, 255, 0.35);
 }
-.board::before {
-  content: "";
+/* The scene behind the scoreboard: stars, a striped sun and a neon floor that runs toward you. It moves on its
+   own; while a song plays, the app script also pulses it to the song's beat map. Reduce Motion stills all of it. */
+.scene { position: absolute; inset: 0; z-index: -1; overflow: hidden; border-radius: inherit; pointer-events: none; }
+.scene i { display: block; }
+.stars { position: absolute; left: 0; right: 0; top: 0; height: 52%; }
+.stars i {
   position: absolute;
-  z-index: -1;
-  width: 200px;
-  height: 200px;
-  right: -36px;
-  top: 6px;
+  left: var(--x);
+  top: var(--y);
+  width: 2px;
+  height: 2px;
   border-radius: 50%;
-  background: linear-gradient(180deg, #e3ebff 0%, #8fa8ff 40%, #4d6bff 70%, #1c2a8c 100%);
-  -webkit-mask-image: linear-gradient(180deg, #000 0 46%, transparent 46% 50%, #000 50% 58%, transparent 58% 63%, #000 63% 70%, transparent 70% 76%, #000 76% 83%, transparent 83% 90%, #000 90%);
-  mask-image: linear-gradient(180deg, #000 0 46%, transparent 46% 50%, #000 50% 58%, transparent 58% 63%, #000 63% 70%, transparent 70% 76%, #000 76% 83%, transparent 83% 90%, #000 90%);
-  opacity: 0.42;
+  background: #dfe8ff;
+  box-shadow: 0 0 4px rgba(200, 220, 255, 0.9);
+  opacity: 0.3;
+  animation: twinkle var(--t, 3s) ease-in-out var(--d, 0s) infinite alternate;
 }
-.board::after {
-  content: "";
+.stars i.b { width: 3px; height: 3px; }
+@keyframes twinkle { from { opacity: 0.1; } to { opacity: 0.8; } }
+.shoot {
   position: absolute;
-  z-index: -1;
-  left: -45%;
-  right: -45%;
+  left: 0;
+  top: 0;
+  width: 72px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(223, 232, 255, 0), rgba(223, 232, 255, 0.95));
+  opacity: 0;
+  transform: translate(-90px, 8px) rotate(14deg);
+  animation: shoot 14s linear 4s infinite;
+}
+@keyframes shoot {
+  0% { opacity: 0; transform: translate(-90px, 8px) rotate(14deg); }
+  1% { opacity: 1; }
+  5.5% { opacity: 0; transform: translate(250px, 93px) rotate(14deg); }
+  100% { opacity: 0; transform: translate(250px, 93px) rotate(14deg); }
+}
+.sunwrap { position: absolute; width: 200px; height: 200px; right: -36px; top: 6px; }
+.sun { position: relative; display: block; width: 100%; height: 100%; opacity: 0.42; }
+.sunglow, .sunpulse { position: absolute; inset: -48px; border-radius: 50%; }
+.sunglow {
+  background: radial-gradient(closest-side, rgba(143, 168, 255, 0.3), rgba(77, 107, 255, 0.12) 58%, rgba(77, 107, 255, 0) 100%);
+  opacity: 0.5;
+  animation: breathe 7s ease-in-out infinite alternate;
+}
+.sunpulse {
+  background: radial-gradient(closest-side, rgba(200, 216, 255, 0.5), rgba(95, 124, 255, 0.22) 55%, rgba(95, 124, 255, 0) 100%);
+  opacity: 0;
+}
+@keyframes breathe { from { opacity: 0.3; } to { opacity: 0.85; } }
+.floor { position: absolute; left: -45%; right: -45%; bottom: 0; height: 56%; perspective: 170px; perspective-origin: 50% 100%; opacity: 0.6; }
+.floorplane {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  transform: rotateX(56deg);
+  transform-origin: 50% 100%;
+  -webkit-mask-image: linear-gradient(0deg, #000 25%, transparent 95%);
+  mask-image: linear-gradient(0deg, #000 25%, transparent 95%);
+}
+.floorgrid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -22px;
   bottom: 0;
-  height: 56%;
   background-image:
     linear-gradient(rgba(127, 155, 255, 0.6) 1px, transparent 1px),
     linear-gradient(90deg, rgba(127, 155, 255, 0.6) 1px, transparent 1px);
   background-size: 36px 22px;
-  transform: perspective(170px) rotateX(56deg);
-  transform-origin: 50% 100%;
-  -webkit-mask-image: linear-gradient(0deg, #000 25%, transparent 95%);
-  mask-image: linear-gradient(0deg, #000 25%, transparent 95%);
-  opacity: 0.6;
+  animation: floor-run 1.15s linear infinite;
+  will-change: transform;
 }
+@keyframes floor-run { from { transform: translateY(0); } to { transform: translateY(22px); } }
+.edge { position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px rgba(127, 214, 255, 0.8), inset 0 0 26px rgba(127, 214, 255, 0.42); opacity: 0; }
+.scene.paused, .scene.paused * { animation-play-state: paused !important; }
+.scene.live .sunwrap { will-change: transform; }
+.scene.live .sunpulse, .scene.live .edge, .scene.live .stars, .scene.live .floor { will-change: opacity; }
 .board-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px 20px; flex-wrap: wrap; }
 .label {
   display: flex;
@@ -431,6 +477,18 @@ h2 {
 .chain.hit { color: #ff5c7a; filter: drop-shadow(0 0 2px rgba(255, 92, 122, 0.85)); }
 .chain.off { color: var(--muted); opacity: 0.3; filter: none; }
 .day .chain { position: absolute; top: -8px; left: -8px; width: 22px; height: 22px; overflow: visible; pointer-events: none; }
+/* Now and then a glint runs along the streak chain, oldest day to newest. */
+.day .chain.n { animation: glint-n 7s ease-in-out infinite; animation-delay: calc(1.5s + var(--i, 0) * 0.07s); }
+.day .chain.spent { animation: glint-s 7s ease-in-out infinite; animation-delay: calc(1.5s + var(--i, 0) * 0.07s); }
+@keyframes glint-n {
+  0%, 84%, 100% { filter: drop-shadow(0 0 2px rgba(127, 214, 255, 0.9)) brightness(1); }
+  88% { filter: drop-shadow(0 0 5px rgba(190, 236, 255, 1)) brightness(1.8); }
+}
+@keyframes glint-s {
+  0%, 84%, 100% { filter: drop-shadow(0 0 2px rgba(92, 242, 161, 0.85)) brightness(1); }
+  88% { filter: drop-shadow(0 0 5px rgba(170, 255, 210, 1)) brightness(1.7); }
+}
+.scene.paused ~ .stripwrap .chain { animation-play-state: paused; }
 .day .draftdot { position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--glow-cyan); }
 .viewing { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: -4px; font-size: 0.86rem; font-weight: 600; color: var(--board-dim); }
 .viewing .linkbtn { color: var(--accent); }
@@ -1123,6 +1181,68 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   .songbtn.playing .eq i { animation: none; transform: scaleY(0.8); }
 }
 
+/* ---------- Motion ---------- */
+/* A faint VHS band rolls down the screen. */
+.vhs {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 16vh;
+  z-index: 59;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(150, 180, 255, 0) 0%, rgba(150, 180, 255, 0.045) 50%, rgba(150, 180, 255, 0) 100%);
+  transform: translateY(-18vh);
+  animation: vhs 11s linear infinite;
+}
+@keyframes vhs { from { transform: translateY(-18vh); } to { transform: translateY(104vh); } }
+/* The title is a neon sign: it stutters now and then, and glows brighter on the snare while a song plays. */
+.brand { position: relative; animation: neon 9s linear 2.5s infinite; }
+.brand::after {
+  content: attr(data-glow);
+  position: absolute;
+  inset: 0;
+  color: transparent;
+  text-shadow: 0 0 8px rgba(127, 214, 255, 0.95), 0 0 22px rgba(95, 124, 255, 0.95);
+  opacity: var(--tg, 0);
+  pointer-events: none;
+}
+@keyframes neon {
+  0%, 90%, 100% { opacity: 1; }
+  90.6% { opacity: 0.5; }
+  91.2% { opacity: 1; }
+  92% { opacity: 0.68; }
+  92.8% { opacity: 1; }
+}
+/* Points that just landed in the bank float up and fade. */
+.bank-line { position: relative; }
+.bankfloat {
+  position: absolute;
+  left: 2px;
+  bottom: 100%;
+  font-family: var(--display);
+  font-size: 1.9rem;
+  line-height: 1;
+  color: var(--earn);
+  text-shadow: 0 0 10px var(--glow-cyan);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: bankfloat 1.5s ease-out forwards;
+}
+.bankfloat.neg { color: var(--spend); text-shadow: 0 0 10px var(--glow); }
+@keyframes bankfloat {
+  0% { opacity: 0; transform: translateY(12px); }
+  15% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-16px); }
+}
+/* While a song plays, the script drives the playing song's bars (and the speaker's waves) from its beat map. */
+.songs.live .songbtn.playing .eq i { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .scene *, .vhs, .brand, .bankfloat, .shoot, .day .chain { animation: none !important; }
+  .vhs, .shoot, .bankfloat { display: none !important; }
+}
+
 /* ---------- Desktop ---------- */
 /* Column wrappers only matter on wide screens; on a phone their contents sit in the tab's single column. */
 .col { display: contents; }
@@ -1250,20 +1370,61 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 .arow .tunit input[type="number"] { width: 4.4em; }
 </style>
 <div class="statusfill" aria-hidden="true"></div>
+<div class="vhs" aria-hidden="true"></div>
 <main class="wrap" id="main">
-  <button type="button" class="music" id="musicBtn" aria-pressed="true" aria-label="Music"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.4L12 5.6v12.8l-4.6-3.9H4z"/><path class="mw" d="M15.4 9.2a4 4 0 0 1 0 5.6M18.2 6.6a7.6 7.6 0 0 1 0 10.8"/><path class="ms" d="M3.5 3.5l17 17"/></svg></button>
+  <button type="button" class="music" id="musicBtn" aria-pressed="true" aria-label="Music"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.4L12 5.6v12.8l-4.6-3.9H4z"/><path class="mw mw1" id="musicW1" d="M15.4 9.2a4 4 0 0 1 0 5.6"/><path class="mw mw2" id="musicW2" d="M18.2 6.6a7.6 7.6 0 0 1 0 10.8"/><path class="ms" d="M3.5 3.5l17 17"/></svg></button>
 
   <!-- ===================== TODAY ===================== -->
   <section class="tab" id="tab-today" aria-label="Today">
     <div class="col col-a">
     <header class="top">
       <div>
-        <h1>Cheat Points</h1>
+        <h1 class="brand" id="brand" data-glow="Cheat Points">Cheat Points</h1>
         <p class="jp" lang="ja">チートポイント</p>
       </div>
       <button type="button" class="qm qm-lg" data-help="points" aria-label="Help: how points work">?</button>
     </header>
     <section class="board" aria-label="Points bank">
+      <div class="scene" id="scene" aria-hidden="true">
+        <div class="stars" id="stars">
+          <i style="--x:5%;--y:10%;--t:3.4s;--d:-0.6s"></i>
+          <i style="--x:14%;--y:30%;--t:2.7s;--d:-2.1s"></i>
+          <i class="b" style="--x:23%;--y:7%;--t:4.1s;--d:-1.3s"></i>
+          <i style="--x:31%;--y:22%;--t:3s;--d:-0.2s"></i>
+          <i style="--x:40%;--y:4%;--t:3.8s;--d:-2.9s"></i>
+          <i style="--x:47%;--y:35%;--t:2.5s;--d:-1.7s"></i>
+          <i class="b" style="--x:55%;--y:14%;--t:4.4s;--d:-3.3s"></i>
+          <i style="--x:61%;--y:41%;--t:3.2s;--d:-0.9s"></i>
+          <i style="--x:36%;--y:47%;--t:2.9s;--d:-2.4s"></i>
+          <i style="--x:8%;--y:52%;--t:3.6s;--d:-1.1s"></i>
+          <i style="--x:68%;--y:6%;--t:2.8s;--d:-1.9s"></i>
+          <i style="--x:19%;--y:62%;--t:4s;--d:-0.4s"></i>
+          <i style="--x:52%;--y:58%;--t:3.3s;--d:-2.6s"></i>
+          <i style="--x:90%;--y:5%;--t:3.1s;--d:-1.4s"></i>
+          <i class="b" style="--x:78%;--y:12%;--t:4.6s;--d:-3.8s"></i>
+        </div>
+        <i class="shoot"></i>
+        <div class="sunwrap" id="sunWrap">
+          <i class="sunglow"></i>
+          <i class="sunpulse" id="sunPulse"></i>
+          <svg class="sun" id="sunSvg" viewBox="0 0 200 200" focusable="false">
+            <defs>
+              <linearGradient id="sunGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e3ebff"/><stop offset="0.4" stop-color="#8fa8ff"/><stop offset="0.7" stop-color="#4d6bff"/><stop offset="1" stop-color="#1c2a8c"/></linearGradient>
+              <mask id="sunCut" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+                <rect width="200" height="200" fill="#fff"/>
+                <rect width="200" fill="#000"><animate attributeName="y" dur="6s" begin="0s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="200;184.2;169.3;155.3;142.2;130.2;119.3;109.7;101.7;95.4;92"/><animate attributeName="height" dur="6s" begin="0s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="18;16;14.1;12.2;10.3;8.4;6.6;4.8;3.1;1.4;0"/></rect>
+                <rect width="200" fill="#000"><animate attributeName="y" dur="6s" begin="-1.2s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="200;184.2;169.3;155.3;142.2;130.2;119.3;109.7;101.7;95.4;92"/><animate attributeName="height" dur="6s" begin="-1.2s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="18;16;14.1;12.2;10.3;8.4;6.6;4.8;3.1;1.4;0"/></rect>
+                <rect width="200" fill="#000"><animate attributeName="y" dur="6s" begin="-2.4s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="200;184.2;169.3;155.3;142.2;130.2;119.3;109.7;101.7;95.4;92"/><animate attributeName="height" dur="6s" begin="-2.4s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="18;16;14.1;12.2;10.3;8.4;6.6;4.8;3.1;1.4;0"/></rect>
+                <rect width="200" fill="#000"><animate attributeName="y" dur="6s" begin="-3.6s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="200;184.2;169.3;155.3;142.2;130.2;119.3;109.7;101.7;95.4;92"/><animate attributeName="height" dur="6s" begin="-3.6s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="18;16;14.1;12.2;10.3;8.4;6.6;4.8;3.1;1.4;0"/></rect>
+                <rect width="200" fill="#000"><animate attributeName="y" dur="6s" begin="-4.8s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="200;184.2;169.3;155.3;142.2;130.2;119.3;109.7;101.7;95.4;92"/><animate attributeName="height" dur="6s" begin="-4.8s" repeatCount="indefinite" keyTimes="0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1" values="18;16;14.1;12.2;10.3;8.4;6.6;4.8;3.1;1.4;0"/></rect>
+              </mask>
+            </defs>
+            <circle cx="100" cy="100" r="100" fill="url(#sunGrad)" mask="url(#sunCut)"/>
+          </svg>
+        </div>
+        <div class="floor" id="floor"><div class="floorplane"><div class="floorgrid" id="floorGrid"></div></div></div>
+        <i class="edge" id="boardEdge"></i>
+      </div>
       <div class="board-head">
         <span class="label">Bank<button type="button" class="qm qm-sm" data-help="bank" aria-label="Help: the bank">?</button></span>
         <button type="button" class="redeem-pill" id="redeemBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5h17v3a2 2 0 0 0 0 4v3h-17v-3a2 2 0 0 0 0-4z"/><path d="M14.5 8v1.5M14.5 11.25v1.5M14.5 14.5V16"/></svg>Redeem</button>
@@ -1518,7 +1679,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     <section class="block" id="musicBlock" aria-labelledby="musicH">
       <h2 id="musicH">Music</h2>
       <div class="songs" id="songList" role="group" aria-label="Songs"></div>
-      <p class="hint">Tap a song to play it now. Each time the app starts, it shuffles to a random one.</p>
+      <p class="hint">Tap a song to play it now. Each time the app starts, it shuffles to a random one. While a song plays, the scoreboard moves to its beat.</p>
     </section>
     </div>
 
@@ -1620,7 +1781,12 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.14.4","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.15.1","profile":null};</script>
+<script>
+/* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
+   strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
+window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A-BAA-A-A_A_A-A-A-BAA-A-A-A_A-A_A-A-A_A_A-A-A_A_A-A-A_A_A-A_A-A_A-A-A_A_A-A-A_A_A-A-A_A_BCBGBHBGBDA-A-A-A_A_A-A-BAA-A-A_A_A-A-A_A_A-A-A-A_A_A-A-BAA-A-A-BAA-A-A_A_A-A-A_A_A-A-A_A_A-A-A-BAA-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A-BAA-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A-BAA-A-A_A_A-A-A_A-A_A-A_A_A-A-A_A_A-A-A_A_A-A-A_A-A_A-A_A_A-A-A_A_A-A-A_A_A-A-BAA-A-A-A_A_A-A-A_A_A-A-A_A_A-A-A-BAA-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-BAA-A-A_A_A-A-A_A-A_A-A_A-A_A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A-A_A-A-A-BAA-A-A_A_A-A-A-BAA-A-A_A_A-A-A_A_A-A-A_A_A-A-A-BAA-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A-BAA-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-A_A_A-A-BAA-A-A-BAA-A-A-A_A_A-A-BAA-A-A-A_A_A-A-BAA-A-A_A-A_A-A-BAA-A-A-BAA-A-A_A_A-A-A-BAA-A-A-A-BAA-A-A-","k":"oaCIAAYLIAABABAAAYAYQAJCAASIIQAQgjKBIAZLIASBAAAQRQQQAAKCAQSAAQA4o4a4h4Y5g4i4p4g4h4o4g4g4g4a4b4g4g4Z4g4Y5g4g4a4p4g4g4g4Z4p4SAHjaAAAQAaaYAaIia6AgAaQgJYYQAQASIQZhIgAQAaRYIaIiayAgAaQgBYQQARAZQQZhIYAQASSYAaIhawAgIYQgBYQQAQARQQZiIYAQASSYAaJiaxAgIZQgAYQQIRAaQQZgIYAQAaSYIaAiSoAgAZIgAYYQAQAZQQZhIYAQAaSYAaAia4IgIZQgBYYQARAaQQZhIYAQAaSYAaIiayAgIYQgJYYQIQARIQZiIYAQASSYIaIiayAgIZQgBYYQIRYQYSYoo444g44444ww45o4464444444444o4ww64w445ow45wwg4wx54444444ywwwow4wqo44g4w44www46z66y4444444w44o58w5ww446o44xw4g4ww6w444444y4ow4q4yIQQQIRAYAZQiapIgIaQYBaQQIQASQQgoIQQQARBYIZQiawQgIaQYIYQQIQAaYQiiIYAQAaSYAaIibxAgIZQgIYYQARAaQQZiIgAQAaRYAaIiixIgIZQhBYQQARARQQapIYAQAaSYAaIqi6AgIZIhAYYQAYARQQYpIgAQAaRYIbIiayAgIZIgIYYQAQAaIQZhIYAQAaZYAaIiayAgIZQhJYYQIQARQQZiIYAQAZSYAaIiiyAgIZQgAYYQIQAaQQZAIQQAAAAAQRISSIAQJQIRJAAIQQAQQQAAQIAAAABIQRRSSQIARIIRJAAIQQAQAIQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","s":"ooQwQI4QQIAAAAA4wwYoYQoQAAAAA4YwggQwQI4YIA8BAAA4wwYoQQoQIAAAA4Y4eJAgAo4gQgAQAYAw1QIYIggwQoAQAYAgVQAYIo4oQgAYBQAw1QIYQggoQxCAFwAAAgow44o4444444444wow44w444w443oYgoo4w4o444444444wwo444w4444443wYgooww4o4woYioww4woowwwo4wgQggtoYgogw44ow4wgoooo4wwoww4o44wgwwuoYgogww4g4woYhoww4wwowwwgwwoYhgloYgogww4g44wYoooo4wogww4o4wwoyolgYgoYyo4gw4ww446w4wogqowg4wwo8wugYgogqowgwwww44444wogwwwg44446w1KQQQYSYYhYgYgghihiYggaYgogooorhgYdSYYaoognUgww4ucfbgYgogZeTgwzomktaowowox1aooootjtaowowow2bwwqotakaoooooo1aowwotj1iogoooo1bwwyorRWJAYYog4o4o4w4w43RQggwg4wwg4444wmQAgYoo4o4o4w4w4vRQggoowowgw4_XoYooo444o4woYgow444wow44o4wgQogtoYgoo444o44wgooww4wwo444w44wowwuoggggqo4YwooYgoxo4oogqgwgwwgQigtgYgoYqowYwwoYpowo4wogwwwgwwwo7otgYgogqowgwooYhowo4oogpgwYwogQqgsgYgogyowYwwwgooog4wogwowgwwwg6olQYYYgZQoQQggqiqioooYgZQgQYggoroYYgYYYaQoQYggooqiwwoYYgQgQQQQQjAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","h":"QQAgIAwQIAAAAAAww4IgAAQAAAAAAwQYQQAgAA4QAA9AAAA4w4QgAAQAAAAAAwQYPAAQAAwQAAAAAAAo3AAQAQQAAAABAYIQPAAQAI4QAAAIAAAg3AAQAAQQAAAAFwQAAwIogwQ4goI4goo44wY4goQYYwQ4w34QYwQoY4YoYoAggwg4wogwo4QwYgYoo-4Qgwg4o4Ywg4brago44ogwgwQwYoakg24YowQ4owYogwK4asY44wo4goQ4Y4Ywz24YYwgwo4Q4gojsb4w44wg4wwYoYwSrg24QgwQ4owYwgwIwi8g444g4gwQwYoQ4qu4QY4Q4Y4YwgwI4ggo4w4gigwI4YoQwo_4QYwYog4QggoYoggo44oY4goQ4Y4woo_AAAQQSQQAQQQQYYRZQYYAQIQYQIYAiYRJcQYQRoYAbAYQQgbCUQYQYYZYbAYIYgn6zo4wpwghqowopwsyzo4oZoohyoowqouqrooopwypjowwyokqro4oqhiiro4ox48APAAAQQQYQIQIYQYQXAAYQIQAIAQQgAYIXAAAQQQYQAQIYQYQXAAYQAQAYAYQQXO4QgoQ4gwYwYwBoggo4wgYogwQwYoSpY-4QggQ4gwgogoJ5Ygo44wg4goY4Y4Qgg34YYwQgg4Q4ggAwY4g44wg4YwIgYwKqYu4Qg4QygwY4gwRgYog4wogwYwQwggQ4o24Qg4Y4g4QgY4k0apg4w4gwg4Q4YoSro14YowY4o4gggwI4htY44wY4gwQ4Y4Y5y3QoQgoggwQQQosUUQww4QgoYgQIQQobwgYoggYggoQQQYYgkUo44oogQgQIAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","e":"wjYKWYbZXWUVagikmhcYYcgkoqojeXSOLIHIGFEBAAAAAAAAFNVdlrstutrpoonmkjhcXVXYXYYWQMKIGHJJKKKLMOQSYehihgebYYccbdecZYWWbfiknidZZdhlprokfbVSQRSSSSQKFBAAAAAAFPXelrttutrpmmmjihhcXVWYXWWVQLKJHHIIIIIKKMOPWcffggghgknrrstsqqpqsuuuutsqruvvxwvusprttuvuvvutssrsssqpnpqswyxyyyxwuvvusrqpomoqqoqrpoqprtuvwvwwwwwvuvwwvvuutuvvtuusqppqrtvvvutrsvxwyxurpnpqrrtstuvxwvuuuttsqssuwyxyzyxvtuusrqpoomnpqprsrqrprtvvvuvvuz0102512433357888888878898888767776774431210zywxxvuutstuuuvtwxz13344444344455666677878989-9-----9-998888877664565667887777789888876777677543121zyywxxwwvtstuttvtwxz13234444344556666677878989-9-----9-999888877664554667888787789988876777787543233221011000zzzyxxxvxyz13344444344556766677888989-9-____-__----998877667777788888788988887677767754323311101111100zzyyyxyz023234444445556666677878989-9-____-_-------99997886788888887889888876778787543232221001100zzzyxxxvyz013344444445556766677889989-9-______----99988875676788988887889889876777677543232110z0000zyxyyxxyxz0124355545455556766677889989-9-_______--------99888777899888889999--98998788543221zxwuuusrrpoppprvux134557777656677798889988998999-99999998888898877566567788888889999--98998898654231zywuvutsrppppooqoruxz345656656666676777888998999-99-8889899999_99977434334444545676788999-988776656544434332110100021222332444443444335556554343333232110zzzzz02124444343346567777678888-9-----99987878766433321111121121211233454432333222222223233213233232122223546898988654444444434455566787776655566665543443322222101011111022120z000012223223233335344321z000013235666566455566665566777878888878877877765434332222332131222221232210111112112100z00002233333233344546989---87776776666666666554333243221z0zwvusttrqqonoonnpnprsuwwxyyyyyz01234345567789999899999898887766310ywy01366777776777777665555455432120yyxuvvvvutsttstutvwwxzyz000001233454566788999999-99999999-87776444344566788777778988887677767754323211101100zxxxxwvwuwyz13244444344455666677878989--_____-_----999887756767889988878898888767776764432332110112210zzyxxxwyzz13234434344556766677778989-9-_______----9-9998778778899899899--9--98998888665454322122100yyyxxy0z134565676666677789999--999-99-9--______--------997887888--999999---_-9899889866545432211100zyxyyxxxwyz024456667667777877888989-9---________-----_--99778678899999899-99--98988788654344332010zzyyxyxxz1024456678777677778988999999999--_____-__-----_---97887889--999999-9---989998986542332221221110000zzzy00135566667677777777788989-9---_____-__---_____--78878899999999-_--_-99999998765321zyxvvvutssrrssuwx023456677666667789889899--____---_----9999-99987545567899-999989-99--9999999976421zxwutsrqppnmmnnnpqsvx0344555545556676677899-9741yvrnjfbXURSWbgmtutsqnkigfecZWTQNKIFDBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},"shapes":{"t0":31,"d":"A2A2A2A2A2A2A2A2A3A1A2A2A2A2A3A1A3A2A2A2A2A2A2A2A2A2A2A2A2A2A3A1A3A2A2A2A2A2A2A2A2A2A2A2A2A2A3A1A3A2A2A1A3A2A2A2A2A2A2A2A2A2A3A1A3A1A2A2A3A2A1A3A2A2A2A2A2A2A3A1A3A1A2A2A3A2A1A3A2A1A2A2A2A3A2A2A2A2A2A2A2A3A1A2A3A1A2A2A2A3A2A1A3A2A2A2A2A2A2A2A3A1A2A2A2A2A3A1A3A2A2A2A2A2A2A2A2A2A2A2A2A2A3A1A3A2A2A2A2A2A2A2A2A2A2A2A2A2A3A1A3A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A3A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A3A2A1A3A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A3A2A2A2A2A2A2A2A2A2A3A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A3A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A3A1A3A2A2A2A2A2A2A2A2A2A2A2A2A2A3A1A3A1A2A2A3A2A1A3A2A2A2A2A2A2A2A2A3A1A2A2A3A2A1A3A2A2A2A1A3A2A2A2A3A1A2A2A3A2A1A2A3A1A2A2A2A3A2A2A2A2A2A2A2A3A1A2A3A1A2A2A2A3A2A1A3A2A2A2A2A2A2A2A3A1A2A2A2A2A3A1A3A2A2A2A2A2A2A2A2A2A2A2A2A2A3A1A3A2A2A2A2A2A2A2A2A2A2A2A2A2A3A1A2A3A2A2A2A2A2","k":"4_-AsAqCcIpA6AwCSIoQhghA44iJaIUDjzzApArCjAgA9ASAhAZYaQZA44iARAkDgjbAhAyBqIaA4AjBYQTQhYhA44YBsIxDagbAYQwCQIZA9AqCbAaQaQqA54iApAYCQkaCwBqADAiA7ChAYAbYwYiA44qC6AfCbpiAwIqAQArA9AaBKQsQgQaA74iBiAhAYzrAqApAaQrA-AgASIggYghA44bCaAqCizjAbAjBsQYA5AbBiQYQaQiA44iCTAyBbqTApA1BkQRA7AqBIADIgYiA44iByAiDSgcAhAyAQAYA4BbACASIhYiA44rCjQYCQbAAaSTWKTb0t_kjgZYaQlkbnebDCcaSCMfcVTiDBi0kW9lTDCKEJmgs3gpbCbLgaCXXdcFDCTTdt3rbgRUZSSEs_9jiiaaaLrfVkEkRiZVke_sTMDDASKYCv-1liZSSZS_AQAgCAIAAHAYCAIAYAQABC4AAAAQDAIAAQAgAAIAAFAYCAIAIAYAAB4QAKAAFaZUAYI4BYQQA4ArBLAQQaYyA44rCqAYCYaiAxAqAqAjA7AgAQAiYpgjA44oAwAkBbogAoAaAQIrA9ATAUAzQggoA4wqBYAYCg8qAkAiBqAqA9AgBjAYgZYhC44kAjAoCsjaAbAyArQRA5CjAaYYQZQqA44bBZArDcaTAoI9CZQSAyAqCIAiApYiA44jIzAiDCgcAqB6ASAZA7AiAKAZYjYjA44pCcAQCQhjAjAhAiIqA4AZAQIpQhQgA44gAiAqBiw0AgA4AYYjA_AYAQAiQSYjA4wiCSAoEgwAAAAAAAAAAAAAA","s":"4wQQ4Y4Y4Y4Y4Y4S4g4g4Y4Q4Y4awZ4Y44wQ4Y4a4g4Y4Y4a4g4g4Y4Y4Y4a4Q4h44wQ4Y4R4Y4goYgRwQ4YoQoJwQ4goYgJwwoQwYwI4Q4ooggI4Q4YoYoIwI4hogpQwwoQ4gwQ4Q4gwghIwQwSwYoQoQ4YwghQowoQ4gxQwQ4g4ghQoQwS4YwQoQ4YwgoQowoIwZ6joi6i4Y4Z4q7s4j7j4h4i4r7j44wZ4i7k4qyi4Y4Z4i8s4j7jwZ4Z4i6q44wZ4Qyjwiya4QgRoSzjoaqigQwawRqhoogQ4QpbwiqawQoQoa0jwSqaoQoRoSqhgoIRYJSbjbjjgQIJQSksicbiaaRaiUkiRQIRhSajkrijhaQTYTlsrkksababbdkkaRJSTklkt0jbaaSabkt0rlsskbbbUltkjbaacjclmssbaaSabkt0rkskjSSSScjbSJZSaiZbdjbaZZQaJRsbijabSaQQhihaAIQJSaZccjaapYYSRSjbaaiTRSJQiahTSYQI4Z6j4iyawY4a4i8k4j7iwZ4awjzrw4wZ4g6j4i6i4Y4a4q7s4i6jwZ4a4azi44oY4g4j4y6iwYwawS7swi7iwY4Zwa6i44oR4g4iwq6i4YwY4Z7rwq6joZwYwaypwwoYwYoZwqygwYgQwR6qwYphoQwYoQqYoggQwYoaoiyh4QgQwQzqoZyagQwZwRhYgggQwQoSoi6hwQgQwQzroayhgYwYoRqZoogQwQpSwayj4IgRoSzjwSiaoQoRoRiZgwgQ4Y6s4i7jwiwbwa7swj7roi5j4i7rwwRRRIAAAAAAAAAA","h":"4agQ4Q4woQ4Y4QwwwY4Q4Q4wgQ4QwQ4w4owQ4Q4wwQ4Q4YowoQ4YoQ4ogQ4YwQwwwwoIwQ4ooQ4YwYowoQ4QoQ4wgQ4YoggooooQwQ4wwQwgwYgwwQ4Qwg4ogI4ooooog4oQ4g4owQ4gwggwwQ4RwgwwgQ4gw4goo4wIwowowQ4g4goowQ4Rww4oYY4go4wooowIwQwwog4Q4Yow4Q5awa5ooQ4R4aww4goQ4YwogYoZ4Qow4YxZwS4wgQ4QwZ4woo4toshsgyo_wsZzYAY-Y1i7Q1a2gsY7YAAlo0g8gyo1o0YraAY9Yti0Q0a-g0h7YAIlw0wux6w3w0o1oAo-w2o0h-o1x1w-YQIlw94-yy41x9w-oAo-o-y-q9x9w-y-YQAAARSaciSSSRJSSabjSbbbJJSSTbbSSSJKTRSabiSSSJCSSSabSSSaQBBIABAABAQtp1w1y64-w9w9oAh9q-y1o-wuw0w1YQQsp1w2q74948o9gAo1p9y9x9TShoYDYRQJ4Q4ooQwZwYowwYqawZ5wgQwZwQwwgwoI4Y4o4Q4YwQwwwY5awS4wYQ4QwZ5oow4-g9q8h64-o7h8YAg-o-q7Q1p-Y0q8YAIlo8w8gyw-o8h8oAZ-g1q7Y9Z2g0x8YAAkg8i8g6w9o2h8gAg9g9i7Y2h9Y1Z8YAAto0p0gyw9w0YzoAg9Ysx8Q-i-gth7YAIsg0g0g5w9o0Q7gAY-Q-h8Y1i1glgzYAAso0pzYzo2grQrYAY-Y1irQtZ9Yrh6YAAtg9o8Y4w-o9Z7gAg-Y1p7Q2h_Y9q8YAAAAAAAAAAAAAAA","e":"AAAAAABAMtuvzy0004z1126533334yywsqnrwz1434348643331yz124014340zytoogdimtnw336579___885340z3101y21363665321001510134100xstqvy161210131024601446435422wwupqkfhlqrs357968888642zz1x0334z2446766424xyyy1112577230uroqtvyzwxwy32347864565722201wvwspqifjnupx54643333401002z156663645634200zyzz263469-643xqqnqsu0uxyz355589-545340y0zz0vxvqslgjnqrr0003y02464554562586623312212102x012766677822zusoruxzzy113777788522102xy002xxytqqifilrmu00311479_8977844864401z0403433223359544551yxupqotwz4y2224654445yxz02zz2222xyvpqkegkpqr2358489__-9854502312x021455653612114211234zzxsqmrvy2322014211342z234612423xwvpkkebgltox67989---_65212xy32220436957531zyxwy300367322xqrpsvx2wyww0112578346674232zzuurmnhdglrrt345745555210y01y2446044555541z1wxyz4235799440urnprtwxxyy165479-745534zz0z1vuvrnnhhkovpw002zz12362323513776524114021z0xyz0486789-530voomqtw3x002566688932211xwzz00wyvqqkfhkoooxyz2y247968767736641yyuplhcYUQPNLHFDAAAAAAAAAAAAADHJJIHEBCBABCBAAAAAAAAACFECEGHGHHGFFFDCAABCFGHJIIHHHFEECBABAAAAAACFFFFFECCAAAAAAAAAAAAABEHEDDFECDEBAAAAAAAAABCDEEEDFGGGGFEEEEDCEFEGJMNNOOLLKJGFHHGJLKJHIIIMOPQQQNLLKJKMPPPPMIHIJJMRPNMLKJJJKMNOQQPNOPQRSVUSRPMMNOPRTTSRPQRSSUWWURPMLIGJLNNQVTQRUVVXZXVRMJLNNMNPMMLMLNOQSTWXWTUWUSTUSSTUTSTVWXXYXWWTRRSTVWXYYXUTTRQPNONLIHIHFHLVdlt17765664345544676653zursuwy2653454347776788764431yxwsnhbaehnw59-___---8752234358989___---753332146668--9861wpoqrtx343357669--99-9864420zyyvqleYbfkrz8888765667765784479-688643321z2y012756789843zutoqtvywxzz265679-655433yz0z2wyyusqlloqvqxzz3y024675656834875323z14122130123575556721zvrrqvx04z224787776710113yz1221yzwrslgjmrps1246357-_89877636644z100324543413348654443yyvqrmsvz302223754344zz012302435yzysqoihlpur156-68-___86324yy3221142584764511001300236010xtsty02501zz111134612558335420xyvqsmilpusw567978778431011z344614457565313yzz04124677441wwsvxy1yyyy043347844555522202vwwtspmnquyu133512234412114z165523524623101xz013544789432yutsvxy1x001656789944434zy1010xywrtnknqvrtzyz1z136845545437756020020232130124967777610xstotvy2z1335976667211111y0224yzyusqmmoquqx0050368-98966734642zz1y142544512335643345zzxtrqrwz2513236544434zz124z13332zzwrsmknqwtx4578689-_78644303324z323646652300zz410134400wpplrux2yzyxy21023500235413301uusmkhbchmsq268_78888753002xy44301zpiVGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},"space-echo":{"t0":4,"d":"A7A7A7A7A6A6A6A6A7A7A6A7A6A7A6A6A7A7A6A6A7A7A6A6A6A7A6A7A6A7A6A5A7A6A7A6A7A6A6A7A6A7A6A7A6A6A7A6A7A6A7A6A6A7A6A7A6A7A6A7A6A6A7A6A7A6A7A6A6A7A6A7A6A7A6A7A6A6A7A6A7A6A7A6A6A7A6A7A6A7A6A7A6A6A7A7A6A6A7A6A6A7A6A7A6A7A6A7A6A6A7A6A7A6A7A6A6A7A6A7A6A7A6A7A6A6A7A7A7A6A7A6A7A7A6A6A6A7A6A6A7A6A7A6A7A7A6A6A6A7A7A6A6A7A6A6A7A6A7A5A7A6A6A7A6A7A6A7A6A7A6A6A7A6A7A6A7A6A6A7A6A7A6A7A6A7A6A6A7A6A7A6A7A6A7A6A6A7A6A7A6A7A6A6A7A6A7A6A7A6A6A7A6A7A6A7A6A7A6A6A7A6A7A6A7A6A6A7A6A7A6A7A6A7A6A7A6A6A7A6A7A6A6A7A6A7A6A7A6A7A6A7A6A6A7A6A7A6A7A6A6A7A6A7A6A7A6A7A6A6A7A6A7A6A7A6A6A7A6A7A6A7A6A7A6A6A7A6A7A6A7A6A6A7A6A7A6A7A6A7A6A6A7A6A7A6A7A6A6A7A6A7A6A6A7A7A6A6A7A7A6A7A7A6A6A7A7A6A6A7A6A7A6A6A7A6A7A6A7A6A6A7A6A7A6A7A6A7A6A6A7A6A6A6A6A6A7A7A6A6A6","k":"4gGDyWK4I4EQ4GA4JoHA4PC64VQ7UDpQA4ogwnZz4FB7WCpIw4HA4TSy4HA5MA6C4QmAoHjAoQlAoAQAoQvAoDZAoAgA4CQQoAiAwGYQoAaAgEQwoAoA4HgQwQZA5AYAwQnAoHbQoQdAoDQAwAmAoFYIoAhA5CQQoAjAwEQQoAaAoDQooAgA5GgQyAgB5CcLoQvAwGaAoYZAoAQIwQtIoGaQoAqA5CYQoQsAwGQQoAaAgEQooIhD5HgQoAaQ4BAqYIGQYGAYQQHAQFAoQQGIQOAIYQFAiFAgYYHQgHQYQAFQAFA4YQQC4HIQQCBDhDQA4QvAoCgAwSzQoTgQwQvAoHgI4AxA4MhqoAvAwHgQyB1DgFg4wYwB4PgAwRzA5EoYwQ3AoPYYwIzRoLgRoQuAoGgI4BoA4DoioI2AwHgQyJqAoFowoYoD4HgIwRrA4EgYwQtAoBYAwQkAgDIAgIvAoHYA4CYA5DYhoQjAoGaQwAkAwEhooAoB4HgY4AiA6abFwQvAqHYQpQgAoCQAgYvAoFYQ4DZA5DgooIsAoUYQoAhIgEY4wYpC4HYQwAaQ5CjLwA3AoOYQoQiAoCQQog2AoEYQ4CiA5DYgoA1AoVgQoAiIgDZ4wYqB4FgQoAbQ4CoyYQHAgXIYQYFAQEAgQQHAQHAQoYFQwHAYYYHIYXIYQRFABGA4YQQC4OIYYCABZCoBAAAAAAAAAAAAAAAAAAAA","s":"gQCAYDAQAYDAYDAQAYDAgFAgoEAoVBgAAggYgEAopFApMAgIYgCAgDAooTBwMAoA4o5g4kwtgw5YwawYwgxY4d5Vgloo8awYoY4gwk4tgq4o6a4g4gwY4byVYj4o7bwo4w5g4k4tgw4YoawYoY4YwbqVYboo7S4YwYwYwbwkgZwY7Z4Y4gwQ4cpTgcwg9b66YgwQwTobggwIoRgQgYwLwTpbYcggzIoYoYwYwagbYZgYwQwQog4LoShTYboo6ow3AgCAQBAQIQCAQCAQAQaLQEAooMBgMCYYg4YQQAAYQBAIBAQAIQYCYDTpibThaLgk6q8s7z6q6z9t72876y9x7s866j8z7r7q7q8j8q7q7q8j6q6q7r6i6hzo6i7j7j6s5j4a7iwa5j6byk4i6qyY7aoY5Zob5awZ6iwSxZwYrZwaxZ4S5iwZyZgQ6Zohya4j4q5jyr4tiq5b4too6o4Y4jyUYZoo7R4g4owg4awsYiwg0Y4Y4o4Y4bpTYcwg076zYgoQgQgaYYoQgQgQgQwQobhTYcgY7QwYwYoQgQgbYYgQoQoQgYwRgRhTYaoiiYyyogoQgQgbQYoIgQgQgYoRpbhTYbggzQoYoYoYgQgaQYgQoQoQgYoSgYhTYaog6gw2AYEQgDBgQgEIgGJgQgFQgGKogUCoWCgYQwigoTIggbDoTBgQggSAgKIggSDobDoQAAAAAAAAAAAAAAAAAAAA","h":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAIBAAAAABAICAQQCAQCAAA4g4o4iouQowg4gwo4gwo4i6HIqoo6owg4g4ooh4uIi4o5g4g4g4g4q6GIi4o4hoo4oogwgwlQg4gwZwgwY4g4iyFIq4o6g4g4gwgwg4lIg4g4g4g4Ywg4hiHIoog4h57QooYoYwlQg4gwYgYwY4cwYyGQcoowgwgwgwYwgwkQgwgwYwgogwbwYqFQl4o5w4vAQAAAAAAAAAAAAAAAQYEABAggEAYBAIAAQAAAAAAAAAAAAAAAQYDAAAggUCgRAIA4h4g4o4g4g4g4gwo4g5g4gwowg6g4o4gwh4g4o4g4g4g4g4g4g4g4gwg4g4g4g4gwg4g4gwg4g4goggo4gogwggg4gwg4g4gwgwY4Ywgwg4g4Ywg4YoYwQoYwYogwYwYwgwYpg4lQg4o4hoo4g4g4h6FQg4g5g4o4oog4owtQg4owY4o4g4g4gqGQo4gp46yYgYYgQwjQYgYwYoQoYwipYyGQiog5Ywg4ogQgQwjIYwYoggYgYwi4gyGQiwo4o7ywoYYgYwiQYoYwYgYoYwixYyFQrog4g4gwgoYgQwaIYoQwYoYoYwi6YyGQr4g5442AIAAQBAQIQAAQCAQAIAAABAIIAAICAIAAIAIQAAAABAACAAAAACAAAAQAJBARAAAAAAAAAAAAAAAAAAAAAAA","e":"vOAAYTcdUNTaTEBLKFAQZSDAAAAAAMjbNKYWMBQXRNVmeVPEEFGADXSGAOVMFMVNFETTQXfhXcgWHGNHAATXTLUdYSKBAAAAAADSjeYZclnbgfTGHUPSchYOUTLGUecYbniVKRWOFAAAAALcjVZfZSScWICORMHViYafgUOXSIAJNCAKdTKIYXOHADAABUpzpwxtnoysidnlfZkqljiilmmhp2sllsphcmpgZdohhighijiiy0wsv0oZYgaTUmomotvqswmjnoihntrmopqlkmjkgbinrpv453454wcfkcVarmlqwwty1spvysty3ytutunmkfeehmryux0ncYbXNNcjfbn0vuvzwuxujkpnkjxzojnspmssqjcdglplw0zwy5yoipoigtyuuw0ywwuz2vtyywtsy0uprxstttuusrqz0xuvxmWWfbWXproqwwpsvlioqgejppjqtwoknfgZWdhpmu222231ugipidgspnsz1y250z3513596341zrssqqqsvwytx0qddebOJahebn0tqqrnnroehnjecqrcWdiifr0zunqtswr254y071toxwqmw1xwzzzz0wy6zux0yst250vz3utrwwwwwx367___7wttpmmuurrwwrx2z07_8-____63woihdfZRafkjs2214541psxpilwtsx10y23x165z0573z310vxyxxxy001z2756-95xsvwvry6458_7465ww22zw484001xwx1yvspsspksvrou1vlkrnjiswruuvy00y14wrrxxvuz3xruzusuvuvvwv3889-_2qnmhccnokqvwruwnoturv683vsrohglgdYQYdjot575554zoquonqzww245499456833553113300zxwstvvwty3zwy0wpntwvqv1yyy31xzuqpssorvyqpuyxvzzywvtvwyolnonnqjkmooqrsrrprrtvvpnrkkjlljfehZXYhfhnnsvvvptuutsytjdeaYYgmqnotttrmophYWdYWZhifaejjlqvxvwrtwvsrspklmrmkpqqruuttrqkoqppqunljpmjiopomqvvwyxtqbUSQQUiotww0yvsrttvusqtqhdcheYalnlltxwuvxxxyrqrtrsuppppopsuuxwyxz11utyqmmpokfhjbXbonotuwtttqtxyvuwtifjfffpswtvyzxvuuvlhfgbbfjkifjkiknstrsnnrpqqrqoqsxssvwvvwxwvsutuwwwwxtttxwrnrtrpquustttscUTQRWjpsvtuutrorsvvutvqgbaecXajmklsxwuvz445vz1ywz6xvw1zww1zwvvwxzyty2utuywunqtkcdnijoqttusrzz0126zsqvqnowyyyz1yzysswvonpttruvzqqsqrnkpqtru42zz0yssuxqmqqppw1zz0zqry0xy4830221pqqrpntvwwt03ukkmgahtyvw341xxwuvxuoqvneeoskirwwtx30wtvzw0w01zz24ywuywrruutuwvxzzx15ywxyywx23zvy2124553000678___8yuupjjtvvw112551264wv03401yshfhhkjjnosqx4445531y16zy02004665442388889-52431x022012413004vnmqpiox1yx42ywuvuvyvsvwvrqvuqmrvywx20wqtwuztz0zwz50yw1zutwwxyxwyxvtz521231wvz2xvz3134331zzy66688-4xtvoifnqqrwzz12xy462268732zujgfehijprutw4334451z371z14114797885578678974543yyzzxz2665324wqprqknw0yy431yzwvwxumpqnjhqsnkqxuvv1yxzx10zpqqlgkunjnvrkfliegikmolkpzrnpvqeVdfTLUkhhmnnmhdbopqouyqeZeZSRgkmt15541yuyywsrwuppvwqstrnihlmosx10xuyytorwplquuuy12010zz364001xttzxsusoqswz12wxxiYZfdcm040vzztsrtrtwsprvqjntvnkptqmoncCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},"take-off":{"t0":64,"d":"A4A4A4A3A3A4A4A3A3A4A4A3A3A4A4A3A4A3A4A4A3A3A4A4A3A4A3A4A4A3A3A4A4A3A3A4A4A4A3A3A4A4A3A3A4A4A4A3A3A4A4A3A3A4A4A3A4A3A4A4A3A3A4A4A3A4A3A4A4A3A3A4A4A4A3A3A4A4A4A2A4A4A4A3A3A4A4A3A4A3A4A4A3A3A4A4A3A4A3A4A4A3A3A4A4A4A3A3A4A4A3A3A4A4A4A3A3A4A4A3A3A4A4A3A4A7A9A8A9A9A7A4A3A3A4A4A4A2A4A4A4A2A4A4A4A4A3A3A4A4A3A3A4A4A3A4A3A4A3A4A3A4A4A3A3A4A4A3A3A4A4A4A3A3A4A4A4A3A3A4A4A3A3A4A4A3A3A4A4A3A4A4A3A4A4A2A4A4A4A3A3A4A4A4A4A2A4A4A4A2A4A4A3A3A4A4A4A0A0AyAzAzAzA2A3A4A4A3A3A4A4A3A4A3A4A4A4A2A4A4A3A4A3A4A4A3A3A4A4A3A4A3A4A4A3A3A4A4A4A3A3A4A4A3A4A3A4A4A3A3A4A4A3A4A3A4A4A3A3A4A4A3A4A3A4A4A3A3A4A4A4A2A4A4A4A3A3A4A4A3A3A4A4A4A3A3A4A4A3A4A3A4A4A3A3A4A4A3A4A3A4A3A4A3A4A4A3A3A4A4A4A3A3A4A4A4A2A4A4A3A3A4A4A4A3A3A4A4A3A4A3A4A4A4A4A4A4A5A5A4A6A4A6A6A5A6A6A5A2A4A4A3A4A3A4A4A2A3A3A2A4A4A4A4A4A4A4A4A4A4A4A4","k":"CAIAAAAQAAAAAIQIAAAABAAAAAAAAAAAAAAAAAAAAYIAAAAAAAAAABCAIAQYAAsAiA6A8ArArAjAiAqAlAqAyAjAzAqAkAsAxAkAsAyAzAjAjAsAiAzAqApQigqArArAqAcAqAqAqAbAaAsAiA8A7AqAyIkApApAkAiAqBzArAqAjAjQiAkAqAiCyIqAqA6A6BiAyArQrAqAuAqQiAlAzAyArAjAiAqAqA6AkAtA6AjAqAqA7AiAjA0A5AjAgAQAHQAAB5AA6iAAA5AA6AAA46AA4A6AQ6AA1AYAa4IA5qAAQ7AA7QAA54IA5AyAA6IAyAAYA5IQ6qAQA6AA6AAg49AA6A7AU5QA5AAgT6AQ4xAAA6AAyAAg47SA7A6AA5AC6AAYa5AA5oBAA4CA1BAS47AQ5A6Ag4AA7DJYk6BI5rAAA6AA6AAY4gEAXQAYZI5I6A7AqA7AyAkAqAzYqAzApA7AqAqA6AqAkArAqAjIsCpAsArAzAkAhQiBkQ6AzCyAcAqAyAqArApAjApA8CuAqAzAyYjAtAyI6AqA5AlAqAqAxBqAkBqQlAyAoAyAqAiAyAqCrCrQyAsB6AqArAyAxAaAzIgAqAqA6AiAhI6IrQpAiAzAiAzAiAyArIhB0AhC7AqAxI7AqAoArAsIqAiAqA7ArAlAqArAyAyAkAjApAjAqAhByAqAsA0A4QlAiAAAAjgZRYYwoSjwgo5gowoQYowoYq4wYo44AAAEXDCAAQ6wAAPGAA44AEDAg4AHBAA4ANADYAIAAAAAAAAAAA","s":"woyyx65565656666yyyxy645yx56y6y6yyxxy65x455xx6y6556y6566656x544444--71w4449-71o444-_6-ow44997-gw44917-w4449-71w44w9170w444916rgo44rrisYgookqylo44wpkyrgYoobjykYYwobsysoo4ojrqhgowg0q6qgwwgkiibYYooabhjYYgYTixkogoogihcYYgYTbqaYYggabpchZogTihhYgoYriqZYgYQbaBJADWQAAA44o44xxw6gg4oxr74yo4w4547ig4ox00wrhwww44zigqywzrgqjozooogo4444444544w4445w444w45oo44ww4opo4woo4pog4ggg4ggQogYYoYQgoYYY4YYQoQYQwQQQgAAIYAAIYIQQgQIQYAAAQQAAYIAIYAAIQAAAQAAAQAAAYAAAAAAAIAAAQggizq0oowwqzwqgww4yzy0wowwqzxzYow4qr6zgo4oiqprogooqp5oowwqqqyiYoogaaYiQYYYKZoYYgYYYaYYQQgYRYZgQYYYYagZQYYQJQYQIQQQIQYYIQYQQQYQIYgYQagaQYggQYYYQYggQZYYQQYYIYQQIYYYQRgYIQYYAQYQQQYIQQYQAQQQAQQQIYQgiziqYohoiqiqgpgoqsrsogppbrijZhgojrjswpywjrirgyipzrsypqqqjkiiSZaaYiZYgggoiphhhhZZYYYYgggghggYYQQAAACCCAAAIQAAABAAAIABBAAAAAAAAAAAAAAAAAAAAAAAAAAA","h":"IIAAAQQQQQQQQQQQIAQQIIQQYQQYYQQQIIQQIIQIQQIQQQQQQQQQQQQQQIQQQQYYgoakicYYowcmilYYgoUeimYYgoblamYYYwSeqlYggoiuhcY4gYjaziYwogcaZyQQgoikZugQgoacgtYQggIaicgYYYacacQYYoSkhsQYgoajoiQooQjY6hgoggbaSaZmAYamACQmH-O3gDZuIQYdQKZlW3X-ABQdAAalQCinH-f_YSgmQQgggAadOtXvAQAADAAAAoQIgYQAIYAAYQIIggYQgQYYYqQQYQQaboigYgoowjioYww7kY0qgwY44Yw4Y4444g44gg444g44w444gg44o4o44g54g4444Y44YY444Y44g444hY44Y4Y44Yrgdt48sQ4jAyryIjtwzs44oojgCYDIwUawbho4wSZgaCoYaCSgDaYgABACAQAAAAClAwavIqgnX_X-YxavQgYnQyinX_P_gyZnAwqnYzZvX_X3YygvAooowwquW_X_QxxvQ4SmAhQlP-W-QgStAYQdAYSmV2G9QoQkIgRlQgRjMzc7QoYiQgQgYoRrU7U8QgalAYBVAgIdGtW1IgRnQYQbIgRjUsEsIYAcAYSlIYRrU7LsQYIjAQAYYgBaTrMrAgStQgamIoAcX8O9QgSnAQJeAaYeWuG3AQAeAQClQSalGtOuQJYnIAQYgYSlF1W3QIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","e":"hdaW22110zzzyyyyzzzzz0000111112345789988766654332111111222233333322222334456889--98889-_-86532233334444333344444333344456679-______-98778899-_____-998889-_--987777889999988899-_976655455664555564555645555656677779--_-_-99876555344445445564555564555545567979---988889665533234453455454444424444545678788889789--99998978888889---8887787888867778979999888889776554455564566665555534444545679789999899-_9876443444544444534455556667566778789-_9--98966555344445344555455564555555568989--9-88888789---998876667898----9877786778887899-8998897666634455645666455667566565667898---9987789666544244453555564444434444545567778889799---876542444453333424555655556455668689-_--99886778888999-8988887899-89876656789777789899998776554453221zwvsqonllqrvz36567557688997752yxwwxy1111100010zywvvwuvwxyy3444556778530ywutuxxyz1322422100xwutsqqrvvwz2434655655455331zxzyz13657777666441zwwwuxy0114455666656444431211z00122242200zvvvutsstuvy135457666554654420wxvwx0323432100zyyywwwuwvxy04456666667411zxuuxwwyz1221321011yxyxwvvxyyz234346555564543320z001357678665553321zzywyxzz25567765555455552220zz01111211000yxxxwwvxxyz245446566565554320yzyz01423532110yyyxxzyxzyzz243565555564320zwwyyz02434442100zyyyyxvvxwxz134335455676765420zzz1357779654441220z1yxzz10476686655545555432310113223334234444444453444443456868999977778566545344453445564444434444535678888888799---8875534444534445344556455555566676889--999886778899---_8988787889-88876757789888888799---88777555556445564566675666655567879--_--998867665545556355667566664555564567979-99977788777666455655555564544564555535578978888799--_998887777898---998877868887766778789989777886655443555655565745556666667566789889998--___98765456667555555555675666666677979---_9998867666755555456656555555555675678999--9878889-999--8988897899989-999777777777787999999999978776755556455667566665666675567989--997889--887653555564444535555755666566678789999----_87765556667555556555564666675566868-_-_9988877889-89998888889799---988775777786777878999989752zwrolihhiiilljjiiigggeecbcccddddaZYXYYXZYYaZZaYXXVVURSRRUVWZZYZYWWUSQOPQQRSSTQPQPPQPPPPQRRRRRPPOOONOOOOOONNNLKJIHHIHIIHHIHHHGIJGHGEFFDEFEFEDCCDABBAAAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}};
+</script>
 <script>
 (function () {
   "use strict";
@@ -1749,6 +1915,8 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     hasClaude: !!(window.claude && typeof window.claude.use === "function")
   };
   var reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  // Animation state (see Motion, after Music). on = animations allowed (off with Reduce Motion).
+  var motion = { on: !reduceMotion, maps: {}, raf: 0, live: false, seen: true, last: {}, bank: null, shown: null, countRaf: 0, sel: "" };
 
   // ---------- State ----------
   var state = {
@@ -4273,9 +4441,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var earned = 0, spent = 0;
     days.forEach(function (d) { if (d.date >= ws && d.date <= t) { earned += d.pts; spent += d.spent; } });
     spends.forEach(function (d) { if (d.date >= ws && d.date <= t) spent += d.cost || 0; });
-    var bn = $("bankNum");
-    bn.textContent = money(bank);
-    bn.classList.toggle("neg", bank < 0);
+    showBank(bank);
     $("wkEarn").textContent = plus(earned);
     $("wkSpent").textContent = spent ? "−" + fmt(spent) : "0";
     var n = streak();
@@ -4298,14 +4464,15 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var a = Math.abs(n), s = a >= 1000 ? (Math.round(a / 100) / 10).toFixed(1).replace(/\.0$/, "") + "k" : fmt(a);
     return (n < 0 ? "−" : "") + s;
   }
-  function chainSVG(kind) {
+  // order: the tile's place in the strip, so a glint can run along the chain.
+  function chainSVG(kind, order) {
     var links = kind === "n"
       ? '<rect x="1.5" y="12" width="12" height="6.4" rx="3.2" transform="rotate(-45 7.5 15.2)"/>' +
         '<rect x="9.3" y="5.4" width="12" height="6.4" rx="3.2" transform="rotate(-45 15.3 8.6)"/>'
       : '<rect x="-1" y="15.2" width="10.5" height="6.2" rx="3.1" transform="rotate(-45 4.25 18.3)"/>' +
         '<rect x="13.5" y="2.6" width="10.5" height="6.2" rx="3.1" transform="rotate(-45 18.75 5.7)"/>' +
         '<path d="M9.4 11.2l-1.9-.7M12.8 14.6l.7 1.9M11.3 12.7l1.4-1.4"/>';
-    return '<svg class="chain ' + kind + '" viewBox="0 0 24 24" aria-hidden="true">' + links + "</svg>";
+    return '<svg class="chain ' + kind + '"' + (order >= 0 ? ' style="--i:' + order + '"' : "") + ' viewBox="0 0 24 24" aria-hidden="true">' + links + "</svg>";
   }
   function markDraft(date) {
     var tile = $("week").querySelector('[data-date="' + date + '"]');
@@ -4335,7 +4502,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     var first = !wrap.getAttribute("data-ready");
     wrap.textContent = "";
     for (var i = STRIP_DAYS; i >= 0; i--) {
-      (function (date, oldest) {
+      (function (date, oldest, order) {
         var dd = parseISO(date);
         var has = Object.prototype.hasOwnProperty.call(nets, date);
         var picked = date === state.logDate;
@@ -4349,13 +4516,17 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
         var v = has ? tileNum(nets[date]) : "·";
         var len = v.replace(/[^0-9.k−]/g, "").length;
         b.appendChild(el("span", "dp" + (has && nets[date] < 0 ? " neg" : "") + (len >= 5 ? " l5" : len === 4 ? " l4" : ""), v));
-        if (marks[date]) b.insertAdjacentHTML("beforeend", chainSVG(marks[date]));
+        if (marks[date]) b.insertAdjacentHTML("beforeend", chainSVG(marks[date], order));
         if (hasDraft(date)) b.appendChild(el("span", "draftdot"));
         b.addEventListener("click", function () { selectDay(date, { scroll: "sel" }); });
         wrap.appendChild(b);
-      })(addDays(t, -i), i === STRIP_DAYS);
+      })(addDays(t, -i), i === STRIP_DAYS, STRIP_DAYS - i);
     }
     wrap.setAttribute("data-ready", "1");
+    // A newly picked day pops.
+    var picked = wrap.querySelector(".day.sel");
+    if (picked && motion.sel && motion.sel !== state.logDate) popIn(picked);
+    motion.sel = state.logDate;
     if (!wrap.clientWidth) return;   // hidden on another tab; showTab redraws it
     if (first || mode === "end" || (mode !== "sel" && atEnd)) wrap.scrollLeft = wrap.scrollWidth;
     else wrap.scrollLeft = left;
@@ -4632,9 +4803,11 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
     });
     var gd = S("g", {}, svg);
     series.forEach(function (p) { S("circle", { cx: X(p.date).toFixed(1), cy: Y(p.lb).toFixed(1), r: 4, "class": "dot" }, gd); });
-    S("path", { d: series.map(function (p, i) { return (i ? "L" : "M") + X(p.date).toFixed(1) + " " + Y(p.avg).toFixed(1); }).join(" "), "class": "avg" }, svg);
-    S("circle", { cx: X(last.date).toFixed(1), cy: Y(last.avg).toFixed(1), r: 4.5, "class": "end" }, svg);
-    S("text", { x: (X(last.date) + 8).toFixed(1), y: (Y(last.avg) + 4).toFixed(1), "class": "endlab" }, svg).textContent = lbStr(last.avg);
+    var avgLine = S("path", { d: series.map(function (p, i) { return (i ? "L" : "M") + X(p.date).toFixed(1) + " " + Y(p.avg).toFixed(1); }).join(" "), "class": "avg" }, svg);
+    var endDot = S("circle", { cx: X(last.date).toFixed(1), cy: Y(last.avg).toFixed(1), r: 4.5, "class": "end" }, svg);
+    var endLab = S("text", { x: (X(last.date) + 8).toFixed(1), y: (Y(last.avg) + 4).toFixed(1), "class": "endlab" }, svg);
+    endLab.textContent = lbStr(last.avg);
+    drawLine(avgLine, gd, [endDot, endLab]);
     var cross = S("line", { x1: 0, x2: 0, y1: m.t, y2: height - m.b, "class": "cross", visibility: "hidden" }, svg);
     var hl = S("circle", { cx: 0, cy: 0, r: 5, "class": "hl", visibility: "hidden" }, svg);
     S("rect", { x: m.l, y: 0, width: width - m.l - m.r + 8, height: height, fill: "transparent" }, svg);
@@ -4897,6 +5070,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       var k = netKind(b.net);
       bars.push(S("path", { d: barPath(X(b.date) - bw / 2, bw, zy, top), "class": "bar " + (k === "high" ? "goal high" : k) + (b.partial ? " now" : "") }, gb));
     });
+    growBars(bars, zy);
     // The goal line, labeled at the right end above it.
     var gy = Math.round(Y(DEF_GOAL)) + 0.5;
     S("line", { x1: m.l, x2: width - m.r, y1: gy, y2: gy, "class": "goalline" }, svg);
@@ -5870,8 +6044,10 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   // ---------- Tabs and access ----------
   function showTab(name, opts) {
     if (TABS.indexOf(name) < 0) name = "today";
+    var was = state.tab;
     state.tab = name;
     TABS.forEach(function (t) { $("tab-" + t).hidden = t !== name; });
+    if (was !== name) riseIn($("tab-" + name));
     Array.prototype.forEach.call(document.querySelectorAll(".tabbtn"), function (b) {
       if (b.getAttribute("data-tab") === name) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
     });
@@ -6179,7 +6355,7 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
       setSong(nextSong());
       playMusic();
     });
-    a.addEventListener("playing", function () { music.errors = 0; renderMusic(); });
+    a.addEventListener("playing", function () { music.errors = 0; renderMusic(); motionWake(); });
     a.addEventListener("pause", renderMusic);
     music.audio = a;
     return a;
@@ -6244,6 +6420,227 @@ dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filt
   music.cur = nextSong();
   renderMusic();
   playMusic();
+
+  // ---------- Motion ----------
+  // The scoreboard scene (stars, striped sun, neon floor) moves on its own through CSS and the sun's SVG.
+  // While a song plays, it also follows that song's beat map (window.CP_BEATS, made from the audio by
+  // tools/beatmap.py): the sun and floor pulse on the kick, the board's edge and the title flash on the snare,
+  // the stars catch the hats, and the floor runs faster in the loud parts. Muted, paused or in the background,
+  // it's back to the plain animations. Reduce Motion stills everything.
+  var B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  var mx = {
+    scene: $("scene"), sun: $("sunWrap"), sunPulse: $("sunPulse"), sunSvg: $("sunSvg"), floor: $("floor"), grid: $("floorGrid"),
+    edge: $("boardEdge"), stars: $("stars"), brand: $("brand"), w1: $("musicW1"), w2: $("musicW2"), songs: $("songList")
+  };
+  // A song's map: 16th-note slot times (s) with kick/snare/hat strengths 0-7, and loudness 0-1 every 100 ms.
+  function beatMap(id) {
+    if (Object.prototype.hasOwnProperty.call(motion.maps, id)) return motion.maps[id];
+    var raw = window.CP_BEATS && window.CP_BEATS[id], m = null;
+    if (raw && raw.d && raw.k && raw.s && raw.h && raw.e) {
+      var v = function (c) { return B64.indexOf(c); };
+      var beats = [raw.t0];
+      for (var i = 0; i + 1 < raw.d.length; i += 2) beats.push(beats[beats.length - 1] + v(raw.d.charAt(i)) * 64 + v(raw.d.charAt(i + 1)));
+      var n = beats.length * 4, t = new Float32Array(n);
+      for (var b = 0; b < beats.length; b++) {
+        var span = b + 1 < beats.length ? beats[b + 1] - beats[b] : (b ? beats[b] - beats[b - 1] : 55);
+        for (var q = 0; q < 4; q++) t[b * 4 + q] = (beats[b] + q * span / 4) / 100;
+      }
+      var unpack = function (str) {
+        var out = new Uint8Array(n);
+        for (var j = 0; j < str.length && 2 * j < n; j++) {
+          var c = v(str.charAt(j));
+          out[2 * j] = c >> 3;
+          if (2 * j + 1 < n) out[2 * j + 1] = c & 7;
+        }
+        return out;
+      };
+      var e = new Float32Array(raw.e.length);
+      for (var k = 0; k < raw.e.length; k++) e[k] = v(raw.e.charAt(k)) / 63;
+      m = { n: n, t: t, k: unpack(raw.k), s: unpack(raw.s), h: unpack(raw.h), e: e };
+    }
+    motion.maps[id] = m;
+    return m;
+  }
+  // The song at time t (s): beat (kick), snap (snare), tick (hats) as decaying pulses, and energy, all 0-1.
+  function beatAt(m, t) {
+    var p = { beat: 0, snap: 0, tick: 0, energy: 0.5 };
+    if (!m) {                                   // a song without a map gets a gentle 110 BPM throb
+      p.beat = 0.5 * Math.exp(-(t % 0.545) / 0.2);
+      return p;
+    }
+    var lo = 0, hi = m.n - 1, j = -1;
+    while (lo <= hi) { var mid = (lo + hi) >> 1; if (m.t[mid] <= t) { j = mid; lo = mid + 1; } else hi = mid - 1; }
+    for (var i = j; i >= 0 && i > j - 12; i--) {
+      var dt = t - m.t[i];
+      if (dt > 1) break;
+      var q = i & 3;
+      // The big pulses keep to the beat (kick on it, snare halfway) so nothing large flashes faster than about
+      // twice a second; the in-between hits are smaller.
+      if (q === 0 || q === 2) {
+        p.beat = Math.max(p.beat, m.k[i] / 7 * (q === 0 ? 1 : 0.45) * Math.exp(-dt / 0.2));
+        p.snap = Math.max(p.snap, m.s[i] / 7 * (q === 2 ? 1 : 0.45) * Math.exp(-dt / 0.26));
+      }
+      p.tick = Math.max(p.tick, m.h[i] / 7 * Math.exp(-dt / 0.1));
+    }
+    if (m.e.length) {
+      var x = Math.max(0, Math.min(m.e.length - 1, t * 10)), a = Math.floor(x), b = Math.min(m.e.length - 1, a + 1);
+      p.energy = m.e[a] + (m.e[b] - m.e[a]) * (x - a);
+    }
+    var lift = 0.45 + 0.55 * p.energy;           // quiet parts pulse softer
+    p.beat *= lift;
+    p.snap *= lift;
+    return p;
+  }
+  function setLive(node, prop, val) {
+    var key = node.id + "|" + prop;
+    if (motion.last[key] === val) return;
+    motion.last[key] = val;
+    if (prop.charAt(0) === "-") node.style.setProperty(prop, val); else node.style[prop] = val;
+  }
+  function floorAnim() {
+    if (!mx.grid.getAnimations) return null;
+    var list = mx.grid.getAnimations();
+    return list.length ? list[0] : null;
+  }
+  // The floor's speed. The browser restarts its animation whenever the Today page is shown again, so this
+  // checks the running one rather than remembering what it set.
+  function setFloorRate(r) {
+    var a = floorAnim();
+    if (!a || Math.abs(a.playbackRate - r) < 0.01) return;
+    if (a.updatePlaybackRate) a.updatePlaybackRate(r); else a.playbackRate = r;
+  }
+  function motionLive() {
+    return motion.on && !music.off && !!music.audio && !music.audio.paused && !document.hidden;
+  }
+  function motionFrame(now) {
+    motion.raf = 0;
+    if (!motionLive()) { motionRest(); return; }
+    if (!motion.live) {
+      motion.live = true;
+      mx.scene.classList.add("live");
+      mx.songs.classList.add("live");
+    }
+    var p = beatAt(beatMap(music.cur), music.audio.currentTime || 0);
+    if (motion.seen) {
+      setLive(mx.sun, "transform", "scale(" + (1 + 0.05 * p.beat).toFixed(3) + ")");
+      setLive(mx.sunPulse, "opacity", Math.min(1, 0.15 * p.energy + 0.85 * p.beat).toFixed(2));
+      setLive(mx.floor, "opacity", Math.min(1, 0.5 + 0.12 * p.energy + 0.36 * Math.max(p.beat, 0.6 * p.snap)).toFixed(2));
+      setLive(mx.edge, "opacity", Math.min(1, 0.85 * p.snap + 0.2 * p.beat).toFixed(2));
+      setLive(mx.stars, "opacity", Math.min(1, 0.55 + 0.6 * p.tick).toFixed(2));
+      // Faster in the loud parts, in quarter steps, with some slack so it doesn't flip back and forth.
+      var fa = floorAnim(), speed = 0.7 + 1.4 * p.energy;
+      if (fa && Math.abs(speed - fa.playbackRate) > 0.18) setFloorRate(Math.round(speed * 4) / 4);
+      // The sun's stripes keep pace with the floor: nudge the SVG's clock by the difference.
+      var rate = fa ? fa.playbackRate : 1, svg = mx.sunSvg, dt = motion.lastFrame ? (now - motion.lastFrame) / 1000 : 0;
+      if (svg.setCurrentTime && dt > 0 && dt < 0.25 && Math.abs(rate - 1) > 0.01) svg.setCurrentTime(Math.max(0, svg.getCurrentTime() + (rate - 1) * dt));
+    }
+    motion.lastFrame = now;
+    if (state.tab === "today") setLive(mx.brand, "--tg", Math.min(1, 0.7 * p.snap + 0.3 * p.beat).toFixed(2));
+    setLive(mx.w1, "opacity", (0.35 + 0.65 * p.beat).toFixed(2));
+    setLive(mx.w2, "opacity", (0.25 + 0.75 * Math.max(p.snap, p.tick)).toFixed(2));
+    var eq = state.tab === "settings" ? mx.songs.querySelector(".songbtn.playing .eq") : null;
+    if (eq) {
+      var lv = [p.beat, p.snap, p.tick];
+      Array.prototype.forEach.call(eq.children, function (bar, i) { bar.style.transform = "scaleY(" + (0.2 + 0.8 * Math.min(1, lv[i] || 0)).toFixed(2) + ")"; });
+    }
+    motion.raf = requestAnimationFrame(motionFrame);
+  }
+  // Back to the plain animations.
+  function motionRest() {
+    if (motion.raf) { cancelAnimationFrame(motion.raf); motion.raf = 0; }
+    if (!motion.live) return;
+    motion.live = false;
+    mx.scene.classList.remove("live");
+    mx.songs.classList.remove("live");
+    [mx.sun, mx.sunPulse, mx.floor, mx.edge, mx.stars, mx.w1, mx.w2].forEach(function (n) { n.style.transform = ""; n.style.opacity = ""; });
+    mx.brand.style.removeProperty("--tg");
+    Array.prototype.forEach.call(mx.songs.querySelectorAll(".eq i"), function (i) { i.style.transform = ""; });
+    motion.last = {};
+    motion.lastFrame = 0;
+    setFloorRate(1);
+  }
+  function motionWake() {
+    if (!motion.raf && motionLive()) motion.raf = requestAnimationFrame(motionFrame);
+  }
+  // The scene only runs while the scoreboard is on screen.
+  function sunClock(run) {
+    var svg = mx.sunSvg;
+    if (!svg || !svg.pauseAnimations) return;
+    if (run && motion.on) svg.unpauseAnimations(); else svg.pauseAnimations();
+  }
+  if (!motion.on) sunClock(false);
+  if (window.IntersectionObserver) {
+    new IntersectionObserver(function (entries) {
+      var seen = entries[entries.length - 1].isIntersecting;
+      motion.seen = seen;
+      mx.scene.classList.toggle("paused", !seen);
+      sunClock(seen);
+    }).observe(mx.scene.parentNode);
+  }
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) motionWake(); });
+
+  // Small one-off animations. Each is skipped with Reduce Motion.
+  function riseIn(node) {
+    if (!motion.on || !node || !node.animate) return;
+    node.animate([{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }], { duration: 260, easing: "cubic-bezier(0.2, 0.8, 0.3, 1)" });
+  }
+  function popIn(node) {
+    if (!motion.on || !node || !node.animate) return;
+    node.animate([{ transform: "scale(0.88)" }, { transform: "scale(1.07)", offset: 0.55 }, { transform: "scale(1)" }], { duration: 300, easing: "ease-out" });
+  }
+  // The weight line traces in from the left, then the latest average shows; the daily dots fade up.
+  function drawLine(path, dots, after) {
+    if (!motion.on || !path.animate) return;
+    path.setAttribute("pathLength", "1");
+    path.style.strokeDasharray = "1";
+    path.animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: 900, delay: 80, easing: "ease-out", fill: "backwards" });
+    if (dots && dots.animate) dots.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, easing: "ease-out" });
+    (after || []).forEach(function (n) { if (n.animate) n.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, delay: 850, fill: "backwards" }); });
+  }
+  // Deficit bars rise (or drop) from the zero line, left to right.
+  function growBars(bars, zy) {
+    if (!motion.on || !bars.length || !bars[0].animate) return;
+    var step = Math.min(24, 520 / bars.length);
+    bars.forEach(function (b, i) {
+      b.style.transformBox = "view-box";
+      b.style.transformOrigin = "0 " + zy.toFixed(1) + "px";
+      b.animate([{ transform: "scaleY(0)" }, { transform: "scaleY(1)" }], { duration: 480, delay: Math.round(i * step), easing: "cubic-bezier(0.2, 0.8, 0.3, 1)", fill: "backwards" });
+    });
+  }
+  // The bank counts to its new total, and the change floats up from it. Not while the data is still loading, on
+  // the first draw after, or in automated test browsers, which read the number right away.
+  function showBank(bank) {
+    var bn = $("bankNum"), prev = state.loaded ? motion.bank : null;
+    motion.bank = state.loaded ? bank : null;
+    if (prev === bank && motion.countRaf && bn.offsetParent) return;      // already counting to it
+    if (motion.countRaf) { cancelAnimationFrame(motion.countRaf); motion.countRaf = 0; }
+    var from = motion.shown !== null ? motion.shown : prev;
+    motion.shown = null;
+    function put(v) { bn.textContent = money(v); bn.classList.toggle("neg", v < 0); }
+    if (prev === null || prev === bank || !motion.on || navigator.webdriver || !bn.offsetParent) { put(bank); return; }
+    floatDelta(bank - prev);
+    var start = 0, dur = Math.min(1100, 420 + Math.abs(bank - from) * 1.5);
+    function step(now) {
+      if (!start) start = now;
+      var k = Math.min(1, (now - start) / dur), eased = 1 - Math.pow(1 - k, 3);
+      var v = Math.round(from + (bank - from) * eased);
+      put(v);
+      if (k < 1) { motion.shown = v; motion.countRaf = requestAnimationFrame(step); }
+      else { motion.shown = null; motion.countRaf = 0; }
+    }
+    put(from);
+    motion.shown = from;
+    motion.countRaf = requestAnimationFrame(step);
+  }
+  function floatDelta(d) {
+    var line = $("bankNum").parentNode;
+    var f = el("span", "bankfloat" + (d < 0 ? " neg" : ""), (d > 0 ? "+" : "−") + fmt(Math.abs(d)));
+    f.setAttribute("aria-hidden", "true");
+    line.appendChild(f);
+    function gone() { if (f.parentNode) f.parentNode.removeChild(f); }
+    f.addEventListener("animationend", gone);
+    setTimeout(gone, 2400);
+  }
 
   // ---------- Start ----------
   state.drafts = loadDrafts();
