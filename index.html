@@ -65,6 +65,8 @@
   --bad: #ff66b8;
   --glow-ring: 0 0 0 1px rgba(127, 214, 255, 0.7), 0 0 16px rgba(127, 214, 255, 0.42);
   --bad-glow: rgba(232, 69, 154, 0.55);
+  --gold: #ffd27a;
+  --gold-glow: rgba(255, 210, 122, 0.5);
   --tabbar-h: 62px;
   --title: "Monoton", "Chakra Petch", system-ui, sans-serif;
   --display: "VT323", "Courier New", ui-monospace, monospace;
@@ -213,6 +215,7 @@ h2 {
   box-shadow: 0 -1px 0 rgba(127, 214, 255, 0.08);
   padding-top: 18px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   min-width: 0;
   scroll-margin-top: calc(12px + env(safe-area-inset-top, 0px));
@@ -492,6 +495,8 @@ h2 {
   88% { filter: drop-shadow(0 0 5px rgba(170, 255, 210, 1)) brightness(1.7); }
 }
 .scene.paused ~ .stripwrap .chain { animation-play-state: paused; }
+/* An event day: a gold spark on the tile's corner. */
+.day .evmark { position: absolute; right: -5px; bottom: -5px; width: 14px; height: 14px; fill: var(--gold); filter: drop-shadow(0 0 3px var(--gold-glow)); pointer-events: none; }
 .day .draftdot { position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--glow-cyan); }
 .viewing { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: -4px; font-size: 0.86rem; font-weight: 600; color: var(--board-dim); }
 .viewing .linkbtn { color: var(--accent); }
@@ -693,19 +698,20 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .savestate.dirty { color: var(--accent); }
 
 /* ---------- Off-plan food and favorites ---------- */
-.food { display: grid; gap: 8px; }
+.food { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .favs { display: flex; align-items: center; gap: 14px; }
-.favs select { flex: 1 1 auto; width: auto; }
+/* A long cheat name can't widen the page: the list shrinks to fit and cuts the name off. */
+.favs select { flex: 1 1 auto; width: auto; min-width: 0; }
 .favlist { list-style: none; margin: 0; padding: 0; display: grid; }
 .favlist li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .favlist li:last-child { border-bottom: 0; }
 .favlist .fn { min-width: 0; overflow-wrap: anywhere; }
 .favlist .fk { display: block; color: var(--muted); font-size: 0.86rem; }
-.food-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.food-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .food-list select.need { border-color: #ff5c7a; color: #ff9aac; box-shadow: 0 0 10px rgba(255, 92, 122, 0.35); }
 .food-list select option { color: #ffffff; }
 .fitem.flash { box-shadow: 0 0 0 2px var(--accent), 0 0 18px var(--glow-cyan); transition: box-shadow 0.3s ease; }
-.fitem, .aitem { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5); }
+.fitem, .aitem { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5); }
 .frow { display: grid; grid-template-columns: minmax(0, 1fr) 7.2em; gap: 8px; }
 .frow3 { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .qty { display: flex; align-items: center; height: 44px; border: 1px solid var(--line); border-radius: 10px; background: var(--field); overflow: hidden; }
@@ -730,6 +736,42 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .sum .net strong { font-family: var(--display); font-weight: 400; font-size: 2.9rem; line-height: 1; color: var(--earn); text-shadow: 0 0 14px var(--glow-cyan); }
 .sum .net strong.neg { color: var(--spend); text-shadow: 0 0 14px var(--glow); }
 .sum .after { margin-bottom: 6px; color: var(--muted); font-size: 0.88rem; text-align: right; }
+#sumWas { margin: -2px 0 0; }
+
+/* Event day: a switch at the top of the log. On, it turns gold; the day aims to maintain. */
+.evrow { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; }
+.evrow .qm { margin-left: 0; }
+.evbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 10px 6px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(7, 10, 44, 0.75);
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.evbtn .evstar { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+.evbtn .evsw { position: relative; flex: none; width: 30px; height: 17px; margin-left: 2px; border: 1px solid var(--line); border-radius: 9px; background: var(--field); }
+.evbtn .evsw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 11px; height: 11px; border-radius: 50%; background: var(--dim); transition: transform 0.2s ease, background 0.2s ease; }
+.evbtn[aria-pressed="true"] { color: #fff3d6; border-color: var(--gold); background: rgba(255, 210, 122, 0.1); box-shadow: 0 0 12px rgba(255, 210, 122, 0.3); }
+.evbtn[aria-pressed="true"] .evstar { fill: var(--gold); stroke: var(--gold); filter: drop-shadow(0 0 4px var(--gold-glow)); }
+.evbtn[aria-pressed="true"] .evsw { border-color: var(--gold); background: rgba(255, 210, 122, 0.22); }
+.evbtn[aria-pressed="true"] .evsw::after { transform: translateX(13px); background: var(--gold); }
+.evbtn.locked { opacity: 0.5; cursor: default; }
+.evbtn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.evleft { margin-left: auto; color: var(--muted); font-size: 0.84rem; font-weight: 600; }
+.evhint { margin: -4px 0 0; color: #ffe2a8; font-size: 0.86rem; }
+/* On an event day the activity fields show the calories they add to the burn, and food the calories it adds. */
+.pts.cal { display: grid; justify-items: end; font-size: 1.12rem; line-height: 1; }
+.pts.cal small { font-family: var(--body); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.05em; color: var(--muted); }
+.arow .pts.cal { font-size: 1.02rem; }
+.fcost.cal { font-size: 1.25rem; }
 
 /* ---------- Progress ---------- */
 .ptabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
@@ -1462,7 +1504,7 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 /* Buttons and boxed sections light up cyan under the mouse; on a touch screen, whatever you tap glows for a
    moment (the script adds .tap). */
 .btn, .songbtn, .rtabs button, .ptabs button, .rangebar button, .qm, .redeem-pill, .stripnav, .seg span, .day, .ritem,
-.fitem, .aitem, .board, .hero, .tally, input, select { transition: border-color 0.25s ease, box-shadow 0.25s ease; }
+.fitem, .aitem, .board, .hero, .tally, .evbtn, input, select { transition: border-color 0.25s ease, box-shadow 0.25s ease; }
 .topic > summary, .linkbtn, .tabbtn { transition: color 0.25s ease, text-shadow 0.25s ease; }
 .tabbtn svg { transition: color 0.25s ease, filter 0.25s ease; }
 @media (hover: hover) and (pointer: fine) {
@@ -1475,6 +1517,7 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
   .topic > summary:hover { color: var(--accent); }
   .board:hover, .hero:hover { border-color: rgba(127, 214, 255, 0.75); box-shadow: 0 0 0 1px rgba(127, 214, 255, 0.35), 0 0 30px rgba(127, 214, 255, 0.4); }
   .tally:hover { border-color: var(--accent); box-shadow: var(--glow-ring); }
+  .evbtn:not(.locked):hover { border-color: var(--accent); box-shadow: var(--glow-ring); }
   .linkbtn:not(:disabled):hover { color: #ffffff; text-shadow: 0 0 10px var(--glow-cyan); }
   .tabbtn:hover { color: #ffffff; }
   .tabbtn:hover svg { color: var(--accent); filter: drop-shadow(0 0 6px var(--glow-cyan)); }
@@ -1490,6 +1533,7 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 .topic > summary.tap { color: var(--accent); }
 .board.tap, .hero.tap { border-color: rgba(127, 214, 255, 0.75); box-shadow: 0 0 0 1px rgba(127, 214, 255, 0.35), 0 0 30px rgba(127, 214, 255, 0.4); }
 .tally.tap { border-color: var(--accent); box-shadow: var(--glow-ring); }
+.evbtn.tap:not(.locked) { border-color: var(--accent); box-shadow: var(--glow-ring); }
 .linkbtn.tap { color: #ffffff; text-shadow: 0 0 10px var(--glow-cyan); }
 .tabbtn.tap { color: #ffffff; }
 .tabbtn.tap svg { color: var(--accent); filter: drop-shadow(0 0 6px var(--glow-cyan)); }
@@ -1776,6 +1820,17 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
         <span class="dayname" id="logDay">Today</span>
       </div>
 
+      <div class="evrow">
+        <button type="button" class="evbtn" id="evBtn" aria-pressed="false">
+          <svg class="evstar" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l2.6 7.9 7.9 2.6-7.9 2.6-2.6 7.9-2.6-7.9-7.9-2.6 7.9-2.6z"/></svg>
+          <span>Event day</span>
+          <span class="evsw" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="qm" data-help="events" aria-label="Help: event days">?</button>
+        <span class="evleft" id="evLeft"></span>
+      </div>
+      <p class="evhint" id="evHint" hidden></p>
+
       <fieldset class="seg two" id="planQ">
         <legend class="q">Did you stick to the meal plan?<button type="button" class="qm" data-help="plan" aria-label="Help: the meal plan question">?</button></legend>
         <div class="opts">
@@ -1806,12 +1861,16 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
       </div>
 
       <div class="sum">
-        <div class="ln"><span>Day's activity</span><b class="earn" id="sumEarn">0</b></div>
+        <div class="ln" id="sumEarnRow"><span>Day's activity</span><b class="earn" id="sumEarn">0</b></div>
         <div class="ln" id="sumBonusRow" hidden><span>On-plan bonus<button type="button" class="qm qm-sm" data-help="logging" aria-label="Help: the on-plan bonus">?</button></span><b class="earn" id="sumBonus">+25</b></div>
         <div class="ln" id="sumFoodRow" hidden><span>Off-plan food</span><b class="spend" id="sumFood">0</b></div>
         <div class="ln" id="sumOffRow" hidden><span>Skipped or smaller meals</span><b class="earn" id="sumOff">+0</b></div>
         <div class="ln" id="sumPenRow" hidden><span>Snack penalty</span><b class="spend" id="sumPen">0</b></div>
+        <div class="ln" id="sumBurnRow" hidden><span>Burn (estimate)<button type="button" class="qm qm-sm" data-help="events" aria-label="Help: event days">?</button></span><b class="earn" id="sumBurn">0</b></div>
+        <div class="ln" id="sumAteRow" hidden><span>Ate (estimate)</span><b class="spend" id="sumAte">0</b></div>
+        <div class="ln" id="sumOverRow" hidden><span id="sumOverLab">Under your burn</span><b class="earn" id="sumOver">0</b></div>
         <div class="ln net"><span>Day total</span><strong id="dayTotal">0</strong></div>
+        <div class="after" id="sumWas" hidden></div>
         <div class="after" id="bankAfter"></div>
         <ul class="warns" id="dayWarns" aria-live="polite"></ul>
       </div>
@@ -2239,7 +2298,7 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.15.5","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.18.1","profile":null};</script>
 <script>
 /* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
    strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
@@ -2280,6 +2339,10 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   var KCAL_PER_LB = 3500;
   var BACKUP_DAYS = 7;
   var TALLY_RUN = 7, TALLY_HIT = 1000;
+  // Event days (a wedding, a vacation day, a holiday): the goal is maintenance. Up to EVENT_MAX in a calendar
+  // month, set by noon the next day. Days before event days arrived (EVENT_SINCE) can be set until noon the day
+  // after EVENT_GRACE.
+  var EVENT_MAX = 6, EVENT_SINCE = "2026-10-18", EVENT_GRACE = "2026-10-24";
   var STRIP_DAYS = 30;        // the day strip runs from 30 days back to today
   var FAV_LIMIT = 200;
   var MEAL_KEYS = ["breakfast", "lunch", "dinner"];
@@ -2320,7 +2383,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   var SCREEN_SHARE = 0.4;     // points per screen calorie: half, less 20%, since screens count resting burn and read high
   var TABS = ["today", "redeem", "progress", "guide", "settings"];
   var LS_KEY = "cheat-points-v1", META_KEY = "cheat-points-meta", DRAFT_KEY = "cheat-points-drafts";
-  var ID_RE = /^(settings|favorites|activities|day-\d{4}-\d{2}-\d{2}|w-\d{4}-\d{2}-\d{2}|t-\d{4}-\d{2}-\d{2}|spend-[A-Za-z0-9_-]{1,60})$/;
+  var ID_RE = /^(settings|favorites|activities|day-\d{4}-\d{2}-\d{2}|w-\d{4}-\d{2}-\d{2}|t-\d{4}-\d{2}-\d{2}|ev-\d{4}-\d{2}-\d{2}|spend-[A-Za-z0-9_-]{1,60})$/;
 
   // ---------- Small helpers ----------
   function pad(n) { return (n < 10 ? "0" : "") + n; }
@@ -2379,7 +2442,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function stillNow() { var p = motionPref(); return p === "off" || (p === "auto" && !!(osStill && osStill.matches)); }
   var reduceMotion = stillNow();
   document.documentElement.classList.toggle("still", reduceMotion);
-  var motion = { on: !reduceMotion, maps: {}, raf: 0, live: false, lastFrame: 0, reel: 0, titles: {}, bank: null, shown: null, countRaf: 0, sel: "" };
+  var motion = { bankLen: 0, on: !reduceMotion, maps: {}, raf: 0, live: false, lastFrame: 0, reel: 0, titles: {}, bank: null, shown: null, countRaf: 0, sel: "" };
   document.documentElement.setAttribute("data-tab", "today");
 
   // ---------- State ----------
@@ -2542,12 +2605,13 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       return base > 0 && (f.skip || foodEst(f) < snackMin(base));
     }).length;
   }
-  // While previewing a day, its unsaved food stands in for the saved one when counting the week's skips.
+  // While previewing a day, its unsaved food stands in for the saved one when counting the week's skips. Event
+  // days don't count: their skips are just calories.
   var skipOverride = null;
   function skipsBefore(date) {
     var n = 0;
     for (var d = weekStart(date); d < date; d = addDays(d, 1)) {
-      if (!rulesOn(d)) continue;
+      if (!rulesOn(d) || isEvent(d)) continue;
       if (skipOverride && skipOverride.date === d) { n += skipsIn(skipOverride.food); continue; }
       var doc = state.docs.get("day-" + d);
       if (doc && doc.kind === "day" && Array.isArray(doc.food)) n += skipsIn(doc.food);
@@ -2630,6 +2694,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   // correcting a step total reported on time keeps it on time.
   function deadline(date) { var d = parseISO(date); return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 12, 0, 0).getTime(); }
   function finalizeDay(day) {
+    delete day.event;
     day.food = day.food || [];
     if (!Array.isArray(day.acts)) day.acts = legacyActs(day);
     day.onPlan = day.food.length === 0;
@@ -2641,8 +2706,44 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     day.spent = fs ? fs.spent : sum(day.food, foodCost);
     day.penalty = fs ? fs.pen : 0;
     day.pts = day.activityPts + day.bonus;
+    if (isEvent(day.date)) scoreEvent(day);
     return day;
   }
+  // An event day (a wedding, a vacation day, a holiday) aims to maintain: food up to the day's estimated burn is
+  // free and only calories past it cost, 1 point each. Nothing is earned; activity counts by raising the burn, as
+  // far as it was logged on time. The burn is the Deficit view's (see Daily deficit). day.event keeps the numbers,
+  // and what the day nets as a normal day (normal, with its on-plan bonus).
+  function scoreEvent(day) {
+    var b = dayBalance(day.date, day, weighIns(), 0);
+    var act = Math.round(BURN_PER_PT * onTimeActivity(day)), burn = b.bmr + b.life + act;
+    day.event = { burn: burn, ate: b.ate, over: Math.max(0, b.ate - burn), room: Math.max(0, burn - b.ate), lateBurn: Math.max(0, b.act - act),
+      normal: day.pts - day.spent, bonus: day.bonus };
+    day.activityPts = 0;
+    day.bonus = 0;
+    day.penalty = 0;
+    day.pts = 0;
+    day.spent = day.event.over;
+  }
+  // Activity in standard points (as stdActivity), each entry counted only as far as it earned: something logged
+  // past the deadline adds nothing, and a raise past it adds only what the late rule let it earn.
+  function onTimeActivity(day) {
+    var bs = bandFor(day.weight), be = bandFor(day.weight || 250), k = rateK(day.tight);
+    function part(std, fresh, e) { return fresh > 0 ? std * Math.min(1, (e.pts || 0) / fresh) : e.late ? 0 : std; }
+    var s = day.steps ? part(stepPts(bs, 1, day.steps.total), stepPts(be, k, day.steps.total), day.steps) : 0;
+    return s + sum(day.acts, function (e) {
+      return e.mode === "kcal" ? part(screenPts(bs, 1, e.kcal, e.steps ? e.min : 0), screenPts(be, k, e.kcal, e.steps ? e.min : 0), e)
+        : part(entryPts(bs, 1, e.rate, e.min, e.steps, e.mph, e.grade, day.weight), entryPts(be, k, e.rate, e.min, e.steps, e.mph, e.grade, day.weight), e);
+    });
+  }
+  function isEvent(date) { var d = state.docs.get("ev-" + date); return !!d && d.kind === "event"; }
+  function eventsIn(month) {
+    var n = 0;
+    state.docs.forEach(function (d, id) { if (id.indexOf("ev-") === 0 && d && d.kind === "event" && String(d.date).slice(0, 7) === month) n++; });
+    return n;
+  }
+  // Event days are set (or cleared) by the same deadline as everything else: noon the next day.
+  function eventDeadline(date) { return date < EVENT_SINCE ? Math.max(deadline(date), deadline(EVENT_GRACE)) : deadline(date); }
+  function monthName(date) { return parseISO(date).toLocaleDateString("en-US", { month: "long" }); }
   function blankDay(date, basis, late) {
     return { kind: "day", v: 2, date: date, weight: basis.weight, tight: basis.tight, late: late, food: [], acts: [], steps: null, ts: 0 };
   }
@@ -2976,7 +3077,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   }
   function write(id, data) {
     if (state.readOnly) return Promise.resolve(false);
-    if (id === "settings" || id.indexOf("day-") === 0) normCache = new WeakMap();
+    if (id === "settings" || /^(day|ev|w)-/.test(id)) normCache = new WeakMap();
     if (state.mode !== "db") {
       var prev = state.docs.get(id);
       // mt: when this device last changed it. Sync keeps the newest change of each entry.
@@ -3005,7 +3106,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   }
   function remove(id) {
     if (state.readOnly) return Promise.resolve(false);
-    if (id.indexOf("day-") === 0) normCache = new WeakMap();
+    if (/^(day|ev|w)-/.test(id)) normCache = new WeakMap();
     if (state.mode !== "db") {
       var prev = state.docs.get(id);
       state.docs.delete(id);
@@ -3255,7 +3356,18 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "Changes you haven't saved stay with their day when you switch days or close the app, and a dot marks the day. <b>Discard changes</b> puts the day back. Undo right after saving or deleting puts it back too.",
         "An on-plan day earns <b>" + c.bonus + "</b> even with no activity" + (c.s.tight ? " (25 on the Standard rate)." : " (17 on the Tight rate)."),
         "<b>Log by noon the next day.</b> Changes after that still record, and off-plan food still counts, but they can't add points; lowering something still lowers them. Correcting a step total you reported on time keeps it on time.",
-        "Until noon, the app reminds you if yesterday isn't logged."
+        "Until noon, the app reminds you if yesterday isn't logged.",
+        "A wedding or a vacation day? Turn on <b>Event day</b> at the top of the form: the goal that day is to maintain."
+      ]);
+    } },
+    events: { title: "Event days", html: function () {
+      return "<p>A wedding, a vacation day, a holiday: days the meal plan can't hold. Turn on <b>Event day</b> at the top of the log and the goal for that day is to <b>maintain</b> instead of lose.</p>" + ul([
+        "Food up to your estimated burn is free. Only calories past it cost points, 1 per calorie.",
+        "Nothing is earned that day: no activity points and no on-plan bonus. Steps and workouts still count, by raising the burn, so a big walking day leaves more room.",
+        "The burn is the Deficit view's estimate: resting burn at your weigh-in, 20% of it for daily life, and about " + BURN_PER_PT + " calories per point of activity. Today's counts the activity logged so far.",
+        "Up to <b>" + EVENT_MAX + "</b> a month. Turn it on or off by noon the next day, like everything else. Activity added after that doesn't raise the burn.",
+        "Log what you eat as best you can. Skipped meals are just calories that day: no snack rule, and they don't use up the week's first skip.",
+        "The log shows what the day would net as a normal day, for comparison. Event days get a gold ✦ on the strip."
       ]);
     } },
     plan: { title: "The meal plan question", html: function (c) {
@@ -3473,7 +3585,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "<p>Resting burn uses the Mifflin-St Jeor equation. Warnings and predictions use 1.2 × resting burn plus about 2.3 calories per standard point (the middle of each range), minus your plan calories and any off-plan changes. 3,500 calories is about 1 lb of fat. Costs are recalculated each week as your weight drops and assume every point gets spent.</p>";
     } }
   };
-  var GUIDE_ORDER = ["points", "bank", "logging", "plan", "redeem", "workouts", "steps", "cardio", "other", "weigh", "weeks", "deficit", "warnings", "rate", "weightpts", "goal", "buys", "costs", "profile", "backup", "sync", "install", "numbers"];
+  var GUIDE_ORDER = ["points", "bank", "logging", "plan", "events", "redeem", "workouts", "steps", "cardio", "other", "weigh", "weeks", "deficit", "warnings", "rate", "weightpts", "goal", "buys", "costs", "profile", "backup", "sync", "install", "numbers"];
 
   // ---------- Sheet ----------
   var sheetOnClose = null;
@@ -3808,6 +3920,12 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function favNeedFor(fv, rows, meal, date) {
     return Math.max(0, settleForm(withFav(rows, fv, meal), date).spent - settleForm(rows, date).spent);
   }
+  // On an event day: the picked day's form with these food rows, scored (see scoreEvent).
+  function formEvent(rows, date) {
+    var f = Object.assign(captureForm(), { plan: "no", food: rows.filter(function (x) { return !!x.meal; }) });
+    return buildDay(getDay(date), f, date, Date.now()).event || { over: 0, room: 0 };
+  }
+  function favEventNeed(fv, rows, meal, date) { return Math.max(0, formEvent(withFav(rows, fv, meal), date).over - formEvent(rows, date).over); }
   // The tab Redeem opens on: the meal around this time of day, or Snack late at night.
   var RTABS = ["breakfast", "lunch", "dinner", "snack", "drink"];
   function redeemTab() {
@@ -3841,20 +3959,22 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       var label = b.querySelector(".tlab").textContent;
       b.setAttribute("aria-label", label + (on ? ", favorites only" : "") + (cur ? ". Tap again to " + (on ? "show all." : "show favorites only.") : ""));
     });
-    var date = state.logDate;
+    var date = state.logDate, evd = isEvent(date);
     var rows = picked("plan") === "no" ? state.food : [];
     // Calories under plan in the picked day's log (skipped or smaller meals) are extra points for that day's
-    // food only. Drinks come from the bank, and so does everything past a second skipped meal in a week.
+    // food only. Drinks come from the bank, and so does everything past a second skipped meal in a week. On an
+    // event day what's left of the burn plays that part, for anything.
     var stl = settleForm(rows, date), drinkTab = tab === "drink";
     var dayTxt = date === today() ? "today" : fmtShort(date), ex = $("rExtra"), lines = [];
-    if (drinkTab) { if (stl.left + stl.voidLeft) lines.push([stl.left + stl.voidLeft, false]); }
+    if (evd) { var room = formEvent(rows, date).room; if (room) lines.push([room, true, "of your burn left " + dayTxt]); }
+    else if (drinkTab) { if (stl.left + stl.voidLeft) lines.push([stl.left + stl.voidLeft, false]); }
     else { if (stl.left) lines.push([stl.left, true]); if (stl.voidLeft) lines.push([stl.voidLeft, false]); }
     ex.hidden = !lines.length && date === today();
     ex.textContent = lines.length ? "" : "For " + fmtDay(date);
     lines.forEach(function (ln) {
       var row = el("span", "rxl");
       row.appendChild(el("span", null, "+" + fmt(ln[0]) + " "));
-      row.appendChild(el("span", ln[1] ? null : "no", ln[1] ? "under plan " + dayTxt : "not eligible"));
+      row.appendChild(el("span", ln[1] ? null : "no", ln[2] || (ln[1] ? "under plan " + dayTxt : "not eligible")));
       ex.appendChild(row);
     });
     ex.classList.toggle("on", lines.length > 0);
@@ -3863,7 +3983,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var all = favorites();
     var inTab = all.filter(function (fv) { return cheatType(fv) === (mealTab ? "meal" : tab); });
     var items = inTab.filter(function (fv) { return !favOnly || starredFor(fv, tab); }).map(function (fv) {
-      return { fv: fv, need: favCostFor(fv, rows, meal, date), take: favNeedFor(fv, rows, meal, date) };
+      var en = evd ? favEventNeed(fv, rows, meal, date) : 0;
+      return { fv: fv, need: evd ? en : favCostFor(fv, rows, meal, date), take: evd ? en : favNeedFor(fv, rows, meal, date) };
     }).sort(function (a, b) {
       if (a.need !== b.need) return a.need - b.need;
       var x = favKey(a.fv.name), y = favKey(b.fv.name);
@@ -3894,7 +4015,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       b.appendChild(el("span", "rs", fmt(fv.kcal) + " cal" + (fv.posted === false ? " +25%" : "")));
       var v = el("span", "rv");
       v.appendChild(el("span", "rp", fmt(need)));
-      v.appendChild(el("span", "rq", !ok ? why : need === 0 ? "free" : "pts"));
+      v.appendChild(el("span", "rq", !ok ? why : need === 0 ? (evd ? "within burn" : "free") : "pts"));
       b.appendChild(v);
       b.addEventListener("click", function () { redeemFavorite(fv.id, meal); });
       li.appendChild(b);
@@ -4033,7 +4154,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       li.appendChild(row2);
       li.appendChild(how);
       list.appendChild(li);
-      state.foodEls.push({ cost: cost, how: how, fav: fav, snack: addSnack, kc: kc });
+      state.foodEls.push({ cost: cost, how: how, fav: fav, snack: addSnack, nosnack: nsk, kc: kc });
       nsb.addEventListener("change", function () { f.noSnack = nsb.checked; updatePreview(); });
       addSnack.addEventListener("click", function () {
         state.food.splice(i + 1, 0, { meal: "extra", kcal: 0, qty: 1, posted: true, name: "" });
@@ -4645,6 +4766,38 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     $("tDays").textContent = String(ts.run);
     $("tPts").textContent = String(ts.pts);
   }
+  // ---------- Event days ----------
+  // The toggle at the top of the log: on or off for the picked day, its own entry (ev-DATE), saved right away.
+  function renderEvent() {
+    var date = state.logDate, on = isEvent(date), used = eventsIn(date.slice(0, 7));
+    var open = Date.now() <= eventDeadline(date), full = !on && used >= EVENT_MAX;
+    var btn = $("evBtn");
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.classList.toggle("locked", !open || full);
+    btn.setAttribute("aria-disabled", !open || full ? "true" : "false");
+    $("evLeft").textContent = Math.max(0, EVENT_MAX - used) + " of " + EVENT_MAX + " left in " + monthName(date);
+    $("evHint").hidden = !on;
+    $("evHint").textContent = on ? "Goal: maintain. Only calories past your burn cost points, and nothing is earned." : "";
+  }
+  function toggleEvent() {
+    var date = state.logDate;
+    if (state.readOnly || !validDate(date) || date > today()) return;
+    var id = "ev-" + date, on = isEvent(date);
+    if (Date.now() > eventDeadline(date)) { toast("Past noon the next day, so " + fmtShort(date) + " can't change now."); return; }
+    if (!on && eventsIn(date.slice(0, 7)) >= EVENT_MAX) { toast("All " + EVENT_MAX + " event days in " + monthName(date) + " are used."); return; }
+    // What the saved day nets each way, for the message.
+    var d = getDay(date), change = 0;
+    if (d && on) change = d.event.normal - (d.pts - d.spent);
+    else if (d) { var c = clone(d); scoreEvent(c); change = (c.pts - c.spent) - (d.pts - d.spent); }
+    buzz();
+    var mark = function () { return write(id, { kind: "event", date: date, ts: Date.now() }); };
+    (on ? remove(id) : mark()).then(function (ok) {
+      if (!ok) return;
+      snack(fmtShort(date) + (on ? " is a normal day again" : " is an event day") + (change ? ": " + signed(change) : ""), function () {
+        (on ? mark() : remove(id)).then(function (ok2) { if (ok2) toast("Undone"); });
+      });
+    });
+  }
   function setTally(a) {
     var date = state.logDate;
     if (!validDate(date) || date > today()) return;
@@ -4653,15 +4806,30 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     if (cur && cur.kind === "tally" && cur.a === a) remove(id);
     else write(id, { kind: "tally", date: date, a: a, ts: Date.now() });
   }
+  // How much of an entry's full value it earned: all of it on time, none if it was logged late, part of it if it
+  // was raised after the deadline.
+  function earnedShare(pts, fresh, late) { return fresh > 0 ? Math.min(1, (pts || 0) / fresh) : late ? 0 : 1; }
+  function calTxt(n) { n = Math.round(n); return (n > 0 ? "+" : n < 0 ? "−" : "") + fmt(Math.abs(n)) + " cal"; }
+  // On an event day a field shows the calories it adds to the burn ("late" when it's past the deadline).
+  function setCal(id, cal, late) {
+    var o = typeof id === "string" ? $(id) : id;
+    cal = Math.round(cal);
+    o.classList.add("cal");
+    o.textContent = cal > 0 ? "+" + fmt(cal) : late ? "late" : "0";
+    if (cal > 0) o.appendChild(el("small", null, " cal"));
+    o.classList.toggle("zero", cal <= 0);
+    o.classList.toggle("late", cal <= 0 && !!late);
+  }
   // A field's points: what it will earn, "late" when it would earn but it's past the deadline.
   function setPts(id, pts, fresh) {
     var o = typeof id === "string" ? $(id) : id;
+    o.classList.remove("cal");
     o.textContent = pts > 0 ? plus(pts) : fresh > 0 ? "late" : "0";
     o.classList.toggle("zero", pts <= 0);
     o.classList.toggle("late", pts <= 0 && fresh > 0);
   }
   function updatePreview() {
-    var date = state.logDate, f = captureForm(), prev = getDay(date), now = Date.now();
+    var date = state.logDate, f = captureForm(), prev = getDay(date), now = Date.now(), evd = isEvent(date);
     var basis = prev ? { weight: prev.weight, tight: prev.tight } : settings();
     var b = bandFor(basis.weight || 250), k = rateK(basis.tight);
     var lateNow = now > deadline(date);
@@ -4679,27 +4847,42 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         var els = state.foodEls[i];
         if (!els) return;
         var r = frs[i], kc = num(fd.kcal), c = r ? r.cost : 0, base = r ? r.base : 0, sk = r && r.skip;
-        els.snack.hidden = !(sk && !sk.noSnack && sk.short > 0) || state.readOnly;
-        if (fd.skip) {
+        els.snack.hidden = evd || !(sk && !sk.noSnack && sk.short > 0) || state.readOnly;
+        els.nosnack.hidden = evd;
+        els.cost.classList.toggle("cal", evd);
+        if (evd) {
+          // An event day counts calories, not points: each row shows what it adds to the day's intake (a skip, what it
+          // takes off).
+          var dl = r ? r.est - r.base : 0, ql = qtyOf(fd), sh = MEAL_INFO[fd.meal] ? MEAL_INFO[fd.meal].short : "";
+          var lead2 = (ql > 1 ? ql + " × " + fmt(kc) : fmt(kc)) + (fd.posted === false ? " + 25%" : "");
+          els.cost.textContent = r ? calTxt(dl) : "";
+          els.cost.classList.toggle("zero", dl <= 0);
+          els.how.textContent = !r ? "" : fd.skip ? (r.base ? "Skipped plan " + sh : "Plan " + sh + " already counted above") :
+            r.base ? lead2 + " − " + fmt(r.base) + " plan " + sh :
+            isPlanMeal(fd.meal) ? lead2 + " (plan " + sh + " already counted above)" : ql > 1 || fd.posted === false ? lead2 : "";
+          if (fd.skip) return;
+        } else if (fd.skip) {
           var pen = sk ? sk.pen : 0;
           els.cost.textContent = pen ? "−" + fmt(pen) : "0";
           els.cost.classList.toggle("zero", !pen);
           els.how.textContent = !base ? "Plan " + MEAL_INFO[fd.meal].short + " already counted above" : !sk ? fmt(base) + " under plan · Eat a snack; don't overeat at another meal." : skipHow(sk);
           return;
         }
-        // The cost depends on the meal it replaced, so it waits until one is picked.
-        var pc = sk ? sk.pen : c;
-        els.cost.textContent = kc && fd.meal ? (pc ? "−" + fmt(pc) : "0") : "";
-        els.cost.classList.toggle("zero", !pc);
-        var q = qtyOf(fd), dup = kc && isPlanMeal(fd.meal) && r && !base;
-        var lead = (q > 1 ? q + " × " + fmt(kc) : fmt(kc)) + (fd.posted === false ? " + 25%" : "");
-        els.how.textContent = !kc || !fd.meal || !r ? "" :
-          sk ? "Under ¼ of plan " + MEAL_INFO[fd.meal].short + ", so it counts as skipped · " + skipHow(sk) :
-          r.snack ? (q > 1 || fd.posted === false ? lead + " · " : "") + "Snack for the skipped " + MEAL_INFO[r.snackFor].short + (r.snack < r.est ? " (" + fmt(r.snack) + " of it)" : "") :
-          q > 1 || fd.posted === false || base || dup
-          ? lead + (base ? " − " + fmt(base) + " plan " + MEAL_INFO[fd.meal].short : "") +
-            (r.credit ? " · " + fmt(r.credit) + " under plan" : "") + (dup ? " (plan " + MEAL_INFO[fd.meal].short + " already counted above)" : "")
-          : "";
+        if (!evd) {
+          // The cost depends on the meal it replaced, so it waits until one is picked.
+          var pc = sk ? sk.pen : c;
+          els.cost.textContent = kc && fd.meal ? (pc ? "−" + fmt(pc) : "0") : "";
+          els.cost.classList.toggle("zero", !pc);
+          var q = qtyOf(fd), dup = kc && isPlanMeal(fd.meal) && r && !base;
+          var lead = (q > 1 ? q + " × " + fmt(kc) : fmt(kc)) + (fd.posted === false ? " + 25%" : "");
+          els.how.textContent = !kc || !fd.meal || !r ? "" :
+            sk ? "Under ¼ of plan " + MEAL_INFO[fd.meal].short + ", so it counts as skipped · " + skipHow(sk) :
+            r.snack ? (q > 1 || fd.posted === false ? lead + " · " : "") + "Snack for the skipped " + MEAL_INFO[r.snackFor].short + (r.snack < r.est ? " (" + fmt(r.snack) + " of it)" : "") :
+            q > 1 || fd.posted === false || base || dup
+            ? lead + (base ? " − " + fmt(base) + " plan " + MEAL_INFO[fd.meal].short : "") +
+              (r.credit ? " · " + fmt(r.credit) + " under plan" : "") + (dup ? " (plan " + MEAL_INFO[fd.meal].short + " already counted above)" : "")
+            : "";
+        }
         var saved = kc && String(fd.name || "").trim() && isFavorite({ name: fd.name, kcal: Math.round(kc), meal: fd.meal, posted: fd.posted !== false });
         els.fav.textContent = saved ? "★ Cheat" : "Save cheat";
         els.fav.classList.toggle("done", !!saved);
@@ -4709,40 +4892,56 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
 
     // The day as it would be saved (food waiting on its meal isn't counted yet).
     var fp = f.plan === "no" ? Object.assign({}, f, { food: f.food.filter(function (x) { return !!x.meal; }) }) : f;
-    var day = buildDay(prev, fp, date, now);
+    var day = buildDay(prev, fp, date, now), ev = day.event;
     if (f.plan !== "yes") { day.bonus = 0; day.pts = day.activityPts; }
     var fresh = freshPts(f, basis);
-    setPts("stepPts", day.steps ? day.steps.pts : 0, fresh.steps);
+    // On an event day each activity shows the calories it adds to the burn instead of points.
+    if (ev) setCal("stepPts", day.steps ? BURN_PER_PT * stepPts(b, 1, day.steps.total) * earnedShare(day.steps.pts, stepPts(b, k, day.steps.total), day.steps.late) : 0, day.steps && day.steps.late);
+    else setPts("stepPts", day.steps ? day.steps.pts : 0, fresh.steps);
     var sc = scoreActs(prev, f.acts, b, k, lateNow, basis.weight || 250);
     state.acts.forEach(function (a, i) {
       var els = state.actEls[i], r = sc[i];
       if (!els) return;
-      setPts(els.pts, r ? r.pts : 0, r ? r.fresh : 0);
+      if (ev) setCal(els.pts, r ? BURN_PER_PT * actPts(a, b, 1, basis.weight || 250) * earnedShare(r.pts, r.fresh, r.late) : 0, r && r.late);
+      else setPts(els.pts, r ? r.pts : 0, r ? r.fresh : 0);
       els.how.textContent = actHow(a, b, k, basis.weight || 250);
       if (els.save) els.save.disabled = state.readOnly || !String(a.name || "").trim();
     });
 
     var dirty = isDirty(date, f);
     var shown = !!prev || !!f.plan;
+    $("sumEarnRow").hidden = !!ev;
     $("sumEarn").textContent = plus(day.activityPts);
-    $("sumBonusRow").hidden = !day.bonus;
+    $("sumBonusRow").hidden = !!ev || !day.bonus;
     $("sumBonus").textContent = plus(day.bonus);
     var ns = settle(savedItems(day.food), date);
-    $("sumFoodRow").hidden = !ns.gross;
+    $("sumFoodRow").hidden = !!ev || !ns.gross;
     $("sumFood").textContent = ns.gross ? "−" + fmt(ns.gross) : "0";
-    $("sumOffRow").hidden = !ns.off;
+    $("sumOffRow").hidden = !!ev || !ns.off;
     $("sumOff").textContent = "+" + fmt(ns.off);
-    $("sumPenRow").hidden = !ns.pen;
+    $("sumPenRow").hidden = !!ev || !ns.pen;
     $("sumPen").textContent = "−" + fmt(ns.pen);
+    // An event day: the burn, what you ate, and how far past (or under) the burn that is.
+    ["sumBurnRow", "sumAteRow", "sumOverRow"].forEach(function (id) { $(id).hidden = !ev; });
+    if (ev) {
+      $("sumBurn").textContent = fmt(ev.burn);
+      $("sumAte").textContent = fmt(ev.ate);
+      $("sumOverLab").textContent = ev.over ? "Past your burn" : date === today() ? "Room left" : "Under your burn";
+      $("sumOver").textContent = ev.over ? "−" + fmt(ev.over) : fmt(ev.room);
+      $("sumOver").className = ev.over ? "spend" : "earn";
+    }
     var net = shown ? day.pts - day.spent : 0;
     var dt = $("dayTotal");
     dt.textContent = signed(net);
     dt.classList.toggle("neg", net < 0);
+    $("sumWas").hidden = !(ev && shown);
+    $("sumWas").textContent = ev && shown ? "As a normal day: " + signed(ev.normal - (f.plan !== "yes" ? ev.bonus : 0)) : "";
     $("bankAfter").textContent = dirty && shown ? "Bank after saving: " + money(bankWith(date, day)) : "";
 
     var warns = [];
-    var lostLate = lateNow && fresh.total > day.activityPts;
-    if (lostLate) warns.push({ kind: "info", text: "Past noon the next day, so new activity earns nothing. Food still counts.", help: "logging" });
+    var lostLate = lateNow && (ev ? ev.lateBurn > 0 : fresh.total > day.activityPts);
+    if (lostLate) warns.push(ev ? { kind: "info", text: "Past noon the next day, so new activity doesn't add to the burn. Food still counts.", help: "events" }
+      : { kind: "info", text: "Past noon the next day, so new activity earns nothing. Food still counts.", help: "logging" });
     if (ready() && shown) {
       var W = basis.weight;
       var std = stdActivity(day);
@@ -4751,9 +4950,10 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       if (std > BIG_DAY) warns.push({ kind: "warn", text: "Big activity day. Fine now and then; work up to days like this.", help: "warnings" });
       if (deficit > DEFICIT_PER_LB * W) warns.push({ kind: "warn", text: "Deficit about " + fmt(near50(deficit)) + " today, past the 1%-a-week pace (" + fmt(near50(5 * W)) + "). Eating some points is fine.", help: "warnings" });
       if (day.food.length && intake < floorKcal()) warns.push({ kind: "warn", text: "Intake about " + fmt(near50(intake)) + ", under your " + fmt(floorKcal()) + " floor. Eat the rest of your plan meals.", help: "warnings" });
-      if (day.spent > BIG_FOOD) warns.push({ kind: "info", text: "Over " + fmt(BIG_FOOD) + " off plan. Expect a 2–5 lb water jump for a few days.", help: "warnings" });
+      if ((ev ? ns.gross : day.spent) > BIG_FOOD) warns.push({ kind: "info", text: "Over " + fmt(BIG_FOOD) + " off plan. Expect a 2–5 lb water jump for a few days.", help: "warnings" });
     }
     renderNoteList($("dayWarns"), warns);
+    renderEvent();
 
     var btn = $("saveDay");
     if (prev && !dirty) { btn.textContent = "Saved"; btn.disabled = true; }
@@ -4807,10 +5007,12 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var tr = day.acts.filter(function (e) { return e.mph; }).pop();
     if (tr) setMeta({ tread: { mph: tr.mph, grade: tr.grade } });
     var fresh = freshPts(f, prev ? { weight: prev.weight, tight: prev.tight } : settings());
-    var late = now > deadline(date) && fresh.total > day.activityPts;
+    var late = now > deadline(date) && (day.event ? day.event.lateBurn > 0 : fresh.total > day.activityPts);
     var btn = $("saveDay");
     btn.disabled = true;
-    write(id, day).then(function (ok) {
+    var rec = Object.assign({}, day);
+    delete rec.event;
+    write(id, rec).then(function (ok) {
       btn.disabled = state.readOnly;
       if (!ok) return;
       var d = Object.assign({}, state.drafts[date] || {});
@@ -4931,6 +5133,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var a = Math.abs(n), s = a >= 1000 ? (Math.round(a / 100) / 10).toFixed(1).replace(/\.0$/, "") + "k" : fmt(a);
     return (n < 0 ? "−" : "") + s;
   }
+  var EV_MARK = '<svg class="evmark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l2.6 7.9 7.9 2.6-7.9 2.6-2.6 7.9-2.6-7.9-7.9-2.6 7.9-2.6z"/></svg>';
   // order: the tile's place in the strip, so a glint can run along the chain.
   function chainSVG(kind, order) {
     var links = kind === "n"
@@ -4972,18 +5175,19 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       (function (date, oldest, order) {
         var dd = parseISO(date);
         var has = Object.prototype.hasOwnProperty.call(nets, date);
-        var picked = date === state.logDate;
-        var b = el("button", "day" + (has ? " has" : "") + (date === t ? " today" : "") + (picked ? " sel" : ""));
+        var picked = date === state.logDate, ev = isEvent(date);
+        var b = el("button", "day" + (has ? " has" : "") + (date === t ? " today" : "") + (picked ? " sel" : "") + (ev ? " ev" : ""));
         b.type = "button";
         b.setAttribute("data-date", date);
         b.setAttribute("aria-pressed", picked ? "true" : "false");
-        b.setAttribute("aria-label", fmtDay(date) + (has ? ", net " + signed(nets[date]) + " points" : ", not logged") + (hasDraft(date) ? ", unsaved changes" : ""));
+        b.setAttribute("aria-label", fmtDay(date) + (ev ? ", event day" : "") + (has ? ", net " + signed(nets[date]) + " points" : ", not logged") + (hasDraft(date) ? ", unsaved changes" : ""));
         b.appendChild(el("span", "dl", "SMTWTFS".charAt(dd.getDay())));
         b.appendChild(el("span", "dd", oldest || dd.getDate() === 1 ? fmtShort(date) : String(dd.getDate())));
         var v = has ? tileNum(nets[date]) : "·";
         var len = v.replace(/[^0-9.k−]/g, "").length;
         b.appendChild(el("span", "dp" + (has && nets[date] < 0 ? " neg" : "") + (len >= 5 ? " l5" : len === 4 ? " l4" : ""), v));
         if (marks[date]) b.insertAdjacentHTML("beforeend", chainSVG(marks[date], order));
+        if (ev) b.insertAdjacentHTML("beforeend", EV_MARK);
         if (hasDraft(date)) b.appendChild(el("span", "draftdot"));
         b.addEventListener("click", function () { selectDay(date, { scroll: "sel" }); });
         wrap.appendChild(b);
@@ -5374,7 +5578,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     more.textContent = state.weeksAll ? "Show fewer" : "Show all " + rows.length;
   }
   function describeDay(d) {
-    var parts = [];
+    var parts = d.event ? ["Event day"] : [];
     d.acts.forEach(function (e) { parts.push(e.name + " " + (e.mode === "kcal" ? fmt(e.kcal) + " cal" : e.min + " min")); });
     if (d.steps) parts.push(fmt(d.steps.total) + " steps");
     if (!parts.length) parts.push(d.onPlan ? "On plan" : "No activity");
@@ -5387,7 +5591,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       var q = Math.max(1, Math.round(+f.qty || 1));
       if (f.skip) return "skipped " + (MEAL_INFO[f.meal] || MEAL_INFO.extra).short + (f.noSnack ? " (no snack)" : "");
       return (q > 1 ? q + " × " : "") + (f.name || (MEAL_INFO[f.meal] || MEAL_INFO.extra).short) + " " + fmt((f.kcal || 0) * q) + " cal";
-    }).join(", ") + " (−" + fmt(d.spent) + ")";
+    }).join(", ") + (!d.event ? " (−" + fmt(d.spent) + ")" : d.event.over ? " (−" + fmt(d.event.over) + " past your burn)" : " (within your burn)");
   }
   function renderHistory() {
     var items = allDays().map(function (d) { return Object.assign({ kind: "day" }, d); }).concat(allOf("spend"));
@@ -5685,7 +5889,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       var li = el("li"), open = inStrip(b.date);
       var row = el(open ? "button" : "div", "hrow" + (open ? "" : " static"));
       var NB = " ";
-      var when = fmtDay(b.date) + (b.partial ? " (so far)" : "");
+      var when = fmtDay(b.date) + (b.partial ? " (so far)" : "") + (isEvent(b.date) ? " · Event day" : "");
       var beyond = "Ate " + fmt(b.ate) + " · Burned " + fmt(b.life + b.act) + " beyond" + NB + "BMR";
       var parts = "Daily life" + NB + fmt(b.life) + " + activity" + NB + fmt(b.act);
       var rest = "BMR " + fmt(b.bmr) + " at" + NB + lbStr(b.lb) + NB + "lb" + (b.lbDate && b.lbDate !== b.date ? " (" + fmtShort(b.lbDate) + ")" : "");
@@ -5946,9 +6150,10 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       var d = obj.docs[id];
       if (!ID_RE.test(id) || !d || typeof d !== "object" || Array.isArray(d)) return;
       var kind = id === "settings" ? "settings" : id === "favorites" ? "favorites" : id === "activities" ? "activities" : id.indexOf("day-") === 0 ? "day" :
-        id.indexOf("w-") === 0 ? "weigh" : id.indexOf("t-") === 0 ? "tally" : "spend";
+        id.indexOf("w-") === 0 ? "weigh" : id.indexOf("t-") === 0 ? "tally" : id.indexOf("ev-") === 0 ? "event" : "spend";
       if (d.kind !== kind) return;
-      if ((kind === "day" || kind === "weigh" || kind === "spend" || kind === "tally") && !validDate(d.date)) return;
+      if ((kind === "day" || kind === "weigh" || kind === "spend" || kind === "tally" || kind === "event") && !validDate(d.date)) return;
+      if (kind === "event" && "ev-" + d.date !== id) return;
       if (kind === "tally" && (d.a !== "y" && d.a !== "n" || "t-" + d.date !== id)) return;
       out[id] = clone(d);
     });
@@ -6041,7 +6246,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     allOf("spend").forEach(function (s) { slot(s.date).spends.push(s); });
     weighIns().forEach(function (w) { slot(w.date).weigh = w; });
     var header = ["Date", "Weight (lb)", "Stuck to plan", "Off-plan food", "Off-plan calories", "Activities", "Steps",
-      "Activity points", "On-plan bonus", "Points spent", "Net", "Bank after", "Logged late"];
+      "Activity points", "On-plan bonus", "Points spent", "Net", "Bank after", "Logged late", "Event day"];
     var lines = [header.map(function (h) { return csvCell(h); }).join(",")];
     var bank = 0, hits = tallyState().hits, hi = 0;
     Object.keys(byDate).sort().forEach(function (date) {
@@ -6064,7 +6269,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         [d ? d.acts.map(function (e) { return e.name + " " + (e.mode === "kcal" ? e.kcal + " cal" + (e.min ? ", " + e.min + " min" : "") : e.min + " min"); }).join("; ") : "", true],
         [d && d.steps ? d.steps.total : ""],
         [d ? d.activityPts : ""], [d ? d.bonus : ""], [logged ? spent : ""], [logged ? earned - spent : ""], [logged ? bank : ""],
-        [d ? (d.late ? "Yes" : "No") : ""]
+        [d ? (d.late ? "Yes" : "No") : ""], [d ? (d.event ? "Yes" : "No") : ""]
       ];
       lines.push(row.map(function (c) { return csvCell(c[0], c[1]); }).join(","));
     });
@@ -6519,7 +6724,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     Array.prototype.forEach.call(document.querySelectorAll(".tabbtn"), function (b) {
       if (b.getAttribute("data-tab") === name) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
     });
-    if (name === "today") renderStrip("sel");
+    if (name === "today") { renderStrip("sel"); fitBank(); }
     if (name === "redeem") renderRedeem();
     if (name === "progress") renderProgress();
     if (name === "guide") renderGuide(opts && opts.topic);
@@ -6529,7 +6734,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function renderAccess() {
     var ro = state.readOnly;
     ["steps", "addAct", "nextAdd", "actEdit", "actEdit2", "cheatAdd", "addFood", "weight", "wLb", "wSave", "favPick",
-      "pfSave", "goalNameIn", "goalPtsIn", "goalSave", "goalClear", "restoreBtn", "eraseBtn", "tYes", "tNo"]
+      "pfSave", "goalNameIn", "goalPtsIn", "goalSave", "goalClear", "restoreBtn", "eraseBtn", "tYes", "tNo", "evBtn"]
       .forEach(function (id) { var e = $(id); if (e) e.disabled = ro; });
     radios("plan").concat(radios("rate")).forEach(function (r) { r.disabled = ro; });
     Array.prototype.forEach.call(document.querySelectorAll("#foodList input, #foodList select, #foodList button, #actList input, #actList select, #actList button, #pfForm input"), function (c) { if (ro) c.disabled = true; });
@@ -6629,6 +6834,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   $("toToday").addEventListener("click", function () { selectDay(today(), { scroll: "end" }); });
   $("week").addEventListener("scroll", stripFades, { passive: true });
   $("tYes").addEventListener("click", function () { setTally("y"); });
+  $("evBtn").addEventListener("click", toggleEvent);
   $("tNo").addEventListener("click", function () { setTally("n"); });
   $("histMore").addEventListener("click", function () { state.histAll = !state.histAll; renderHistory(); });
   $("weeksMore").addEventListener("click", function () { state.weeksAll = !state.weeksAll; renderWeeks(); });
@@ -7139,7 +7345,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   // Buttons and boxed sections glow cyan under the mouse (CSS :hover). On a touch screen, whatever you tap glows
   // for a moment instead; a scroll that starts on it cancels the glow.
   var GLOW_TAP = ".btn, .songbtn, .seg label, .rtabs button, .ptabs button, .rangebar button, .day, .qm, .redeem-pill, .music, " +
-    ".stripnav, .ritem, .topic > summary, .tabbtn, .linkbtn, .board, .hero, .fitem, .aitem, .tally";
+    ".stripnav, .ritem, .topic > summary, .tabbtn, .linkbtn, .board, .hero, .fitem, .aitem, .tally, .evbtn";
   function untap(n) {
     clearTimeout(n._tap);
     n._tap = setTimeout(function () { n.classList.remove("tap"); }, 380);
@@ -7204,7 +7410,12 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     if (motion.countRaf) { cancelAnimationFrame(motion.countRaf); motion.countRaf = 0; }
     var from = motion.shown !== null ? motion.shown : prev;
     motion.shown = null;
-    function put(v) { bn.textContent = money(v); bn.classList.toggle("neg", v < 0); }
+    function put(v) {
+      var t = money(v);
+      bn.textContent = t;
+      bn.classList.toggle("neg", v < 0);
+      if (t.length !== motion.bankLen) { motion.bankLen = t.length; fitBank(); }
+    }
     if (prev === null || prev === bank || !motion.on || navigator.webdriver || !bn.offsetParent) { put(bank); return; }
     floatDelta(bank - prev);
     var start = 0, dur = Math.min(1100, 420 + Math.abs(bank - from) * 1.5);
@@ -7220,6 +7431,19 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     motion.shown = from;
     motion.countRaf = requestAnimationFrame(step);
   }
+  // A long bank (−4,673) shrinks to fit, so "pts" stays on the board.
+  function fitBank() {
+    var n = $("bankNum"), unit = n.nextElementSibling, board = n.closest(".board");
+    if (!board || !unit || !board.offsetParent) return;
+    n.style.fontSize = "";
+    var bs = getComputedStyle(board);
+    var over = unit.getBoundingClientRect().right - (board.getBoundingClientRect().right - parseFloat(bs.paddingRight) - parseFloat(bs.borderRightWidth));
+    if (over <= 0) return;
+    var w = n.getBoundingClientRect().width;
+    n.style.fontSize = (parseFloat(getComputedStyle(n).fontSize) * Math.max(0.5, (w - over - 2) / w)).toFixed(1) + "px";
+  }
+  window.addEventListener("resize", fitBank);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitBank);
   function floatDelta(d) {
     var line = $("bankNum").parentNode;
     var f = el("span", "bankfloat" + (d < 0 ? " neg" : ""), (d > 0 ? "+" : "−") + fmt(Math.abs(d)));
