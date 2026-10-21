@@ -2298,7 +2298,7 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.18.1","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.21.1","profile":null};</script>
 <script>
 /* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
    strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
@@ -2340,9 +2340,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   var BACKUP_DAYS = 7;
   var TALLY_RUN = 7, TALLY_HIT = 1000;
   // Event days (a wedding, a vacation day, a holiday): the goal is maintenance. Up to EVENT_MAX in a calendar
-  // month, set by noon the next day. Days before event days arrived (EVENT_SINCE) can be set until noon the day
-  // after EVENT_GRACE.
-  var EVENT_MAX = 6, EVENT_SINCE = "2026-10-18", EVENT_GRACE = "2026-10-24";
+  // month, set by noon the next day. Days before EVENT_SINCE (the wedding and the trip, logged before the update
+  // was installed) can be set until noon the day after EVENT_GRACE.
+  var EVENT_MAX = 6, EVENT_SINCE = "2026-10-21", EVENT_GRACE = "2026-10-24";
   var STRIP_DAYS = 30;        // the day strip runs from 30 days back to today
   var FAV_LIMIT = 200;
   var MEAL_KEYS = ["breakfast", "lunch", "dinner"];
