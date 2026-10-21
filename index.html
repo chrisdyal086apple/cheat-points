@@ -1701,6 +1701,7 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 .tinputs { display: flex; gap: 10px; }
 .tunit { display: inline-flex; align-items: center; gap: 5px; }
 .arow .tunit input[type="number"] { width: 4.4em; }
+.arow.details .tunit input[type="number"] { width: 5.6em; }
 </style>
 <div class="statusfill" aria-hidden="true"></div>
 <div class="vhs" aria-hidden="true"></div>
@@ -2299,7 +2300,7 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.21.2","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.21.3","profile":null};</script>
 <script>
 /* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
    strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
@@ -2370,14 +2371,19 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   ];
   var GROUP_IDS = { strength: 1, cardio: 1, other: 1 };
   var BUILTIN_ACTS = [
-    { id: "L", name: "Lower day", group: "strength", rate: "L", steps: false },
-    { id: "U", name: "Upper day", group: "strength", rate: "U", steps: false },
-    { id: "C", name: "Core day", group: "strength", rate: "C", steps: false },
-    { id: "tread", name: "Treadmill", group: "cardio", rate: "tread", steps: true },
-    { id: "ellip", name: "Elliptical", group: "cardio", rate: "cardio", steps: false },
-    { id: "rower", name: "Rower", group: "cardio", rate: "cardio", steps: false },
-    { id: "bike", name: "Bike", group: "cardio", rate: "cardio", steps: false }
+    { id: "L", name: "Lower day", group: "strength", rate: "L", steps: false, track: "time" },
+    { id: "U", name: "Upper day", group: "strength", rate: "U", steps: false, track: "time" },
+    { id: "C", name: "Core day", group: "strength", rate: "C", steps: false, track: "time" },
+    { id: "tread", name: "Treadmill", group: "cardio", rate: "tread", steps: true, track: "tread" },
+    { id: "ellip", name: "Elliptical", group: "cardio", rate: "cardio", steps: false, track: "time" },
+    { id: "rower", name: "Rower", group: "cardio", rate: "cardio", steps: false, track: "rower" },
+    { id: "bike", name: "Bike", group: "cardio", rate: "cardio", steps: false, track: "bike" }
   ];
+  // Details an activity can take for a closer estimate (all optional): your own activities can take distance and
+  // climb (hikes) or floors (stair climbers). One named like a hike or stairs gets them until you choose.
+  var TRACK_OPTS = [["time", "Minutes only"], ["hike", "Distance and climb"], ["stairs", "Floors climbed"]];
+  function guessTrack(name) { return /hik|trail|ruck/i.test(name) ? "hike" : /stair|step ?mill|stepper/i.test(name) ? "stairs" : "time"; }
+  function trackOf(x, name) { return x === "time" || x === "hike" || x === "stairs" ? x : guessTrack(name); }
   var BUILTIN_IDS = {};
   BUILTIN_ACTS.forEach(function (a) { BUILTIN_IDS[a.id] = a; });
   var ACT_LIMIT = 100;        // activities you can add
@@ -2562,10 +2568,47 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var std = treadKcalMin(mph, grade, lb) * min / BURN_PER_PT - (steps ? treadStepsMin(mph) * min / 1000 * b.s : 0);
     return Math.max(0, Math.round(std * k));
   }
-  // Points for a logged entry or form row, with the treadmill's speed and incline when it has them.
-  function entryPts(b, k, rate, min, steps, mph, grade, lb) {
-    var v = treadSpeed(mph);
-    return rate === "tread" && v ? treadPts(b, k, min, v, treadGrade(grade), lb || 250, steps) : ratePts(b, k, rate, min, steps);
+  // Optional details give a closer estimate than the rate, from the same kind of equations as the treadmill, at
+  // your weight. Hike: the walking equation per meter (running past 4-5 mph) with 20% more for trail, plus the
+  // climb. Stair climber: the climb (a floor is about 10 ft, 16 steps). Rower: power from the pace (Concept2's
+  // formula), about 4 calories an hour per watt. Bike: about 1 calorie per kJ of work. Net of rest, like the rest.
+  var TRAIL = 1.2, FLOOR_M = 3, FLOOR_STEPS = 16;
+  function cleanDetails(x) {
+    var o = {}, mi = num(x.mi), ft = num(x.ft), meters = num(x.meters), watts = num(x.watts), floors = num(x.floors);
+    if (mi >= 0.1 && mi <= 60) { o.mi = Math.round(mi * 100) / 100; if (ft >= 1) o.ft = Math.min(15000, Math.round(ft)); }
+    if (meters >= 100 && meters <= 50000) o.meters = Math.round(meters);
+    if (watts >= 10 && watts <= 800) o.watts = Math.round(watts);
+    if (floors >= 1 && floors <= 1000) o.floors = Math.round(floors);
+    return o;
+  }
+  function rowerWatts(meters, min) { var pace = min * 60 / meters; return Math.min(800, 2.8 / (pace * pace * pace)); }
+  // Net calories from an entry's details, or null when it has none an estimate can use.
+  function detailKcal(x, min, lb) {
+    var c = cleanDetails(x), kgw = kg(lb || 250);
+    if (c.mi) {
+      var t = min > 0 ? treadBlend(c.mi / (min / 60)) : 0;
+      var o2 = c.mi * 1609.34 * (0.1 * (1 - t) + 0.2 * t) * TRAIL + (c.ft || 0) * 0.3048 * (1.8 * (1 - t) + 0.9 * t);   // ml per kg
+      return o2 * kgw / 1000 * 5;
+    }
+    if (c.meters && min > 0) return 4 * rowerWatts(c.meters, min) * min / 60;
+    if (c.watts && min > 0) return c.watts * min * 60 / 1000;
+    if (c.floors) return c.floors * (1.8 * FLOOR_M + 0.1 * FLOOR_STEPS) * kgw / 1000 * 5;
+    return null;
+  }
+  // Steps your phone counted during it (they earn through your step total).
+  function detailSteps(x) {
+    var c = cleanDetails(x);
+    return c.mi ? c.mi * 1609.34 / (0.415 * (profile().heightIn || 70) * 0.0254) : c.floors ? c.floors * FLOOR_STEPS : 0;
+  }
+  // Points for a logged entry or form row: from its details (the treadmill's speed and incline, or the others)
+  // when it has them, otherwise from its rate.
+  function entryPts(b, k, rate, min, steps, x, lb) {
+    x = x || {};
+    var v = treadSpeed(x.mph);
+    if (rate === "tread" && v) return treadPts(b, k, min, v, treadGrade(x.grade), lb || 250, steps);
+    var kc = detailKcal(x, Math.max(0, +min || 0), lb);
+    if (kc != null) return Math.max(0, Math.round((kc / BURN_PER_PT - (steps ? detailSteps(x) / 1000 * b.s : 0)) * k));
+    return ratePts(b, k, rate, min, steps);
   }
   function screenPts(b, k, kcal, stepMin) { return Math.max(0, Math.round(((+kcal || 0) * SCREEN_SHARE - Math.max(0, +stepMin || 0) / 10 * b.s) * k)); }
   function otherPts(b, k, min, level) { return Math.round(Math.max(0, +min || 0) / 10 * (b.o[level] || b.o.moderate) * k); }
@@ -2752,7 +2795,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var s = day.steps ? part(stepPts(bs, 1, day.steps.total), stepPts(be, k, day.steps.total), day.steps) : 0;
     return s + sum(day.acts, function (e) {
       return e.mode === "kcal" ? part(screenPts(bs, 1, e.kcal, e.steps ? e.min : 0), screenPts(be, k, e.kcal, e.steps ? e.min : 0), e)
-        : part(entryPts(bs, 1, e.rate, e.min, e.steps, e.mph, e.grade, day.weight), entryPts(be, k, e.rate, e.min, e.steps, e.mph, e.grade, day.weight), e);
+        : part(entryPts(bs, 1, e.rate, e.min, e.steps, e, day.weight), entryPts(be, k, e.rate, e.min, e.steps, e, day.weight), e);
     });
   }
   function isEvent(date) { var d = state.docs.get("ev-" + date); return !!d && d.kind === "event"; }
@@ -2866,6 +2909,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       var entry = { act: d.id, name: d.name, rate: d.rate, steps: d.steps, mode: kc ? "kcal" : "min",
         min: !kc || d.steps ? m : 0, kcal: kc ? Math.round(num(a.kcal)) : 0, late: r.late, pts: r.pts };
       if (d.rate === "tread" && !kc && treadSpeed(a.mph)) { entry.mph = treadSpeed(a.mph); entry.grade = treadGrade(a.grade); }
+      if (!kc) Object.assign(entry, cleanDetails(rowDetails(a, d)));
       day.acts.push(entry);
     });
     if (f.plan === "no") {
@@ -2907,12 +2951,12 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     saved.forEach(function (x) { if (x && typeof x.id === "string") byId[x.id] = x; });
     var list = BUILTIN_ACTS.map(function (a) {
       var o = byId[a.id] || {};
-      return { id: a.id, name: a.name, group: GROUP_IDS[o.group] ? o.group : a.group, rate: a.rate, steps: typeof o.steps === "boolean" ? o.steps : a.steps, builtin: true };
+      return { id: a.id, name: a.name, group: GROUP_IDS[o.group] ? o.group : a.group, rate: a.rate, steps: typeof o.steps === "boolean" ? o.steps : a.steps, builtin: true, track: a.track };
     });
     saved.forEach(function (x) {
       if (!x || typeof x.id !== "string" || BUILTIN_IDS[x.id]) return;
       var name = String(x.name || "").trim().slice(0, 40);
-      if (name) list.push({ id: x.id, name: name, group: GROUP_IDS[x.group] ? x.group : "other", rate: levelOf(x.rate), steps: !!x.steps, builtin: false });
+      if (name) list.push({ id: x.id, name: name, group: GROUP_IDS[x.group] ? x.group : "other", rate: levelOf(x.rate), steps: !!x.steps, builtin: false, track: trackOf(x.track, name) });
     });
     actCache = { doc: doc, list: list };
     return list;
@@ -2924,7 +2968,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   }
   function saveActivities(list) {
     var items = list.map(function (a) {
-      return a.builtin ? { id: a.id, group: a.group, steps: !!a.steps } : { id: a.id, name: a.name, group: a.group, rate: levelOf(a.rate), steps: !!a.steps };
+      return a.builtin ? { id: a.id, group: a.group, steps: !!a.steps } : { id: a.id, name: a.name, group: a.group, rate: levelOf(a.rate), steps: !!a.steps, track: trackOf(a.track, a.name) };
     });
     return write("activities", { kind: "activities", items: items, ts: Date.now() });
   }
@@ -2934,7 +2978,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   // A row is { act, mode, min, kcal } for an activity on the list, logged by minutes or by screen calories.
   // act "new" is a one-off you name and price by effort; Save activity adds it to the list. keepId holds the
   // activity a saved one-off came from, if it was deleted from the list since.
-  function newRow(act) { return { act: act || "", mode: "min", min: "", kcal: "", name: "", rate: "moderate", steps: false, keepId: "", mph: "", grade: "" }; }
+  function newRow(act) { return { act: act || "", mode: "min", min: "", kcal: "", name: "", rate: "moderate", steps: false, keepId: "", mph: "", grade: "", mi: "", ft: "", meters: "", watts: "", floors: "" }; }
   // A new treadmill row starts at the speed and incline you used last.
   function lastTread() {
     var m = meta().tread;
@@ -2945,9 +2989,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     if (d && d.rate === "tread" && lt && !num(a.mph) && a.grade === "") { a.mph = lt.mph; a.grade = lt.grade; }
   }
   function rowDef(a) {
-    if (a.act === "new") return { id: a.keepId || "", name: String(a.name || "").trim().slice(0, 40) || "Other activity", rate: levelOf(a.rate), steps: !!a.steps, group: "other" };
+    if (a.act === "new") return { id: a.keepId || "", name: String(a.name || "").trim().slice(0, 40) || "Other activity", rate: levelOf(a.rate), steps: !!a.steps, group: "other", track: "time" };
     var x = a.act ? actById(a.act) : null;
-    return x ? { id: x.id, name: x.name, rate: x.rate, steps: x.steps, group: x.group } : null;
+    return x ? { id: x.id, name: x.name, rate: x.rate, steps: x.steps, group: x.group, track: x.track } : null;
   }
   // The form's rows. Drafts from older versions had a box per kind, or rows with a type (t).
   function formActs(f) {
@@ -2966,11 +3010,17 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     return Object.assign(newRow(BUILTIN_IDS[a.t] ? a.t : ""), { min: a.min || "" });
   }
   // What a row was logged with: minutes, or screen calories. 0 means it isn't filled in.
+  // A row's details for its activity (others it may still hold from another pick don't count).
+  function rowDetails(a, d) {
+    var t = d ? d.track : "";
+    return t === "tread" ? { mph: a.mph, grade: a.grade } : t === "hike" ? { mi: a.mi, ft: a.ft } : t === "rower" ? { meters: a.meters } :
+      t === "bike" ? { watts: a.watts } : t === "stairs" ? { floors: a.floors } : {};
+  }
   function actAmount(a) { return rowDef(a) ? Math.round(num(a.mode === "kcal" ? a.kcal : a.min)) : 0; }
   function actPts(a, b, k, lb) {
     var d = rowDef(a), m = Math.round(num(a.min));
     if (!d) return 0;
-    return a.mode === "kcal" ? screenPts(b, k, num(a.kcal), d.steps ? m : 0) : entryPts(b, k, d.rate, m, d.steps, a.mph, a.grade, lb);
+    return a.mode === "kcal" ? screenPts(b, k, num(a.kcal), d.steps ? m : 0) : entryPts(b, k, d.rate, m, d.steps, rowDetails(a, d), lb);
   }
   function entryKey(id, name) { return id || "name:" + String(name || "").trim().toLowerCase(); }
   // Points for each row. Past the deadline, each activity can earn up to what it earned on time before, and one
@@ -3004,7 +3054,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     if (!day) return 0;
     var b = bandFor(day.weight);
     return (day.steps ? stepPts(b, 1, day.steps.total) : 0) + sum(day.acts, function (e) {
-      return e.mode === "kcal" ? screenPts(b, 1, e.kcal, e.steps ? e.min : 0) : entryPts(b, 1, e.rate, e.min, e.steps, e.mph, e.grade, day.weight);
+      return e.mode === "kcal" ? screenPts(b, 1, e.kcal, e.steps ? e.min : 0) : entryPts(b, 1, e.rate, e.min, e.steps, e, day.weight);
     });
   }
   function ledger(days, spends) {
@@ -3435,6 +3485,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "Moderate effort: you can talk but not sing.",
         "<b>Treadmill</b>: enter your speed and incline. It's priced from the standard walking equation (running past 4–5 mph) at your weight, less what its steps already earn in your step total. At 3 mph and 2%, that's about " + (c.ok ? fmt(treadPts(c.b, c.k, 10, 3, 2, c.w, true)) : "10") + " per 10 minutes plus its steps. New treadmill rows start at the speed and incline you used last.",
         "Without speed and incline, Treadmill pays a flat " + fmt(c.b.cs * c.k) + " per 10 minutes, which assumes a brisk, inclined walk. <b>Elliptical</b>, <b>Rower</b> and <b>Bike</b> pay " + fmt(c.b.c * c.k) + ".",
+        "<b>Rower</b>: add the meters and it works out your power from the pace, at about 4 calories an hour per watt. <b>Bike</b>: add the average watts if the screen shows them, at about 1 calorie per kJ. Both are optional; left blank, they pay the flat rate.",
         "Split a session? Add each machine as its own workout.",
         "If your watch counts steps on the elliptical, turn on <b>Counts steps</b> for it in Edit activities.",
         "Logging a machine that counts steps by <b>kcal</b> also asks for the minutes, so its steps aren't paid twice."
@@ -3446,6 +3497,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         tableHTML(["Effort", "How it feels", "Per 10 min"], rows, [2], -1) +
         "<p><b>Counts steps</b>: if your phone or watch counts steps during it, those steps already earn through your step total, so it pays " + fmt(c.b.s * c.k) + " less per 10 minutes, and logging it by kcal asks for the minutes too.</p>" +
         "<p>By <b>kcal</b>, it earns " + Math.round(SCREEN_SHARE * 100) + "% of the screen's number, like everything else.</p>" +
+        "<p><b>Hikes and stair climbers</b>: add the distance and feet climbed (a hiking app has them) or the floors, for an estimate from the walking and climbing equations at your weight, with 20% added for trail. They're optional: left blank, the effort rate is used. <b>Edit activities</b> sets which details each of your activities takes; ones named like a hike or stairs get them to start.</p>" +
         "<p>Plain walking counts through steps only, so don't log it here.</p>";
     } },
     weigh: { title: "Weigh-ins and progress", html: function () {
@@ -4254,9 +4306,33 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var p = lift ? fmt(b[x.rate] * k) + " pts per 45 min, counted up to 60" : fmt(ratePts(b, k, x.rate, 10, x.steps)) + " pts per 10 min";
     return (x.builtin ? "" : effortName(x.rate) + " effort · ") + p;
   }
+  var DETAILS = {
+    hike: { label: "Distance, climb", ask: "distance and climb", fields: [["mi", "actMi", "Distance in miles", "0.01", "mi", "0.0"], ["ft", "actFt", "Feet climbed", "10", "ft", "0"]] },
+    stairs: { label: "Climbed", ask: "the floors", fields: [["floors", "actFloors", "Floors climbed", "1", "floors", "0"]] },
+    rower: { label: "Distance", ask: "the meters", fields: [["meters", "actMeters", "Distance in meters", "10", "m", "0"]] },
+    bike: { label: "Average power", ask: "average watts", fields: [["watts", "actWatts", "Average watts", "1", "W", "0"]] }
+  };
+  function splitText(sec) { var s = Math.round(sec); return Math.floor(s / 60) + ":" + pad(s % 60); }
+  function detailText(t, c, min) {
+    if (t === "hike") return c.mi + " mi" + (c.ft ? ", " + fmt(c.ft) + " ft" : "");
+    if (t === "rower") return fmt(c.meters) + " m, " + splitText(min * 60 / c.meters * 500) + " per 500 m (" + fmt(rowerWatts(c.meters, min)) + " W)";
+    if (t === "bike") return c.watts + " W";
+    return fmt(c.floors) + " floors";
+  }
+  // Short form for history and the spreadsheet.
+  function detailBrief(e) {
+    var c = cleanDetails(e);
+    return c.mi ? ", " + c.mi + " mi" + (c.ft ? ", " + fmt(c.ft) + " ft" : "") : c.meters ? ", " + fmt(c.meters) + " m" : c.watts ? ", " + c.watts + " W" : c.floors ? ", " + fmt(c.floors) + " floors" : "";
+  }
   function actHow(a, b, k, lb) {
     var d = rowDef(a);
     if (!d) return "";
+    var ds = DETAILS[d.track];
+    if (a.mode !== "kcal" && ds) {
+      var c = cleanDetails(rowDetails(a, d)), m = Math.round(num(a.min)), kc = detailKcal(c, m, lb);
+      if (kc == null) return "Add " + ds.ask + " for a closer estimate. Without " + (ds.fields.length > 1 ? "them" : "it") + ": " + rateText(b, k, d.rate, d.steps);
+      return detailText(d.track, c, m) + " ≈ " + fmt(kc) + " cal: " + fmt(entryPts(b, k, d.rate, m, d.steps, c, lb)) + " pts" + (d.steps ? "; its steps count separately" : "");
+    }
     if (a.mode !== "kcal" && d.rate === "tread") {
       var v = treadSpeed(a.mph);
       if (!v) return "Add speed and incline for a closer estimate. Without them: " + rateText(b, k, d.rate, d.steps);
@@ -4329,7 +4405,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     }
     var list = activities().slice();
     if (list.length - BUILTIN_ACTS.length >= ACT_LIMIT) { toast("Your list is full. Delete one first."); return; }
-    var item = { id: newActId(), name: name, group: "other", rate: levelOf(a.rate), steps: !!a.steps, builtin: false };
+    var item = { id: newActId(), name: name, group: "other", rate: levelOf(a.rate), steps: !!a.steps, builtin: false, track: guessTrack(name) };
     list.push(item);
     saveActivities(list).then(function (ok) {
       if (!ok) return;
@@ -4462,6 +4538,30 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         trow.appendChild(tin);
         li.appendChild(trow);
       }
+      var dspec = a.act && !kcalMode && d ? DETAILS[d.track] : null;
+      if (dspec) {
+        var drow = el("div", "arow tread details");
+        drow.appendChild(el("span", "flabel small", dspec.label));
+        var din = el("div", "tinputs");
+        dspec.fields.forEach(function (x) {
+          var inp = el("input");
+          inp.type = "number";
+          inp.id = x[1] + i;
+          inp.inputMode = x[3] === "0.01" ? "decimal" : "numeric";
+          inp.min = "0";
+          inp.step = x[3];
+          inp.placeholder = x[5];
+          inp.setAttribute("aria-label", x[2] + " (optional)");
+          inp.value = a[x[0]] === "" || a[x[0]] == null ? "" : String(a[x[0]]);
+          inp.addEventListener("input", function () { a[x[0]] = inp.value; updatePreview(); });
+          var u = el("label", "tunit");
+          u.appendChild(inp);
+          u.appendChild(el("span", "unit", x[4]));
+          din.appendChild(u);
+        });
+        drow.appendChild(din);
+        li.appendChild(drow);
+      }
       if (a.act && kcalMode && d && d.steps) {
         var srow = el("div", "arow");
         srow.appendChild(el("span", "flabel small", "Minutes, for its steps"));
@@ -4567,6 +4667,15 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
           update(function (list) { list.forEach(function (y) { if (y.id === x.id) y.rate = v; }); });
         });
         ctl.appendChild(es);
+        var tk = el("select");
+        tk.setAttribute("aria-label", "Details for " + x.name);
+        TRACK_OPTS.forEach(function (t) { var o = el("option", null, t[1]); o.value = t[0]; tk.appendChild(o); });
+        tk.value = x.track;
+        tk.addEventListener("change", function () {
+          var v = tk.value;
+          update(function (list) { list.forEach(function (y) { if (y.id === x.id) y.track = v; }); });
+        });
+        ctl.appendChild(tk);
       }
       li.appendChild(ctl);
       var foot = el("div", "actfoot");
@@ -4630,8 +4739,14 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       gs.setAttribute("aria-label", "Where it shows");
       GROUPS.forEach(function (g) { var o = el("option", null, g.label); o.value = g.id; gs.appendChild(o); });
       gs.value = "other";
+      var tk = el("select");
+      tk.id = "newActTrack";
+      tk.setAttribute("aria-label", "Details");
+      TRACK_OPTS.forEach(function (t) { var o = el("option", null, t[1]); o.value = t[0]; tk.appendChild(o); });
+      tk.value = "time";
       ctl.appendChild(es);
       ctl.appendChild(gs);
+      ctl.appendChild(tk);
       add.appendChild(ctl);
       var chk = el("label", "check");
       var cb = el("input");
@@ -4646,7 +4761,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         if (!name) { toast("Name the activity."); return; }
         if (actByName(name)) { toast(name + " is already on the list."); return; }
         if (activities().length - BUILTIN_ACTS.length >= ACT_LIMIT) { toast("Your list is full. Delete one first."); return; }
-        var item = { id: newActId(), name: name, group: gs.value, rate: es.value, steps: cb.checked, builtin: false };
+        var item = { id: newActId(), name: name, group: gs.value, rate: es.value, steps: cb.checked, builtin: false, track: tk.value };
         update(function (list) { list.push(item); });
         toast("Added " + name);
       }));
@@ -4681,6 +4796,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       row.min = e.min || "";
       row.kcal = e.kcal || "";
       if (e.mph) { row.mph = e.mph; row.grade = e.grade || 0; }
+      ["mi", "ft", "meters", "watts", "floors"].forEach(function (key) { if (isNum(e[key])) row[key] = e[key]; });
       f.acts.push(row);
     });
     return f;
@@ -4715,6 +4831,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       var w = [a.act === "new" ? "new:" + (a.keepId || "") : a.act, kc ? "kcal" : "min", kc ? Math.round(num(a.kcal)) : m, kc && d.steps ? m : 0];
       if (a.act === "new") w.push(d.name, d.rate, d.steps);
       if (!kc && d.rate === "tread" && treadSpeed(a.mph)) w.push(treadSpeed(a.mph), treadGrade(a.grade));
+      var cx = kc ? {} : cleanDetails(rowDetails(a, d));
+      if (Object.keys(cx).length) w.push(JSON.stringify(cx));
       return w;
     });
     return JSON.stringify([f.plan || "", food, Math.round(num(f.steps)), aw]);
@@ -5625,7 +5743,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   }
   function describeDay(d) {
     var parts = d.event ? ["Event day"] : [];
-    d.acts.forEach(function (e) { parts.push(e.name + " " + (e.mode === "kcal" ? fmt(e.kcal) + " cal" : e.min + " min")); });
+    d.acts.forEach(function (e) { parts.push(e.name + " " + (e.mode === "kcal" ? fmt(e.kcal) + " cal" : e.min + " min" + detailBrief(e))); });
     if (d.steps) parts.push(fmt(d.steps.total) + " steps");
     if (!parts.length) parts.push(d.onPlan ? "On plan" : "No activity");
     if (d.late) parts.push("logged late");
@@ -6312,7 +6430,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       e.spends.forEach(function (s) { food.push((MEAL_INFO[s.meal] || MEAL_INFO.extra).label + " " + (s.kcal || 0)); offCal += s.est || s.kcal || 0; });
       var row = [
         [date], [e.weigh ? e.weigh.lb : ""], [d ? (d.onPlan ? "Yes" : "No") : ""], [food.join("; "), true], [offCal || ""],
-        [d ? d.acts.map(function (e) { return e.name + " " + (e.mode === "kcal" ? e.kcal + " cal" + (e.min ? ", " + e.min + " min" : "") : e.min + " min"); }).join("; ") : "", true],
+        [d ? d.acts.map(function (e) { return e.name + " " + (e.mode === "kcal" ? e.kcal + " cal" + (e.min ? ", " + e.min + " min" : "") : e.min + " min" + detailBrief(e)); }).join("; ") : "", true],
         [d && d.steps ? d.steps.total : ""],
         [d ? d.activityPts : ""], [d ? d.bonus : ""], [logged ? spent : ""], [logged ? earned - spent : ""], [logged ? bank : ""],
         [d ? (d.late ? "Yes" : "No") : ""], [d ? (d.event ? "Yes" : "No") : ""]
