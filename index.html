@@ -604,6 +604,7 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 
 .check { display: flex; gap: 8px; align-items: center; font-weight: 500; font-size: 0.95rem; }
 .check input { width: 20px; height: 20px; margin: 0; accent-color: var(--neon); flex: none; }
+.fitem .snackfor { color: var(--muted); font-size: 0.92rem; }
 
 .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .btns { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -2298,7 +2299,7 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.21.1","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.21.2","profile":null};</script>
 <script>
 /* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
    strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
@@ -2618,14 +2619,16 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     }
     return n;
   }
+  function snackOf(f) { return f.meal === "extra" && isPlanMeal(f.snackFor) ? f.snackFor : ""; }
   function savedItems(food) {
-    return (food || []).map(function (f) { return { meal: f.meal, skip: !!f.skip, base: foodBase(f), est: foodEst(f), noSnack: !!f.noSnack }; });
+    return (food || []).map(function (f) { return { meal: f.meal, skip: !!f.skip, base: foodBase(f), est: foodEst(f), noSnack: !!f.noSnack, snackFor: snackOf(f) }; });
   }
-  // The day's food, settled. items: one per row, {meal, skip, base, est, noSnack}, or null for a row that
-  // doesn't count yet. Returns each row's cost and notes, and the day's totals: gross (food and drink cost),
+  // The day's food, settled. items: one per row, {meal, skip, base, est, noSnack, snackFor}, or null for a row
+  // that doesn't count yet. Returns each row's cost and notes, and the day's totals: gross (food and drink cost),
   // off (unused plan calories applied), pen (snack penalties), spent, left (unused plan calories still
-  // eligible today) and voidLeft (unused ones that aren't).
-  function settle(items, date) {
+  // eligible today) and voidLeft (unused ones that aren't). anyExtra: the rule for days saved before snacks were
+  // attached, when any extra food that day counted as the snack.
+  function settle(items, date, anyExtra) {
     var rules = rulesOn(date);
     var out = { rows: [], gross: 0, off: 0, pen: 0, spent: 0, left: 0, voidLeft: 0 };
     var cost = 0, credit = 0, drinks = 0, extras = [], skips = [];
@@ -2634,7 +2637,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       var r = { meal: x.meal, base: x.base, est: x.est, cost: 0, credit: 0, drink: x.meal === "drink", skip: null, snack: 0 };
       out.rows.push(r);
       if (r.drink) { r.cost = x.est; drinks += x.est; return; }
-      if (x.meal === "extra") { r.cost = x.est; extras.push(r); return; }
+      if (x.meal === "extra") { r.cost = x.est; r.link = x.snackFor || ""; extras.push(r); return; }
       if (rules && x.base > 0 && (x.skip || x.est < snackMin(x.base))) {
         r.skip = { own: x.skip ? 0 : x.est, min: snackMin(x.base), noSnack: !!(x.skip && x.noSnack), tiny: !x.skip, got: 0 };
         skips.push(r);
@@ -2649,25 +2652,42 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       skips.sort(function (a, b) { return MEAL_KEYS.indexOf(a.meal) - MEAL_KEYS.indexOf(b.meal); });
       var n0 = skipsBefore(date);
       skips.forEach(function (r, i) { r.skip.rank = n0 + i; r.skip.ok = r.skip.rank === 0; });
-      // Extra food fills the snacks: first up to each minimum, then up to the meal itself (skips whose calories
-      // can't go anywhere else first).
-      var pool = sum(extras, function (e) { return e.est; });
-      var fill = function (r, upTo) {
-        var t = Math.max(0, Math.min(pool, upTo - r.skip.own - r.skip.got));
-        r.skip.got += t;
-        pool -= t;
-      };
-      skips.forEach(function (r) { if (!r.skip.noSnack) fill(r, r.skip.min); });
-      skips.filter(function (r) { return !r.skip.ok; }).concat(skips.filter(function (r) { return r.skip.ok; }))
-        .forEach(function (r) { if (!r.skip.noSnack) fill(r, r.base); });
-      var covered = sum(skips, function (r) { return r.skip.got; }), owner = skips.filter(function (r) { return r.skip.got > 0; })[0];
-      extras.forEach(function (e) {
-        var part = Math.min(e.est, covered);
-        covered -= part;
-        e.snack = part;
-        e.snackFor = owner ? owner.meal : "";
-        e.cost = e.est - part;
-      });
+      if (anyExtra) {
+        // Before attached snacks: extra food fills the snacks, first up to each minimum, then up to the meal itself
+        // (skips whose calories can't go anywhere else first).
+        var pool = sum(extras, function (e) { return e.est; });
+        var fill = function (r, upTo) {
+          var t = Math.max(0, Math.min(pool, upTo - r.skip.own - r.skip.got));
+          r.skip.got += t;
+          pool -= t;
+        };
+        skips.forEach(function (r) { if (!r.skip.noSnack) fill(r, r.skip.min); });
+        skips.filter(function (r) { return !r.skip.ok; }).concat(skips.filter(function (r) { return r.skip.ok; }))
+          .forEach(function (r) { if (!r.skip.noSnack) fill(r, r.base); });
+        var covered = sum(skips, function (r) { return r.skip.got; }), owner = skips.filter(function (r) { return r.skip.got > 0; })[0];
+        extras.forEach(function (e) {
+          var part = Math.min(e.est, covered);
+          covered -= part;
+          e.snack = part;
+          e.snackFor = owner ? owner.meal : "";
+          e.cost = e.est - part;
+        });
+      } else {
+        // A skipped meal's snack is what's attached to it (Add a snack, or ticked on an Extra food entry): eaten
+        // around that meal's time, so you don't go long without food. It's covered up to the meal itself. Other
+        // extra food, or a bigger meal later, is just food.
+        skips.forEach(function (r) {
+          if (r.skip.noSnack) return;
+          extras.forEach(function (e) {
+            if (e.link !== r.meal) return;
+            var t = Math.max(0, Math.min(e.est - e.snack, r.base - r.skip.own - r.skip.got));
+            r.skip.got += t;
+            e.snack += t;
+            e.snackFor = r.meal;
+            e.cost = e.est - e.snack;
+          });
+        });
+      }
       skips.forEach(function (r) {
         var s = r.skip;
         s.snack = s.own + s.got;
@@ -2702,7 +2722,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     day.bonus = day.onPlan && !day.late ? Math.round(ON_PLAN_BONUS * rateK(day.tight)) : 0;
     // Days saved since skipped meals arrived settle the day's food together (see Skipped meals). Older days
     // keep the costs they were saved with.
-    var fs = day.netFood ? settle(savedItems(day.food), day.date) : null;
+    var fs = day.netFood ? settle(savedItems(day.food), day.date, !day.snackLinks) : null;
     day.spent = fs ? fs.spent : sum(day.food, foodCost);
     day.penalty = fs ? fs.pen : 0;
     day.pts = day.activityPts + day.bonus;
@@ -2810,7 +2830,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       if (!x || !MEAL_INFO[x.meal] || !(x.skip || num(x.kcal) > 0)) return null;
       var base = 0;
       if (isPlanMeal(x.meal) && !used[x.meal]) { base = formFoodBase(x); used[x.meal] = true; }
-      return { meal: x.meal, skip: !!x.skip, base: base, est: formFoodEst(x), noSnack: !!(x.skip && x.noSnack) };
+      return { meal: x.meal, skip: !!x.skip, base: base, est: formFoodEst(x), noSnack: !!(x.skip && x.noSnack), snackFor: snackOf(x) };
     });
   }
   // The form's food for date, settled.
@@ -2856,12 +2876,14 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         var entry = x.skip ? { meal: x.meal, skip: true, kcal: 0, qty: 1, posted: true, name: "" }
           : { meal: x.meal, kcal: Math.round(num(x.kcal)), qty: qtyOf(x), posted: x.posted !== false, name: String(x.name || "").trim().slice(0, 40) };
         if (x.skip && x.noSnack) entry.noSnack = true;
+        if (!x.skip && snackOf(x)) entry.snackFor = snackOf(x);
         entry.base = r.base;
         entry.est = r.est;
         entry.cost = r.cost;
         day.food.push(entry);
       });
       day.netFood = true;
+      day.snackLinks = true;
     }
     day.ts = now;
     return finalizeDay(day);
@@ -3378,7 +3400,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "<b>No</b>: add each meal you swapped and each extra meal, snack or drink. Each one starts at <i>Select an option</i>: pick which meal it replaced, Extra food, or Drink.",
         "A different meal costs its calories minus the plan meal it replaced (" + meals + "). Extras cost their full calories.",
         "<b>Skipped a meal?</b> Pick <i>Skipped breakfast</i>, lunch or dinner. It earns no points, but its plan calories offset that day's food cheats (not drinks). A smaller meal's leftover calories do the same. Nothing carries to another day, and the day never goes below 0 for food.",
-        "<b>One skip a week.</b> Every skipped meal needs a snack of at least a quarter of that meal" + (c.ok ? " (lunch: " + fmt(Math.round(m.lunch / 4)) + ")" : "") + ". Tap <i>Add a snack</i>, or log it as Extra food; drinks don't count. The snack is covered by the skipped meal. The first skip of the week (Monday to Sunday) keeps the rest for that day's food cheats. After that, a skip only covers its snack and the rest isn't eligible.",
+        "<b>One skip a week.</b> Every skipped meal needs a snack of at least a quarter of that meal" + (c.ok ? " (lunch: " + fmt(Math.round(m.lunch / 4)) + ")" : "") + ". Eat it around that meal's usual time, so you don't go long without food. Tap <i>Add a snack</i> on the skipped meal, or check <i>Snack for skipped…</i> on an Extra food entry; drinks don't count. Only a snack attached that way counts: a snack hours later or a bigger meal doesn't. The snack is covered by the skipped meal. The first skip of the week (Monday to Sunday) keeps the rest for that day's food cheats. After that, a skip only covers its snack and the rest isn't eligible.",
         "<b>No snack?</b> Check <i>No snack</i>: it costs half the meal from the bank. A snack under the minimum costs twice what it's short. A meal under a quarter of its plan counts as skipped, with itself as the snack.",
         "Each plan meal counts once a day. A second entry for the same meal costs its full calories.",
         "A day with a skipped meal counts as off plan, so it doesn't get the on-plan bonus.",
@@ -3753,6 +3775,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var entry = { meal: meal, kcal: fv.kcal, qty: 1, posted: fv.posted !== false, name: fv.name };
     var at = -1;
     state.food.forEach(function (x, i) { if (!num(x.kcal) && !x.skip && at < 0) at = i; });
+    if (at >= 0 && entry.meal === "extra" && snackOf(state.food[at])) entry.snackFor = state.food[at].snackFor;
     if (at >= 0) state.food[at] = entry; else { state.food.push(entry); at = state.food.length - 1; }
     renderFoodList();
     updatePreview();
@@ -4149,15 +4172,24 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       if (!f.skip) row2.appendChild(chk); else { row2.appendChild(rules ? sleft : el("span")); fav.hidden = true; }
       row2.appendChild(right);
       var how = el("div", "fhow");
+      // Extra food eaten in place of a skipped meal: its snack.
+      var sfl = el("label", "check snackfor"), sfb = el("input"), sft = el("span");
+      sfb.type = "checkbox";
+      sfb.id = "foodSnackFor" + i;
+      sfl.appendChild(sfb);
+      sfl.appendChild(sft);
+      sfl.hidden = true;
       li.appendChild(row);
       if (!f.skip) li.appendChild(nrow);
       li.appendChild(row2);
+      if (!f.skip) li.appendChild(sfl);
       li.appendChild(how);
       list.appendChild(li);
-      state.foodEls.push({ cost: cost, how: how, fav: fav, snack: addSnack, nosnack: nsk, kc: kc });
+      state.foodEls.push({ cost: cost, how: how, fav: fav, snack: addSnack, nosnack: nsk, kc: kc, snackFor: sfl, snackBox: sfb, snackTxt: sft });
+      sfb.addEventListener("change", function () { f.snackFor = sfb.checked ? sfb.getAttribute("data-meal") || "" : ""; updatePreview(); });
       nsb.addEventListener("change", function () { f.noSnack = nsb.checked; updatePreview(); });
       addSnack.addEventListener("click", function () {
-        state.food.splice(i + 1, 0, { meal: "extra", kcal: 0, qty: 1, posted: true, name: "" });
+        state.food.splice(i + 1, 0, { meal: "extra", kcal: 0, qty: 1, posted: true, name: "", snackFor: f.meal });
         renderFoodList();
         updatePreview();
         var k = $("foodKcal" + (i + 1));
@@ -4635,8 +4667,11 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var f = blankForm();
     if (!day) return f;
     f.plan = day.food.length ? "no" : "yes";
-    f.food = day.food.map(function (x) {
-      return { meal: MEAL_INFO[x.meal] ? x.meal : "extra", kcal: +x.kcal || 0, qty: qtyOf(x), posted: x.posted !== false, name: x.name || "", base: foodBase(x), bmeal: x.meal, skip: !!x.skip, noSnack: !!x.noSnack };
+    // A day saved before snacks were attached: the extra food that counted as a snack then is attached now.
+    var was = day.netFood && !day.snackLinks ? settle(savedItems(day.food), day.date, true).rows : [];
+    f.food = day.food.map(function (x, i) {
+      var link = snackOf(x) || (x.meal === "extra" && was[i] && was[i].snack > 0 ? was[i].snackFor || "" : "");
+      return { meal: MEAL_INFO[x.meal] ? x.meal : "extra", kcal: +x.kcal || 0, qty: qtyOf(x), posted: x.posted !== false, name: x.name || "", base: foodBase(x), bmeal: x.meal, skip: !!x.skip, noSnack: !!x.noSnack, snackFor: link };
     });
     if (day.steps) f.steps = day.steps.total;
     day.acts.forEach(function (e) {
@@ -4654,7 +4689,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function captureForm() {
     return {
       plan: picked("plan"),
-      food: state.food.map(function (x) { return { meal: x.meal, kcal: x.kcal || "", qty: qtyOf(x), posted: x.posted !== false, name: x.name || "", base: x.base, bmeal: x.bmeal, skip: !!x.skip, noSnack: !!(x.skip && x.noSnack) }; }),
+      food: state.food.map(function (x) { return { meal: x.meal, kcal: x.kcal || "", qty: qtyOf(x), posted: x.posted !== false, name: x.name || "", base: x.base, bmeal: x.bmeal, skip: !!x.skip, noSnack: !!(x.skip && x.noSnack), snackFor: snackOf(x) }; }),
       acts: state.acts.map(function (a) { return Object.assign({}, a); }),
       steps: $("steps").value
     };
@@ -4673,7 +4708,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   // Two forms that would save the same day compare equal.
   function canonForm(f) {
     var food = f.plan === "no" ? (f.food || []).filter(function (x) { return x.skip ? !!MEAL_INFO[x.meal] : num(x.kcal) > 0; }).map(function (x) {
-      return x.skip ? [x.meal, "skip", !!x.noSnack] : [x.meal, Math.round(num(x.kcal)), qtyOf(x), x.posted !== false, String(x.name || "").trim()];
+      return x.skip ? [x.meal, "skip", !!x.noSnack] : [x.meal, Math.round(num(x.kcal)), qtyOf(x), x.posted !== false, String(x.name || "").trim(), snackOf(x)];
     }) : [];
     var aw = formActs(f).filter(function (a) { return actAmount(a) > 0; }).map(function (a) {
       var d = rowDef(a), kc = a.mode === "kcal", m = Math.round(num(a.min));
@@ -4843,12 +4878,23 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     $("food").hidden = !off;
     if (off) {
       var frs = settleForm(state.food, date).rows;
+      // The skipped meals an Extra food entry can be the snack for (not ones marked No snack), in meal order.
+      var snackable = frs.filter(function (r) { return r && r.skip && !r.skip.noSnack; }).map(function (r) { return r.meal; })
+        .sort(function (a, b) { return MEAL_KEYS.indexOf(a) - MEAL_KEYS.indexOf(b); });
       state.food.forEach(function (fd, i) {
         var els = state.foodEls[i];
         if (!els) return;
         var r = frs[i], kc = num(fd.kcal), c = r ? r.cost : 0, base = r ? r.base : 0, sk = r && r.skip;
         els.snack.hidden = evd || !(sk && !sk.noSnack && sk.short > 0) || state.readOnly;
         els.nosnack.hidden = evd;
+        var sf = fd.meal === "extra" && !evd ? (snackable.indexOf(fd.snackFor) >= 0 ? fd.snackFor : snackable[0]) : "";
+        els.snackFor.hidden = !sf;
+        if (sf) {
+          els.snackBox.checked = fd.snackFor === sf;
+          els.snackBox.setAttribute("data-meal", sf);
+          els.snackBox.disabled = state.readOnly;
+          els.snackTxt.textContent = "Snack for skipped " + MEAL_INFO[sf].short;
+        }
         els.cost.classList.toggle("cal", evd);
         if (evd) {
           // An event day counts calories, not points: each row shows what it adds to the day's intake (a skip, what it
@@ -4877,7 +4923,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
           var lead = (q > 1 ? q + " × " + fmt(kc) : fmt(kc)) + (fd.posted === false ? " + 25%" : "");
           els.how.textContent = !kc || !fd.meal || !r ? "" :
             sk ? "Under ¼ of plan " + MEAL_INFO[fd.meal].short + ", so it counts as skipped · " + skipHow(sk) :
-            r.snack ? (q > 1 || fd.posted === false ? lead + " · " : "") + "Snack for the skipped " + MEAL_INFO[r.snackFor].short + (r.snack < r.est ? " (" + fmt(r.snack) + " of it)" : "") :
+            r.snack ? (r.snack < r.est ? (q > 1 || fd.posted === false ? lead + " · " : "") + fmt(r.snack) + " of it covered by the skipped " + MEAL_INFO[r.snackFor].short : q > 1 || fd.posted === false ? lead : "") :
             q > 1 || fd.posted === false || base || dup
             ? lead + (base ? " − " + fmt(base) + " plan " + MEAL_INFO[fd.meal].short : "") +
               (r.credit ? " · " + fmt(r.credit) + " under plan" : "") + (dup ? " (plan " + MEAL_INFO[fd.meal].short + " already counted above)" : "")
@@ -4914,7 +4960,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     $("sumEarn").textContent = plus(day.activityPts);
     $("sumBonusRow").hidden = !!ev || !day.bonus;
     $("sumBonus").textContent = plus(day.bonus);
-    var ns = settle(savedItems(day.food), date);
+    var ns = settle(savedItems(day.food), date, !day.snackLinks);
     $("sumFoodRow").hidden = !!ev || !ns.gross;
     $("sumFood").textContent = ns.gross ? "−" + fmt(ns.gross) : "0";
     $("sumOffRow").hidden = !!ev || !ns.off;
