@@ -34,7 +34,7 @@
 </head>
 <body>
 <style>
-/* Cheat Points. One phone-width column per tab (Today, Progress, Guide, Settings) over a fixed tab bar.
+/* Cheat Points. One phone-width column per tab (Today, Redeem, Timer, Progress, Guide, Settings) over a fixed tab bar.
    Today: neon sunset scoreboard (bank, week, streak, goal), heads-up notes, weigh-in, the daily log.
    Theme: blue vaporwave built on #152069. One committed dark look, so there is no light variant. */
 :root {
@@ -768,6 +768,12 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .evbtn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .evleft { margin-left: auto; color: var(--muted); font-size: 0.84rem; font-weight: 600; }
 .evhint { margin: -4px 0 0; color: #ffe2a8; font-size: 0.86rem; }
+/* Rest-day plan: the same kind of switch, lit cyan. It's part of the day's log (saved with it). */
+.restbtn[aria-pressed="true"] { color: #e6f8ff; border-color: var(--accent); background: rgba(127, 214, 255, 0.1); box-shadow: 0 0 12px rgba(127, 214, 255, 0.3); }
+.restbtn[aria-pressed="true"] .evstar { fill: var(--accent); stroke: var(--accent); filter: drop-shadow(0 0 4px var(--glow-cyan)); }
+.restbtn[aria-pressed="true"] .evsw { border-color: var(--accent); background: rgba(127, 214, 255, 0.22); }
+.restbtn[aria-pressed="true"] .evsw::after { transform: translateX(13px); background: var(--accent); }
+.resthint { margin: -4px 0 0; color: #bfeaff; font-size: 0.86rem; }
 /* On an event day the activity fields show the calories they add to the burn, and food the calories it adds. */
 .pts.cal { display: grid; justify-items: end; font-size: 1.12rem; line-height: 1; }
 .pts.cal small { font-family: var(--body); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.05em; color: var(--muted); }
@@ -965,7 +971,7 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
   backdrop-filter: blur(14px);
   box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.35);
 }
-.tabbar-in { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.tabbar-in { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .tabbtn {
   appearance: none;
   position: relative;
@@ -1163,6 +1169,7 @@ html.still dialog.sheet[open] { animation: none; }
 .rextra.on { font-family: var(--display); font-weight: 400; font-size: 1.35rem; color: var(--earn); text-shadow: 0 0 8px var(--glow-cyan); }
 .rextra .no { color: #ff5c7a; text-shadow: 0 0 8px rgba(255, 92, 122, 0.8); }
 .rextra .rxl { display: block; }
+.rextra .rxd { font-family: var(--body); font-size: 0.86rem; font-weight: 600; color: #bfeaff; text-shadow: none; }
 /* A skipped meal's row: No snack, or add one */
 .fsnack { display: flex; align-items: center; gap: 6px 16px; flex-wrap: wrap; }
 .fsnack .linkbtn { color: var(--accent); }
@@ -1288,8 +1295,8 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 
 /* ---------- Page scenes ---------- */
 /* Every page opens with a scene in the scoreboard's frame: the same stars and running floor, each with its own
-   centerpiece. Redeem: a neon shop sign over the city. Progress: the sun rising behind mountains. Guide: a ringed
-   planet. Settings: a cassette whose reels turn while a song plays. */
+   centerpiece. Redeem: a neon shop sign over the city. Timer: a stopwatch. Progress: the sun rising behind mountains.
+   Guide: a ringed planet. Settings: a cassette whose reels turn while a song plays. */
 .hero {
   position: relative;
   overflow: hidden;
@@ -1504,12 +1511,12 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 /* ---------- Hover and tap glow ---------- */
 /* Buttons and boxed sections light up cyan under the mouse; on a touch screen, whatever you tap glows for a
    moment (the script adds .tap). */
-.btn, .songbtn, .rtabs button, .ptabs button, .rangebar button, .qm, .redeem-pill, .stripnav, .seg span, .day, .ritem,
-.fitem, .aitem, .board, .hero, .tally, .evbtn, input, select { transition: border-color 0.25s ease, box-shadow 0.25s ease; }
+.btn, .songbtn, .rtabs button, .wtabs button, .ptabs button, .rangebar button, .qm, .redeem-pill, .stripnav, .seg span, .day, .ritem,
+.fitem, .aitem, .wrow, .board, .hero, .tally, .evbtn, input, select { transition: border-color 0.25s ease, box-shadow 0.25s ease; }
 .topic > summary, .linkbtn, .tabbtn { transition: color 0.25s ease, text-shadow 0.25s ease; }
 .tabbtn svg { transition: color 0.25s ease, filter 0.25s ease; }
 @media (hover: hover) and (pointer: fine) {
-  .btn:not(:disabled):hover, .songbtn:hover, .rtabs button:hover, .ptabs button:hover, .rangebar button:hover, .qm:hover, .redeem-pill:hover, .music:hover, .stripnav:hover { border-color: var(--accent); box-shadow: var(--glow-ring); }
+  .btn:not(:disabled):hover, .songbtn:hover, .rtabs button:hover, .wtabs button:hover, .ptabs button:hover, .rangebar button:hover, .qm:hover, .redeem-pill:hover, .music:hover, .stripnav:hover { border-color: var(--accent); box-shadow: var(--glow-ring); }
   .seg label:hover span { border-color: var(--accent); box-shadow: var(--glow-ring); }
   .day:hover { border-color: var(--accent); box-shadow: var(--glow-ring); }
   .day.sel:hover { box-shadow: inset 0 0 0 2px var(--accent), var(--glow-ring); }
@@ -1525,7 +1532,7 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
   input:hover, select:hover { border-color: var(--accent); box-shadow: 0 0 12px rgba(127, 214, 255, 0.3); }
   .block:hover { border-color: rgba(127, 214, 255, 0.6); box-shadow: inset 0 0 26px rgba(5, 8, 35, 0.45), 0 0 0 1px rgba(127, 214, 255, 0.25), 0 0 22px rgba(127, 214, 255, 0.22); }
 }
-.btn.tap, .songbtn.tap, .rtabs button.tap, .ptabs button.tap, .rangebar button.tap, .qm.tap, .redeem-pill.tap, .music.tap, .stripnav.tap { border-color: var(--accent); box-shadow: var(--glow-ring); }
+.btn.tap, .songbtn.tap, .rtabs button.tap, .wtabs button.tap, .ptabs button.tap, .rangebar button.tap, .qm.tap, .redeem-pill.tap, .music.tap, .stripnav.tap { border-color: var(--accent); box-shadow: var(--glow-ring); }
 .seg label.tap span { border-color: var(--accent); box-shadow: var(--glow-ring); }
 .day.tap { border-color: var(--accent); box-shadow: var(--glow-ring); }
 .day.sel.tap { box-shadow: inset 0 0 0 2px var(--accent), var(--glow-ring); }
@@ -1540,8 +1547,8 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 .tabbtn.tap svg { color: var(--accent); filter: drop-shadow(0 0 6px var(--glow-cyan)); }
 
 /* ---------- Tab icons ---------- */
-/* Each icon acts out its page when hovered (or tapped): the sun rises, the ticket wiggles, the chart climbs, the
-   question mark bobs, the sliders slide. */
+/* Each icon acts out its page when hovered (or tapped): the sun rises, the ticket wiggles, the stopwatch's hand
+   sweeps, the chart climbs, the question mark bobs, the sliders slide. */
 .tabbtn svg * { transform-box: fill-box; }
 .ti-line { stroke-dasharray: 1; }
 .ti-t1 { stroke-dasharray: 9 4 30; }
@@ -1560,6 +1567,8 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 .tabbtn.play .ti-k1 { animation: ti-k1 0.9s ease-in-out; }
 .tabbtn.play .ti-k2 { animation: ti-k2 0.9s ease-in-out; }
 .tabbtn.play .ti-k3 { animation: ti-k3 0.9s ease-in-out; }
+.tabbtn.play .ti-hand { transform-origin: 50% 100%; animation: ti-sweep 0.9s cubic-bezier(0.3, 0.7, 0.4, 1); }
+.tabbtn.play .ti-crown { animation: ti-press 0.9s ease-in-out; }
 @keyframes ti-rise { from { transform: translateY(8px); } to { transform: none; } }
 @keyframes ti-rays { 0%, 45% { opacity: 0; } 100% { opacity: 1; } }
 @keyframes ti-wiggle { 0%, 100% { transform: none; } 25% { transform: rotate(-12deg); } 55% { transform: rotate(9deg); } 80% { transform: rotate(-4deg); } }
@@ -1573,6 +1582,121 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 @keyframes ti-k1 { 50% { transform: translateX(-7px); } }
 @keyframes ti-k2 { 50% { transform: translateX(7px); } }
 @keyframes ti-k3 { 50% { transform: translateX(-6px); } }
+@keyframes ti-sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes ti-press { 15%, 35% { transform: translateY(1.6px); } 55% { transform: none; } }
+
+/* ---------- Timer ---------- */
+/* The page's scene: a neon stopwatch, its hand sweeping and a pink arc filling behind it, every 6 seconds. */
+.watchwrap { position: absolute; right: 9%; top: 12px; width: 108px; animation: drift 7s ease-in-out infinite alternate; }
+.watchbody { position: relative; }
+.watch { position: relative; display: block; width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 0 10px rgba(95, 124, 255, 0.55)); }
+.watchglow { position: absolute; left: 6%; right: 6%; top: 18%; bottom: -4%; border-radius: 50%; background: radial-gradient(closest-side, rgba(143, 168, 255, 0.5), rgba(95, 124, 255, 0) 100%); opacity: 0.5; }
+.watch .bezel { fill: #0c1250; stroke: #7fd6ff; stroke-width: 2.4; filter: drop-shadow(0 0 3px rgba(127, 214, 255, 0.9)); }
+.watch .crown, .watch .pusher { fill: #0c1250; stroke: #7fd6ff; stroke-width: 1.8; }
+.watch .stem { stroke: #7fd6ff; stroke-width: 3; }
+.watch .ticks { fill: none; stroke: #dfe8ff; stroke-width: 2; stroke-linecap: round; opacity: 0.75; }
+.watch .arc { fill: none; stroke: #ff6ac8; stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: 0 1000; filter: drop-shadow(0 0 3px rgba(255, 106, 200, 0.9)); animation: watcharc 6s linear infinite; }
+.watch .hand { stroke: #ff8fd8; stroke-width: 2.6; stroke-linecap: round; transform-box: view-box; transform-origin: 60px 80px; filter: drop-shadow(0 0 3px rgba(255, 106, 200, 0.9)); animation: watchhand 6s linear infinite; }
+.watch .hub { fill: #ffe0f4; }
+@keyframes watchhand { to { transform: rotate(360deg); } }
+@keyframes watcharc { from { stroke-dasharray: 0 1000; } to { stroke-dasharray: 1000 0; } }
+
+/* Picking a workout */
+.wtabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.wtabs button {
+  appearance: none;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 2px;
+  min-width: 0;
+  height: 54px;
+  padding: 0 2px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(7, 10, 44, 0.75);
+  color: var(--ink);
+  font: 600 0.92rem/1 var(--body);
+  cursor: pointer;
+}
+.wtabs .wn { min-height: 0.9em; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.wtabs .wn.next { color: var(--accent); text-shadow: 0 0 6px var(--glow-cyan); }
+.wtabs button[aria-selected="true"] { background: linear-gradient(180deg, #6f8bff 0%, #3b55e8 100%); border-color: #b4c3ff; box-shadow: 0 0 14px var(--glow); }
+.wtabs button[aria-selected="true"] .wn { color: #e3e9ff; text-shadow: none; }
+.wtabs button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.wlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; counter-reset: wl; }
+.wrow { counter-increment: wl; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 4px 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5); }
+.wrow::before { content: counter(wl); display: grid; place-items: center; width: 22px; height: 22px; margin-top: 1px; border: 1px solid rgba(127, 214, 255, 0.7); border-radius: 50%; color: var(--accent); font: 400 1rem/1 var(--display); }
+.wrow .wname { font-weight: 700; overflow-wrap: anywhere; }
+.wrow .wsets { font-family: var(--display); font-size: 1.3rem; line-height: 1; color: var(--earn); white-space: nowrap; }
+.wrow .wcue { grid-column: 2 / -1; color: var(--muted); font-size: 0.86rem; line-height: 1.35; }
+.wrow .wrest { grid-column: 2 / -1; color: var(--dim); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em; }
+.wstep { grid-column: 2 / -1; display: flex; align-items: center; gap: 10px; }
+.wstep .qty { flex: none; height: 38px; }
+.wstep .qbtn { width: 38px; }
+.wstep .qv { min-width: 4.2ch; font-size: 1.3rem; white-space: nowrap; }
+.wstep .fine { margin: 0; font-size: 0.8rem; }
+.tmopts { display: grid; gap: 10px; }
+.tmopt { display: grid; grid-template-columns: 4.2em minmax(0, 1fr); align-items: center; gap: 10px; }
+.tmopt .seg.mini span { min-height: 38px; }
+.tmchecks { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+
+/* Running: the clock in a board of its own, its ring filling as each part counts down. Cyan while you work, violet
+   while you rest, pink in the last 3 seconds. */
+#tab-timer.running > .hero { display: none; }
+.tmboard { gap: 10px; padding: 14px 16px 16px; }
+.tmtop { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.tmtop .label { min-width: 0; font-size: 0.68rem; letter-spacing: 0.1em; }
+.tmtotal { font-family: var(--display); font-size: 1.6rem; line-height: 1; color: var(--board-dim); }
+.tmface { --ring: #7fd6ff; --ring-glow: rgba(127, 214, 255, 0.85); position: relative; width: min(72vw, 286px); aspect-ratio: 1; margin: 2px auto 0; }
+.tmface.rest { --ring: #b58cff; --ring-glow: rgba(181, 140, 255, 0.85); }
+.tmface.ending { --ring: #ff6ac8; --ring-glow: rgba(255, 106, 200, 0.9); }
+.tmring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.tr-bg { fill: rgba(5, 8, 35, 0.6); stroke: rgba(127, 155, 255, 0.2); stroke-width: 9; }
+.tr-fg { fill: none; stroke: var(--ring); stroke-width: 9; stroke-linecap: round; stroke-dasharray: 1000; stroke-dashoffset: 0; filter: drop-shadow(0 0 5px var(--ring-glow)); transition: stroke 0.3s ease; }
+.tmface.open .tr-fg { animation: tmbreathe 2.4s ease-in-out infinite alternate; }
+@keyframes tmbreathe { from { opacity: 0.45; } to { opacity: 1; } }
+.tmglow { position: absolute; inset: 10%; border-radius: 50%; background: radial-gradient(closest-side, rgba(127, 214, 255, 0.35), rgba(95, 124, 255, 0) 100%); opacity: 0.25; pointer-events: none; }
+.tmread { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 4px; padding: 0 16%; text-align: center; }
+.tmphase { font-size: 0.74rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ring); text-shadow: 0 0 8px var(--ring-glow); }
+.tmclock { font-family: var(--display); font-size: clamp(4rem, 19vw, 5.2rem); line-height: 0.82; color: #ffffff; text-shadow: 0 0 6px rgba(255, 255, 255, 0.55), 0 0 18px var(--ring-glow); font-variant-numeric: tabular-nums; }
+.tmface.paused .tmclock { opacity: 0.5; }
+.tmsub { min-height: 1.2em; color: var(--board-dim); font-size: 0.84rem; font-weight: 600; line-height: 1.2; }
+/* A steady height, so the buttons below don't move from one part to the next. */
+.tmex { display: grid; justify-items: center; align-content: start; gap: 2px; min-height: 150px; text-align: center; }
+.tmexlab { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--board-dim); }
+.tmexlab:empty { display: none; }
+.tmexname { font-size: 1.3rem; font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
+.tmreps { font-family: var(--display); font-size: 1.35rem; line-height: 1; color: var(--earn); text-shadow: 0 0 8px var(--glow-cyan); }
+.tmreps:empty { display: none; }
+.tmcue { margin: 2px 0 0; max-width: 44ch; color: var(--board-dim); font-size: 0.86rem; line-height: 1.35; }
+.tmcue:empty { display: none; }
+.tmbar { display: flex; gap: 4px; }
+.tmbar i { flex: 1; height: 6px; border-radius: 3px; background: rgba(127, 155, 255, 0.22); }
+.tmbar i.on { background: var(--accent); box-shadow: 0 0 6px var(--glow-cyan); }
+.tmbar i.cur { background: linear-gradient(90deg, var(--accent) var(--p, 0%), rgba(127, 155, 255, 0.3) var(--p, 0%)); box-shadow: 0 0 0 1px rgba(127, 214, 255, 0.6); }
+.tmbtns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr); gap: 10px; }
+.tmbtns .btn { min-width: 0; padding: 0 8px; justify-self: stretch; }
+.tmbar, .tmbtns, .tmbtns2 { width: 100%; max-width: 560px; justify-self: center; }
+.tmbtns .btn.ghost { min-height: 58px; }
+.tmmain { min-height: 58px; font-size: 1.2rem; }
+.tmbtns2 { display: flex; justify-content: space-between; gap: 12px; margin-top: -2px; }
+.tmdonesub { margin: -4px 0 0; font-family: var(--display); font-size: 2.2rem; line-height: 1; color: var(--earn); text-shadow: 0 0 10px var(--glow-cyan); }
+.aitem.flash { box-shadow: 0 0 0 2px var(--accent), 0 0 18px var(--glow-cyan); transition: box-shadow 0.3s ease; }
+html.still .tmface.open .tr-fg { animation: none; }
+html.still .tr-fg { transition: none; }
+@media (max-width: 1079px) {
+  html[data-tab="timer"] .music {
+    top: calc(26px + env(safe-area-inset-top, 0px));
+    right: calc(max(16px, env(safe-area-inset-right, 0px)) + 10px);
+  }
+  .tmtop { padding-right: 46px; }
+}
+@media (max-width: 380px) {
+  .tabbtn { font-size: 0.56rem; letter-spacing: 0.03em; }
+  .wtabs button { font-size: 0.84rem; }
+  .tmopt { grid-template-columns: 3.6em minmax(0, 1fr); }
+}
 
 /* ---------- Desktop ---------- */
 /* Column wrappers only matter on wide screens; on a phone their contents sit in the tab's single column. */
@@ -1657,6 +1781,10 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
   /* Guide: one readable column */
   #tab-guide > .hero, #tab-guide > .pagesub, #tab-guide .guide { max-width: 820px; }
 
+  /* Timer: one column, the clock a little bigger */
+  #tab-timer > .hero, #tab-timer > .block, #tab-timer > .board { max-width: 760px; }
+  .tmface { width: 300px; }
+
   /* Settings: two columns */
   #tab-settings { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
   #tab-settings > .hero, #tab-progress > .hero { grid-column: 1 / -1; }
@@ -1666,6 +1794,7 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
   .sunrise { width: 150px; height: 150px; }
   .planetwrap { width: 200px; height: 120px; }
   .tapewrap { width: 150px; }
+  .watchwrap { width: 132px; }
 
   /* Sheets open as a centered window over the page */
   dialog.sheet {
@@ -1833,6 +1962,17 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
       </div>
       <p class="evhint" id="evHint" hidden></p>
 
+      <div class="evrow">
+        <button type="button" class="evbtn restbtn" id="restBtn" aria-pressed="false">
+          <svg class="evstar" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z"/></svg>
+          <span>Rest-day plan</span>
+          <span class="evsw" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="qm" data-help="restday" aria-label="Help: the rest-day plan">?</button>
+        <span class="evleft" id="restLeft"></span>
+      </div>
+      <p class="resthint" id="restHint" hidden></p>
+
       <fieldset class="seg two" id="planQ">
         <legend class="q">Did you stick to the meal plan?<button type="button" class="qm" data-help="plan" aria-label="Help: the meal plan question">?</button></legend>
         <div class="opts">
@@ -1945,6 +2085,130 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
     </div>
     <ul class="rlist" id="redeemList"></ul>
     <button type="button" class="btn ghost" id="redeemManage" hidden>Edit cheats</button>
+  </section>
+
+  <!-- ===================== TIMER ===================== -->
+  <section class="tab" id="tab-timer" aria-label="Timer" hidden>
+    <header class="hero clock">
+      <div class="scene" aria-hidden="true">
+        <div class="stars" data-rx="stars">
+          <i style="--x:40%;--y:9%;--t:2.4s;--d:-1.3s"></i>
+          <i class="b" style="--x:48%;--y:12%;--t:4.0s;--d:-1.1s"></i>
+          <i style="--x:82%;--y:33%;--t:4.4s;--d:-0.5s"></i>
+          <i style="--x:66%;--y:30%;--t:2.4s;--d:-2.5s"></i>
+          <i style="--x:10%;--y:17%;--t:4.1s;--d:-2.3s"></i>
+          <i style="--x:92%;--y:17%;--t:4.5s;--d:-1.5s"></i>
+          <i style="--x:50%;--y:40%;--t:3.0s;--d:-3.8s"></i>
+          <i style="--x:58%;--y:15%;--t:4.0s;--d:-2.3s"></i>
+          <i style="--x:33%;--y:34%;--t:2.8s;--d:-0.8s"></i>
+          <i style="--x:24%;--y:6%;--t:3.7s;--d:-0.4s"></i>
+          <i class="b" style="--x:6%;--y:44%;--t:4.5s;--d:-1.2s"></i>
+          <i style="--x:16%;--y:27%;--t:4.4s;--d:-2.2s"></i>
+          <i style="--x:96%;--y:39%;--t:2.9s;--d:-0.7s"></i>
+        </div>
+        <i class="shoot"></i>
+        <div class="floor" data-rx="floor"><div class="floorplane"><div class="floorgrid"></div></div></div>
+        <div class="watchwrap">
+          <div class="watchbody" data-rx="scale">
+            <i class="watchglow" data-rx="pulse"></i>
+            <svg class="watch" viewBox="0 0 120 132" focusable="false">
+              <defs>
+                <radialGradient id="watchFace" cx="0.5" cy="0.4" r="0.65"><stop offset="0" stop-color="#22309a"/><stop offset="1" stop-color="#060a2e"/></radialGradient>
+              </defs>
+              <rect class="crown" x="52" y="11" width="16" height="9" rx="2.5"/>
+              <path class="stem" d="M60 20v10"/>
+              <rect class="pusher" x="88" y="34" width="11" height="7" rx="2" transform="rotate(40 93.5 37.5)"/>
+              <circle class="bezel" cx="60" cy="80" r="50"/>
+              <circle class="face" cx="60" cy="80" r="44" fill="url(#watchFace)"/>
+              <circle class="arc" cx="60" cy="80" r="47" pathLength="1000" transform="rotate(-90 60 80)"/>
+              <path class="ticks" data-rx="tick" d="M60.0 48.0L60.0 39.0M78.0 48.8L80.5 44.5M91.2 62.0L95.5 59.5M92.0 80.0L101.0 80.0M91.2 98.0L95.5 100.5M78.0 111.2L80.5 115.5M60.0 112.0L60.0 121.0M42.0 111.2L39.5 115.5M28.8 98.0L24.5 100.5M28.0 80.0L19.0 80.0M28.8 62.0L24.5 59.5M42.0 48.8L39.5 44.5"/>
+              <path class="hand" d="M60 86V44"/>
+              <circle class="hub" cx="60" cy="80" r="3.6"/>
+            </svg>
+          </div>
+        </div>
+        <i class="edge" data-rx="edge"></i>
+      </div>
+      <h1 class="neon h1-sm" data-glow="Timer">Timer</h1>
+    </header>
+
+    <section class="block first" id="tmPick" aria-labelledby="tmPickH">
+      <div class="block-h">
+        <h2 id="tmPickH">Workout<button type="button" class="qm" data-help="timer" aria-label="Help: the workout timer">?</button></h2>
+      </div>
+      <div class="wtabs" role="tablist" aria-label="Workout" id="tmTabs">
+        <button type="button" role="tab" data-wk="L" aria-selected="false"><span class="wl">Lower</span><span class="wn"></span></button>
+        <button type="button" role="tab" data-wk="U" aria-selected="false"><span class="wl">Upper</span><span class="wn"></span></button>
+        <button type="button" role="tab" data-wk="C" aria-selected="false"><span class="wl">Core</span><span class="wn"></span></button>
+        <button type="button" role="tab" data-wk="H" aria-selected="false"><span class="wl">Home</span><span class="wn"></span></button>
+      </div>
+      <p class="hint" id="tmNote"></p>
+      <ol class="wlist" id="tmList"></ol>
+      <div class="tmopts" id="tmOpts"></div>
+      <div class="actions"><button type="button" class="btn primary" id="tmStart">Start</button></div>
+    </section>
+
+    <section class="board tmboard" id="tmRun" aria-label="Workout timer" hidden>
+      <div class="scene" aria-hidden="true">
+        <div class="stars" data-rx="stars">
+          <i style="--x:18%;--y:35%;--t:2.9s;--d:-2.2s"></i>
+          <i style="--x:78%;--y:10%;--t:4.5s;--d:-0.7s"></i>
+          <i style="--x:10%;--y:30%;--t:3.3s;--d:-0.7s"></i>
+          <i style="--x:4%;--y:18%;--t:4.2s;--d:-3.7s"></i>
+          <i style="--x:59%;--y:9%;--t:3.2s;--d:-3.8s"></i>
+          <i class="b" style="--x:27%;--y:6%;--t:2.6s;--d:-1.9s"></i>
+          <i style="--x:91%;--y:22%;--t:2.9s;--d:-0.5s"></i>
+          <i class="b" style="--x:84%;--y:38%;--t:3.6s;--d:-1.0s"></i>
+          <i style="--x:40%;--y:4%;--t:3.4s;--d:-1.4s"></i>
+          <i style="--x:8%;--y:42%;--t:2.6s;--d:-3.8s"></i>
+          <i style="--x:69%;--y:30%;--t:3.0s;--d:-1.7s"></i>
+          <i class="b" style="--x:94%;--y:4%;--t:2.5s;--d:-1.2s"></i>
+        </div>
+        <div class="floor" data-rx="floor"><div class="floorplane"><div class="floorgrid"></div></div></div>
+        <i class="edge" data-rx="edge"></i>
+      </div>
+      <div class="tmtop"><span class="label" id="tmWk"></span><span class="tmtotal" id="tmTotal">0:00</span></div>
+      <div class="tmface" id="tmFace">
+        <i class="tmglow" data-rx="pulse"></i>
+        <svg class="tmring" viewBox="0 0 200 200" aria-hidden="true" focusable="false">
+          <circle class="tr-bg" cx="100" cy="100" r="88"/>
+          <circle class="tr-fg" id="tmArc" cx="100" cy="100" r="88" pathLength="1000" transform="rotate(-90 100 100)"/>
+        </svg>
+        <div class="tmread">
+          <span class="tmphase" id="tmPhase"></span>
+          <span class="tmclock" id="tmClock">0:00</span>
+          <span class="tmsub" id="tmSub"></span>
+        </div>
+      </div>
+      <div class="tmex">
+        <span class="tmexlab" id="tmExLab"></span>
+        <span class="tmexname" id="tmEx"></span>
+        <span class="tmreps" id="tmReps"></span>
+        <p class="tmcue" id="tmCue"></p>
+      </div>
+      <div class="tmbar" id="tmBar" aria-hidden="true"></div>
+      <div class="tmbtns">
+        <button type="button" class="btn ghost" id="tmBack">Back</button>
+        <button type="button" class="btn primary tmmain" id="tmMain">Done</button>
+        <button type="button" class="btn ghost" id="tmSkip">Skip</button>
+      </div>
+      <div class="tmbtns2">
+        <button type="button" class="linkbtn" id="tmAdd">+15 s</button>
+        <button type="button" class="linkbtn" id="tmEnd">End workout</button>
+      </div>
+      <p class="sr" id="tmLive" aria-live="assertive"></p>
+    </section>
+
+    <section class="block first" id="tmDone" aria-labelledby="tmDoneH" hidden>
+      <h2 id="tmDoneH">Done</h2>
+      <p class="tmdonesub" id="tmDoneSub"></p>
+      <div class="btns">
+        <button type="button" class="btn primary" id="tmLog">Log to Today</button>
+        <button type="button" class="btn ghost" id="tmNew">New workout</button>
+      </div>
+      <p class="hint" id="tmLogged" hidden></p>
+      <p class="note info" id="tmAfter" hidden></p>
+    </section>
   </section>
 
   <!-- ===================== PROGRESS ===================== -->
@@ -2275,6 +2539,10 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
       <svg viewBox="0 0 24 24" aria-hidden="true"><g class="ti-ticket"><path d="M3.5 7.5h17v3a2 2 0 0 0 0 4v3h-17v-3a2 2 0 0 0 0-4z"/><path class="ti-perf" d="M14.5 8v1.5M14.5 11.25v1.5M14.5 14.5V16"/></g></svg>
       <span>Redeem</span>
     </button>
+    <button type="button" class="tabbtn" data-tab="timer">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path class="ti-crown" d="M10 2.5h4M12 2.5V6"/><path d="M18.2 7.3l1.3-1.3"/><path class="ti-hand" d="M12 13.5V9.2"/></svg>
+      <span>Timer</span>
+    </button>
     <button type="button" class="tabbtn" data-tab="progress">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20.5h18"/><path class="ti-line" pathLength="1" d="M4 16l5-5 4 3 7-8"/><path class="ti-head" d="M16 6h4v4"/></svg>
       <span>Progress</span>
@@ -2300,7 +2568,7 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.21.3","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.23.1","profile":null};</script>
 <script>
 /* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
    strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
@@ -2321,15 +2589,15 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
 
   // ---------- Point values ----------
   // 1 point per 2 net calories burned, priced from the low end of each burn range.
-  // L/U/C: 45-minute session. s: per 1,000 steps past 3,000. c: bike or elliptical per 10 min.
-  // cs: treadmill per 10 min (its steps already count). o: other activity per 10 min by effort.
+  // L/U/C: 45-minute session. H: the 15-minute home routine. s: per 1,000 steps past 3,000. c: bike or elliptical
+  // per 10 min. cs: treadmill per 10 min (its steps already count). o: other activity per 10 min by effort.
   var BANDS = [
-    { min: 270, label: "270 lb and up", short: "270+", L: 150, U: 125, C: 100, s: 20, c: 45, cs: 25, o: { light: 20, moderate: 40, hard: 65 } },
-    { min: 245, label: "245–269 lb", short: "245–269", L: 130, U: 110, C: 85, s: 18, c: 40, cs: 20, o: { light: 20, moderate: 35, hard: 60 } },
-    { min: 220, label: "220–244 lb", short: "220–244", L: 120, U: 100, C: 80, s: 16, c: 35, cs: 20, o: { light: 20, moderate: 30, hard: 55 } },
-    { min: 0, label: "Under 220 lb", short: "Under 220", L: 105, U: 90, C: 70, s: 14, c: 30, cs: 15, o: { light: 15, moderate: 30, hard: 50 } }
+    { min: 270, label: "270 lb and up", short: "270+", L: 150, U: 125, C: 100, H: 75, s: 20, c: 45, cs: 25, o: { light: 20, moderate: 40, hard: 65 } },
+    { min: 245, label: "245–269 lb", short: "245–269", L: 130, U: 110, C: 85, H: 65, s: 18, c: 40, cs: 20, o: { light: 20, moderate: 35, hard: 60 } },
+    { min: 220, label: "220–244 lb", short: "220–244", L: 120, U: 100, C: 80, H: 60, s: 16, c: 35, cs: 20, o: { light: 20, moderate: 30, hard: 55 } },
+    { min: 0, label: "Under 220 lb", short: "Under 220", L: 105, U: 90, C: 70, H: 50, s: 14, c: 30, cs: 15, o: { light: 15, moderate: 30, hard: 50 } }
   ];
-  var STEP_BASE = 3000, LIFT_STD = 45, LIFT_MAX = 60;
+  var STEP_BASE = 3000, LIFT_STD = 45, LIFT_MAX = 60, HOME_STD = 15;
   var TIGHT = 2 / 3, NO_LABEL = 1.25, HIST_LIMIT = 10, WEEKS_LIMIT = 8;
   // Warnings explain; nothing is capped.
   var BIG_DAY = 400, BIG_FOOD = 2000, BIG_BANK = 2000;
@@ -2374,6 +2642,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     { id: "L", name: "Lower day", group: "strength", rate: "L", steps: false, track: "time" },
     { id: "U", name: "Upper day", group: "strength", rate: "U", steps: false, track: "time" },
     { id: "C", name: "Core day", group: "strength", rate: "C", steps: false, track: "time" },
+    // For busy days without the gym. It isn't part of the rotation: the next gym day stays next.
+    { id: "home", name: "Home routine", group: "strength", rate: "home", steps: false, track: "time" },
     { id: "tread", name: "Treadmill", group: "cardio", rate: "tread", steps: true, track: "tread" },
     { id: "ellip", name: "Elliptical", group: "cardio", rate: "cardio", steps: false, track: "time" },
     { id: "rower", name: "Rower", group: "cardio", rate: "cardio", steps: false, track: "rower" },
@@ -2388,7 +2658,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   BUILTIN_ACTS.forEach(function (a) { BUILTIN_IDS[a.id] = a; });
   var ACT_LIMIT = 100;        // activities you can add
   var SCREEN_SHARE = 0.4;     // points per screen calorie: half, less 20%, since screens count resting burn and read high
-  var TABS = ["today", "redeem", "progress", "guide", "settings"];
+  var TABS = ["today", "redeem", "timer", "progress", "guide", "settings"];
   var LS_KEY = "cheat-points-v1", META_KEY = "cheat-points-meta", DRAFT_KEY = "cheat-points-drafts";
   var ID_RE = /^(settings|favorites|activities|day-\d{4}-\d{2}-\d{2}|w-\d{4}-\d{2}-\d{2}|t-\d{4}-\d{2}-\d{2}|ev-\d{4}-\d{2}-\d{2}|spend-[A-Za-z0-9_-]{1,60})$/;
 
@@ -2472,6 +2742,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     nextLift: "",
     shownActs: null,
     redeemTab: "",          // Redeem's meal tab once you've picked one        // the activity list the rows were drawn with
+    rest: false,            // the form's day is on the rest-day plan
     food: [],
     foodEls: [],
     armedSpend: null,
@@ -2493,13 +2764,16 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function profile() {
     var p = rawSettings().profile || {}, d = PROFILE_DEFAULT || {};
     var pm = p.meals || {}, dm = d.meals || {};
+    // Rest-day meals are optional. Once you've saved your numbers, yours stand (blank turns the rest-day plan off).
+    var pr = p.restMeals || {}, dr = p.restMeals ? {} : d.restMeals || {};
     var sex = p.sex === "male" || p.sex === "female" ? p.sex : (d.sex === "male" || d.sex === "female" ? d.sex : "");
     return {
       heightIn: pickNum(p.heightIn, d.heightIn),
       age: pickNum(p.age, d.age),
       sex: sex,
       planKcal: pickNum(p.planKcal, d.planKcal),
-      meals: { breakfast: pickNum(pm.breakfast, dm.breakfast), lunch: pickNum(pm.lunch, dm.lunch), dinner: pickNum(pm.dinner, dm.dinner) }
+      meals: { breakfast: pickNum(pm.breakfast, dm.breakfast), lunch: pickNum(pm.lunch, dm.lunch), dinner: pickNum(pm.dinner, dm.dinner) },
+      restMeals: { breakfast: pickNum(pr.breakfast, dr.breakfast), lunch: pickNum(pr.lunch, dr.lunch), dinner: pickNum(pr.dinner, dr.dinner) }
     };
   }
   function settings() {
@@ -2534,18 +2808,18 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function cardioPts(b, k, min, tread) { return Math.round(Math.max(0, +min || 0) / 10 * (tread ? b.cs : b.c) * k); }
   // Points for minutes of an activity at its rate. Steps your phone or watch counted already earn through your
   // step total, so an activity that counts steps pays that much less (Treadmill's rate has it built in).
+  function per10(b, rate) { return rate === "cardio" ? b.c : rate === "home" ? b.H * 10 / HOME_STD : b.o[rate] || b.o.moderate; }
   function ratePts(b, k, rate, min, steps) {
     min = Math.max(0, +min || 0);
     if (rate === "L" || rate === "U" || rate === "C") return liftPts(b, k, rate, min);
     if (rate === "tread") return cardioPts(b, k, min, true);
-    var per10 = (rate === "cardio" ? b.c : b.o[rate] || b.o.moderate) - (steps ? b.s : 0);
-    return Math.max(0, Math.round(min / 10 * per10 * k));
+    return Math.max(0, Math.round(min / 10 * (per10(b, rate) - (steps ? b.s : 0)) * k));
   }
   // Net calories a minute that an estimate stands for (points are half of them).
   function rateKcalMin(b, rate, steps) {
     if (rate === "L" || rate === "U" || rate === "C") return b[rate] * 2 / LIFT_STD;
     if (rate === "tread") return b.cs * 2 / 10;
-    return Math.max(0, (rate === "cardio" ? b.c : b.o[rate] || b.o.moderate) - (steps ? b.s : 0)) * 2 / 10;
+    return Math.max(0, per10(b, rate) - (steps ? b.s : 0)) * 2 / 10;
   }
   // Treadmill by speed and incline: the ACSM walking equation (net of resting burn), blending into the running
   // one between 4 and 5 mph, at your weight. Steps your phone counts on it already earn through your step
@@ -2620,11 +2894,21 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function maintenance(lb) { return ACTIVITY * bmr(lb); }
   function planKcal() { return profile().planKcal || 0; }
   function floorKcal() { return profile().sex === "female" ? 1200 : 1500; }
-  function mealKcal(meal) {
+  // A plan meal's calories: the full plan's, or on a rest-day plan day the rest-day meal (the full one if that's
+  // missing).
+  function mealKcal(meal, rest) {
     if (!isPlanMeal(meal)) return 0;
-    var v = profile().meals[meal];
+    var p = profile(), r = p.restMeals[meal], v = rest && isNum(r) ? r : p.meals[meal];
     return isNum(v) ? v : 0;
   }
+  // The rest-day plan: lighter meals for days you don't lift (set in Settings). The day's total keeps whatever
+  // your full plan has beyond its three meals.
+  function restReady() { var r = profile().restMeals; return MEAL_KEYS.every(function (k) { return isNum(r[k]) && r[k] >= 0 && r[k] <= 4000; }); }
+  function mealSum(rest) { return sum(MEAL_KEYS, function (k) { return mealKcal(k, rest); }); }
+  function restPlanKcal() { return Math.max(0, Math.round(planKcal() - mealSum(false) + mealSum(true))); }
+  function planFor(rest) { return rest ? restPlanKcal() : planKcal(); }
+  // The plan calories a saved day was eaten against.
+  function dayPlan(day) { return day && isNum(day.plan) ? day.plan : planKcal(); }
   // Saved entries keep the numbers they were saved with, so editing your plan later never rewrites history.
   function foodBase(f) { return isNum(f.base) ? f.base : mealKcal(f.meal); }
   function foodEst(f) { var kc = (+f.kcal || 0) * Math.max(1, Math.round(+f.qty || 1)); return isNum(f.est) ? f.est : Math.round(f.posted === false ? kc * NO_LABEL : kc); }
@@ -2861,23 +3145,24 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     if (!prev || prev.late) return { pts: 0, late: true };
     return { pts: keepOnTime ? fresh : Math.min(fresh, prev.pts || 0), late: false };
   }
-  // A food line keeps the plan-meal value it was saved with unless its meal is changed.
-  function formFoodBase(x) { return isNum(x.base) && x.base > 0 && x.bmeal === x.meal ? x.base : mealKcal(x.meal); }
+  // A food line keeps the plan-meal value it was saved with unless its meal, or the day's plan (full or rest-day),
+  // is changed.
+  function formFoodBase(x, rest) { return isNum(x.base) && x.base > 0 && x.bmeal === x.meal && !!x.brest === !!rest ? x.base : mealKcal(x.meal, rest); }
   function formFoodEst(x) { if (x.skip) return 0; var kc = Math.round(num(x.kcal)) * qtyOf(x); return Math.round(x.posted === false ? kc * NO_LABEL : kc); }
   // The day's food, row by row. Each plan meal counts once: the first entry for it (a different meal or a
   // skip) takes its plan calories; another entry for the same meal costs its full calories. A row with no
   // meal picked, or no calories and no skip, isn't counted (null).
-  function foodRows(rows) {
+  function foodRows(rows, rest) {
     var used = {};
     return rows.map(function (x) {
       if (!x || !MEAL_INFO[x.meal] || !(x.skip || num(x.kcal) > 0)) return null;
       var base = 0;
-      if (isPlanMeal(x.meal) && !used[x.meal]) { base = formFoodBase(x); used[x.meal] = true; }
+      if (isPlanMeal(x.meal) && !used[x.meal]) { base = formFoodBase(x, rest); used[x.meal] = true; }
       return { meal: x.meal, skip: !!x.skip, base: base, est: formFoodEst(x), noSnack: !!(x.skip && x.noSnack), snackFor: snackOf(x) };
     });
   }
-  // The form's food for date, settled.
-  function settleForm(rows, date) { return settle(foodRows(rows), date); }
+  // The form's food for date, settled. rest: the day is on the rest-day plan.
+  function settleForm(rows, date, rest) { return settle(foodRows(rows, rest), date); }
   // A skipped meal's note in the log: which skip of the week, its snack, and what's left.
   function ordinal(n) { return n + (n % 10 === 1 && n % 100 !== 11 ? "st" : n % 10 === 2 && n % 100 !== 12 ? "nd" : n % 10 === 3 && n % 100 !== 13 ? "rd" : "th"); }
   function skipHow(s) {
@@ -2893,8 +3178,10 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var lateNow = now > deadline(date);
     var day = blankDay(date, basis, prev ? !!prev.late : lateNow);
     // The plan calories the day was eaten against, so changing the plan later doesn't rewrite its deficit.
-    // Today always takes the current plan.
-    day.plan = prev && isNum(prev.plan) && date !== today() ? prev.plan : planKcal();
+    // Today always takes the current plan, and so does a day switched between the full and rest-day plans.
+    var rest = !!f.rest;
+    day.plan = prev && isNum(prev.plan) && date !== today() && !!prev.rest === rest ? prev.plan : planFor(rest);
+    if (rest) day.rest = true;
     var b = bandFor(day.weight || 250), k = rateK(day.tight);
     var st = Math.round(num(f.steps));
     if (st) {
@@ -2913,7 +3200,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       day.acts.push(entry);
     });
     if (f.plan === "no") {
-      var fr = settleForm(f.food || [], date).rows;
+      var fr = settleForm(f.food || [], date, rest).rows;
       (f.food || []).forEach(function (x, i) {
         var r = fr[i];
         if (!r) return;
@@ -3260,7 +3547,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     for (var i = 0; i < 7; i++) {
       var date = addDays(endDate, -i);
       var day = getDay(date);
-      total += maintenance(W) + BURN_PER_PT * stdActivity(day) - (planKcal() + intakeDelta(day, sp[date]));
+      total += maintenance(W) + BURN_PER_PT * stdActivity(day) - (dayPlan(day) + intakeDelta(day, sp[date]));
     }
     return total / KCAL_PER_LB;
   }
@@ -3309,7 +3596,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     for (var i = 0; i < span; i++) {
       var date = addDays(t, -(3 + i));
       var day = getDay(date);
-      intake += planKcal() + intakeDelta(day, sp[date]);
+      intake += dayPlan(day) + intakeDelta(day, sp[date]);
       formula += maintenance(W) + BURN_PER_PT * stdActivity(day);
     }
     intake /= span;
@@ -3331,10 +3618,10 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function dayBalance(date, day, ws, spent) {
     var w = weighFor(ws, date, (day && day.weight) || settings().weight || 250);
     var rest = Math.round(bmr(w.lb)), life = Math.round((ACTIVITY - 1) * rest), act = Math.round(BURN_PER_PT * stdActivity(day));
-    var plan = day && isNum(day.plan) ? day.plan : planKcal();
-    var ate = Math.max(0, Math.round(plan + intakeDelta(day, spent)));
+    var ate = Math.max(0, Math.round(dayPlan(day) + intakeDelta(day, spent)));
     var burn = rest + life + act;
-    return { date: date, lb: w.lb, lbDate: w.date, bmr: rest, life: life, act: act, burn: burn, ate: ate, net: burn - ate, partial: date === today() };
+    return { date: date, lb: w.lb, lbDate: w.date, bmr: rest, life: life, act: act, burn: burn, ate: ate, net: burn - ate, partial: date === today(),
+      restPlan: !!(day && day.rest) };
   }
   // Every logged day through today, oldest first.
   function balances() {
@@ -3429,7 +3716,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "An on-plan day earns <b>" + c.bonus + "</b> even with no activity" + (c.s.tight ? " (25 on the Standard rate)." : " (17 on the Tight rate)."),
         "<b>Log by noon the next day.</b> Changes after that still record, and off-plan food still counts, but they can't add points; lowering something still lowers them. Correcting a step total you reported on time keeps it on time.",
         "Until noon, the app reminds you if yesterday isn't logged.",
-        "A wedding or a vacation day? Turn on <b>Event day</b> at the top of the form: the goal that day is to maintain."
+        "A wedding or a vacation day? Turn on <b>Event day</b> at the top of the form: the goal that day is to maintain.",
+        "Ate your lighter rest-day meals? Turn on <b>Rest-day plan</b> before answering the meal plan question."
       ]);
     } },
     events: { title: "Event days", html: function () {
@@ -3453,24 +3741,50 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "<b>One skip a week.</b> Every skipped meal needs a snack of at least a quarter of that meal" + (c.ok ? " (lunch: " + fmt(Math.round(m.lunch / 4)) + ")" : "") + ". Eat it around that meal's usual time, so you don't go long without food. Tap <i>Add a snack</i> on the skipped meal, or check <i>Snack for skipped…</i> on an Extra food entry; drinks don't count. Only a snack attached that way counts: a snack hours later or a bigger meal doesn't. The snack is covered by the skipped meal. The first skip of the week (Monday to Sunday) keeps the rest for that day's food cheats. After that, a skip only covers its snack and the rest isn't eligible.",
         "<b>No snack?</b> Check <i>No snack</i>: it costs half the meal from the bank. A snack under the minimum costs twice what it's short. A meal under a quarter of its plan counts as skipped, with itself as the snack.",
         "Each plan meal counts once a day. A second entry for the same meal costs its full calories.",
+        "On a day with <b>Rest-day plan</b> on, the rest-day meals stand in for these: a different meal costs its calories minus the rest-day meal it replaced.",
         "A day with a skipped meal counts as off plan, so it doesn't get the on-plan bonus.",
         "<b>Posted calories</b> means a chain menu, an app or a label. Unchecked adds 25%, since big meals are easy to underestimate.",
         "<b>Cheats</b> are your go-to meals. Save them ahead of time with <b>Add a cheat</b> on the Redeem tab, or name an entry here and tap <b>Save cheat</b>. Add one to the log from the <b>Add a cheat…</b> list or the Redeem tab; Edit lists them so you can change or remove any.",
         "Drinking night: eat dinner first. The late-night food costs more than the drinks."
       ]);
     } },
+    restday: { title: "Rest-day plan", html: function (c) {
+      var r = c.p.restMeals, has = restReady();
+      var meals = has ? "breakfast " + fmt(r.breakfast) + ", lunch " + fmt(r.lunch) + ", dinner " + fmt(r.dinner) + ", " + fmt(restPlanKcal()) + " a day" : "set them in Settings → Your numbers";
+      var def = c.ok && has ? Math.round(maintenance(c.w) - restPlanKcal()) : 0;
+      return "<p>Lighter meals for days you don't lift. Turn on <b>Rest-day plan</b> above the meal plan question on a day you eat them (" + meals + ").</p>" + ul([
+        "<b>Yes</b> to the meal plan question then means you ate the rest-day meals. A different meal costs its calories minus the rest-day meal it replaced, so the full breakfast instead costs the difference.",
+        "It doesn't earn or cost points by itself: the calories it saves go to your deficit, and the Deficit view counts them. The on-plan bonus works the same.",
+        "For days you don't lift, a day or two a week. Lifting days stay on the full plan: recovery needs the extra food. The log reminds you if a lifting day, or a third day in a week, has it on.",
+        def ? "At your weight it's about a <b>" + fmt(near50(def)) + "</b> deficit before any activity; the 15-minute home routine adds about " + fmt(Math.round(BURN_PER_PT * bandFor(c.w).H / 10) * 10) + ", and steps past 3,000 add more." :
+          "With the 15-minute home routine and your walk, a rest-day plan day lands near the 1%-a-week pace.",
+        "It's saved with the day, like the rest of the log. Redeem prices meals against it when the picked day has it on."
+      ]);
+    } },
     workouts: { title: "Workouts and activities", html: function (c) {
-      var rows = BANDS.map(function (b) { return [bandLabel(b, c), fmt(b.L * c.k), fmt(b.U * c.k), fmt(b.C * c.k)]; });
+      var rows = BANDS.map(function (b) { return [bandLabel(b, c), fmt(b.L * c.k), fmt(b.U * c.k), fmt(b.C * c.k), fmt(b.H * c.k)]; });
       return ul([
           "Tap <b>Add a workout</b> for each thing you did and pick it from the list. Did Core and Upper, or a StairMaster and the rower? Add one for each.",
           "Under the amount, <b>min</b> and <b>kcal</b> switch between minutes and the calories a machine's screen or your watch showed. Minutes use the app's estimate. Calories earn " + Math.round(SCREEN_SHARE * 100) + "% of the number: half, less 20%, because screens count what you'd burn at rest and usually read high.",
           "The list has three parts: <b>My plan: strength</b>, <b>My plan: cardio</b> and <b>Other activities</b>. <b>Edit activities</b> shows every activity with its estimated calories a minute. Move any of them between parts as your plan changes, or add your own.",
           "<b>Something else…</b> logs a one-off. Name it, pick the effort, and tap <b>Save activity</b> to add it to Other activities.",
-          "Above the list, <b>Next in your rotation</b> shows the next strength day in My plan, in list order. <b>Add it</b> adds that day."
+          "Above the list, <b>Next in your rotation</b> shows the next strength day in My plan, in list order. <b>Add it</b> adds that day.",
+          "<b>Home routine</b>: the 15-minute busy-day circuit, 45 seconds on and 15 off, 5 moves 3 times through. It stands in for the gym without moving the rotation, so the next gym day stays next. The <b>Timer</b> tab runs it and logs it for you."
         ]) +
-        "<p>Lower, Upper and Core days are priced for 45 minutes and scale with time, up to 60:</p>" +
-        tableHTML(["lb", "Lower", "Upper", "Core"], rows, [1, 2, 3], BANDS.indexOf(c.b)) +
+        "<p>Lower, Upper and Core days are priced for 45 minutes and scale with time, up to 60. The home routine is priced for its 15 minutes:</p>" +
+        tableHTML(["lb", "Lower", "Upper", "Core", "Home"], rows, [1, 2, 3, 4], BANDS.indexOf(c.b)) +
         (c.s.tight ? "<p class=\"fine\">Shown at the Tight rate.</p>" : "");
+    } },
+    timer: { title: "Workout timer", html: function () {
+      return ul([
+        "The <b>Timer</b> tab runs your strength plan. Pick <b>Lower</b>, <b>Upper</b>, <b>Core</b> or <b>Home</b>; it opens on the next workout in your rotation.",
+        "<b>Lifts</b>: do the set, tap <b>Done</b>, and the rest counts down on its own: 90 seconds (or pick 60 or 75), 2 minutes after the leg press and the bench press, 60 on Core days. Planks, side planks and carries count down by themselves; set their times with − and + as you progress.",
+        "<b>Home</b>: 45 seconds on, 15 off, the 5 moves 3 times through, 15 minutes. Round 1 is your warm-up; count your reps in round 2 and try to beat them next time.",
+        "<b>Sets</b>: 2 for your first 2 weeks. Every 6–8 weeks, an easy week: same weights, half the sets.",
+        "It beeps through the last 3 seconds of each part and when the next starts, and keeps your screen on while it runs. On iPhone, the silent switch can mute the beeps.",
+        "<b>Pause</b>, <b>Skip</b> or <b>+15 s</b> anytime, and <b>Back</b> undoes a tap. It keeps time while you're on other tabs, and if the app closes it picks up where it was.",
+        "When you're done, <b>Log</b> adds the workout and its minutes to that day's log. Save the day there to keep it."
+      ]);
     } },
     steps: { title: "Steps", html: function (c) {
       return ul([
@@ -3516,7 +3830,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     } },
     deficit: { title: "Deficit", html: function (c) {
       return "<p>Switch Progress to <b>Deficit</b> to see an estimate of each logged day's calories in and out. A <b>deficit</b> means you burned more than you ate, a <b>surplus</b> the reverse. About 3,500 calories is a pound.</p>" + ul([
-        "<b>Ate</b>: your plan calories" + (c.ok ? " (" + fmt(planKcal()) + ")" : "") + ", with that day's changes from your log: different meals, skipped meals, extra food and drinks.",
+        "<b>Ate</b>: your plan calories" + (c.ok ? " (" + fmt(planKcal()) + (restReady() ? ", or " + fmt(restPlanKcal()) + " on a rest-day plan day" : "") + ")" : "") + ", with that day's changes from your log: different meals, skipped meals, extra food and drinks.",
         "<b>BMR</b>: your resting burn at that morning's weigh-in, from your height, age and sex (Mifflin-St Jeor). A day without a weigh-in uses the last one before it.",
         "<b>Beyond BMR</b>: daily life, 20% of BMR, which covers an easy day up to 3,000 steps; plus your activity at about " + BURN_PER_PT + " calories per point, before Tight. Activity logged late still counts here.",
         "<b>Goal</b>: a " + fmt(DEF_GOAL) + " deficit a day, the dashed line. Days that reach it turn green. Over " + fmt(DEF_HIGH) + " is too steep, so those bars get a red outline: eat some of your points.",
@@ -3533,6 +3847,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         ["High deficit", "The day's estimated deficit passes 7 × your weight (about " + fmt(near50(DEFICIT_PER_LB * c.w)) + " now).", "Eat some of the day's points."],
         ["Under the floor", "Estimated intake falls under " + fmt(floorKcal()) + " calories.", "Eat the rest of your plan meals."],
         ["Big food day", "More than " + fmt(BIG_FOOD) + " points of off-plan food in one day.", "Expect a 2–5 lb water bump for a few days. Back on plan tomorrow."],
+        ["Rest-day plan on a lifting day", "A day with Rest-day plan on has a Lower, Upper or Core day.", "Eat the full plan on lifting days: recovery needs the extra food."],
+        ["Rest-day plan most of the week", "A third day in a Monday–Sunday week has Rest-day plan on.", "Keep it to 1–2 days a week so its small nutrient dips don't stack up."],
         ["Bank in the red", "The bank drops below 0.", "The next cheat waits until it's back to 0."],
         ["Big bank", "The bank passes " + fmt(BIG_BANK) + ".", "Fine for an event. Regular cheats are easier to bounce back from."],
         ["Losing too fast", "Your 7-day average drops more than 1% a week after week 2.", "Eat more: spend points, or add back your plan's last trims."],
@@ -3608,6 +3924,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "<b>Height, age, sex</b>: your resting burn (Mifflin-St Jeor). Update your age each birthday.",
         "<b>Daily plan calories</b>: what your meal plan gives you each day.",
         "<b>Plan meals</b>: a different meal costs its calories minus the plan meal it replaced. If your meal plan changes, update these.",
+        "<b>Rest-day meals</b> (optional): your lighter meals for days you don't lift, used on days with Rest-day plan on. Leave all three blank if you don't use one.",
         "Changes apply to new entries. Days you've already logged keep their costs."
       ]);
     } },
@@ -3654,12 +3971,12 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         ]);
     } },
     numbers: { title: "How the numbers were figured", html: function () {
-      return "<p>Burns are net calories (above rest), using MET values from the Compendium of Physical Activities at the low end of each range: Lower day 4.0, Upper day 3.5, Core day 3.0 for 45 minutes; walking at about 3 mph 3.3 (about 46 calories per 1,000 steps at 295 lb); moderate cardio 5.0 (a moderate rower is 4.8, so it uses the same value); other activity 3.0 light, 4.5 moderate, 7.0 hard. Net burn = (MET − 1) × weight in kg × hours.</p>" +
+      return "<p>Burns are net calories (above rest), using MET values from the Compendium of Physical Activities at the low end of each range: Lower day 4.0, Upper day 3.5, Core day 3.0 for 45 minutes; the home routine 5.5 for 15 (vigorous bodyweight circuit work, 45 seconds of every minute, with an easy first round); walking at about 3 mph 3.3 (about 46 calories per 1,000 steps at 295 lb); moderate cardio 5.0 (a moderate rower is 4.8, so it uses the same value); other activity 3.0 light, 4.5 moderate, 7.0 hard. Net burn = (MET − 1) × weight in kg × hours.</p>" +
         "<p>Points are half of that, rounded to friendly numbers. Treadmill pays the cardio value minus what its steps already earn, about 1,070 steps per 10 minutes. Steps count past 3,000 because the daily-life allowance (1.2 × resting burn) already covers a low-step day. Calories logged by kcal earn " + Math.round(SCREEN_SHARE * 100) + "% of the number: half, less 20% for resting burn and screens that read high.</p>" +
         "<p>Resting burn uses the Mifflin-St Jeor equation. Warnings and predictions use 1.2 × resting burn plus about 2.3 calories per standard point (the middle of each range), minus your plan calories and any off-plan changes. 3,500 calories is about 1 lb of fat. Costs are recalculated each week as your weight drops and assume every point gets spent.</p>";
     } }
   };
-  var GUIDE_ORDER = ["points", "bank", "logging", "plan", "events", "redeem", "workouts", "steps", "cardio", "other", "weigh", "weeks", "deficit", "warnings", "rate", "weightpts", "goal", "buys", "costs", "profile", "backup", "sync", "install", "numbers"];
+  var GUIDE_ORDER = ["points", "bank", "logging", "plan", "restday", "events", "redeem", "workouts", "timer", "steps", "cardio", "other", "weigh", "weeks", "deficit", "warnings", "rate", "weightpts", "goal", "buys", "costs", "profile", "backup", "sync", "install", "numbers"];
 
   // ---------- Sheet ----------
   var sheetOnClose = null;
@@ -3989,11 +4306,12 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   // meal smaller than the one it replaces, or a snack for a skipped meal, is free. Its need: what it would
   // actually take from the bank.
   function withFav(rows, fv, meal) { return rows.concat([{ meal: meal, kcal: fv.kcal, qty: 1, posted: fv.posted !== false }]); }
-  function favCostFor(fv, rows, meal, date) {
-    return Math.max(0, settleForm(withFav(rows, fv, meal), date).gross - settleForm(rows, date).gross);
+  // rest: priced against the rest-day plan's meals.
+  function favCostFor(fv, rows, meal, date, rest) {
+    return Math.max(0, settleForm(withFav(rows, fv, meal), date, rest).gross - settleForm(rows, date, rest).gross);
   }
-  function favNeedFor(fv, rows, meal, date) {
-    return Math.max(0, settleForm(withFav(rows, fv, meal), date).spent - settleForm(rows, date).spent);
+  function favNeedFor(fv, rows, meal, date, rest) {
+    return Math.max(0, settleForm(withFav(rows, fv, meal), date, rest).spent - settleForm(rows, date, rest).spent);
   }
   // On an event day: the picked day's form with these food rows, scored (see scoreEvent).
   function formEvent(rows, date) {
@@ -4039,19 +4357,21 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     // Calories under plan in the picked day's log (skipped or smaller meals) are extra points for that day's
     // food only. Drinks come from the bank, and so does everything past a second skipped meal in a week. On an
     // event day what's left of the burn plays that part, for anything.
-    var stl = settleForm(rows, date), drinkTab = tab === "drink";
+    var rest = !!state.rest, stl = settleForm(rows, date, rest), drinkTab = tab === "drink";
     var dayTxt = date === today() ? "today" : fmtShort(date), ex = $("rExtra"), lines = [];
     if (evd) { var room = formEvent(rows, date).room; if (room) lines.push([room, true, "of your burn left " + dayTxt]); }
     else if (drinkTab) { if (stl.left + stl.voidLeft) lines.push([stl.left + stl.voidLeft, false]); }
     else { if (stl.left) lines.push([stl.left, true]); if (stl.voidLeft) lines.push([stl.voidLeft, false]); }
-    ex.hidden = !lines.length && date === today();
-    ex.textContent = lines.length ? "" : "For " + fmtDay(date);
+    ex.textContent = lines.length || date === today() ? "" : "For " + fmtDay(date);
     lines.forEach(function (ln) {
       var row = el("span", "rxl");
       row.appendChild(el("span", null, "+" + fmt(ln[0]) + " "));
       row.appendChild(el("span", ln[1] ? null : "no", ln[2] || (ln[1] ? "under plan " + dayTxt : "not eligible")));
       ex.appendChild(row);
     });
+    // On a rest-day plan day, meals are priced against the rest-day meal they'd replace.
+    if (rest && mealTab) ex.appendChild(el("span", "rxl rxd", "Rest-day plan " + MEAL_INFO[tab].short + ": " + fmt(mealKcal(tab, true)) + " cal"));
+    ex.hidden = !ex.firstChild;
     ex.classList.toggle("on", lines.length > 0);
     var list = $("redeemList");
     list.textContent = "";
@@ -4059,7 +4379,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var inTab = all.filter(function (fv) { return cheatType(fv) === (mealTab ? "meal" : tab); });
     var items = inTab.filter(function (fv) { return !favOnly || starredFor(fv, tab); }).map(function (fv) {
       var en = evd ? favEventNeed(fv, rows, meal, date) : 0;
-      return { fv: fv, need: evd ? en : favCostFor(fv, rows, meal, date), take: evd ? en : favNeedFor(fv, rows, meal, date) };
+      return { fv: fv, need: evd ? en : favCostFor(fv, rows, meal, date, rest), take: evd ? en : favNeedFor(fv, rows, meal, date, rest) };
     }).sort(function (a, b) {
       if (a.need !== b.need) return a.need - b.need;
       var x = favKey(a.fv.name), y = favKey(b.fv.name);
@@ -4295,16 +4615,17 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   // Like off-plan food: one row per workout. New rows start with no activity picked.
   function rateText(b, k, rate, steps) {
     if (rate === "L" || rate === "U" || rate === "C") return fmt(b[rate] * k) + " per 45 min, counted up to 60";
-    return fmt(ratePts(b, k, rate, 10, steps)) + " per 10 min" + (rate === "tread" || steps ? "; its steps count separately" : "");
+    var m = rate === "home" ? HOME_STD : 10;
+    return fmt(ratePts(b, k, rate, m, steps)) + " per " + m + " min" + (rate === "tread" || steps ? "; its steps count separately" : "");
   }
   function kcalText(b, rate, steps) {
     var v = rateKcalMin(b, rate, steps);
     return "≈" + (v < 10 ? (Math.round(v * 10) / 10).toFixed(1).replace(/\.0$/, "") : String(Math.round(v))) + " cal/min" + (steps || rate === "tread" ? " + steps" : "");
   }
   function ptsLine(b, k, x) {
-    var lift = x.rate === "L" || x.rate === "U" || x.rate === "C";
-    var p = lift ? fmt(b[x.rate] * k) + " pts per 45 min, counted up to 60" : fmt(ratePts(b, k, x.rate, 10, x.steps)) + " pts per 10 min";
-    return (x.builtin ? "" : effortName(x.rate) + " effort · ") + p;
+    var lift = x.rate === "L" || x.rate === "U" || x.rate === "C", m = x.rate === "home" ? HOME_STD : 10;
+    var p = lift ? fmt(b[x.rate] * k) + " pts per 45 min, counted up to 60" : fmt(ratePts(b, k, x.rate, m, x.steps)) + " pts per " + m + " min";
+    return (x.builtin ? "" : effortName(x.rate) + " effort · ") + p + (x.rate === "home" ? " · not in the rotation" : "");
   }
   var DETAILS = {
     hike: { label: "Distance, climb", ask: "distance and climb", fields: [["mi", "actMi", "Distance in miles", "0.01", "mi", "0.0"], ["ft", "actFt", "Feet climbed", "10", "ft", "0"]] },
@@ -4707,7 +5028,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       var top = $("sheetBody").scrollTop;
       body.textContent = "";
       var s = settings(), b = bandFor(s.weight || 250), k = rateK(s.tight);
-      body.appendChild(el("p", "fine", "Calories are what each estimate counts at your weight, above what you'd burn at rest. Points are half. Strength days in My plan rotate in this order."));
+      body.appendChild(el("p", "fine", "Calories are what each estimate counts at your weight, above what you'd burn at rest. Points are half. Strength days in My plan rotate in this order; the home routine sits out of the rotation."));
       var list = activities();
       GROUPS.forEach(function (g) {
         body.appendChild(el("h4", "actman-h", g.label));
@@ -4776,17 +5097,18 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   // The form always shows the picked day: what's saved for it, or your unsaved changes, which are kept per
   // day (on this device) until you save or discard them.
   function blankForm() {
-    return { plan: "", food: [], acts: [], steps: "" };
+    return { plan: "", rest: false, food: [], acts: [], steps: "" };
   }
   function formFromDay(day) {
     var f = blankForm();
     if (!day) return f;
     f.plan = day.food.length ? "no" : "yes";
+    f.rest = !!day.rest;
     // A day saved before snacks were attached: the extra food that counted as a snack then is attached now.
     var was = day.netFood && !day.snackLinks ? settle(savedItems(day.food), day.date, true).rows : [];
     f.food = day.food.map(function (x, i) {
       var link = snackOf(x) || (x.meal === "extra" && was[i] && was[i].snack > 0 ? was[i].snackFor || "" : "");
-      return { meal: MEAL_INFO[x.meal] ? x.meal : "extra", kcal: +x.kcal || 0, qty: qtyOf(x), posted: x.posted !== false, name: x.name || "", base: foodBase(x), bmeal: x.meal, skip: !!x.skip, noSnack: !!x.noSnack, snackFor: link };
+      return { meal: MEAL_INFO[x.meal] ? x.meal : "extra", kcal: +x.kcal || 0, qty: qtyOf(x), posted: x.posted !== false, name: x.name || "", base: foodBase(x), bmeal: x.meal, brest: !!day.rest, skip: !!x.skip, noSnack: !!x.noSnack, snackFor: link };
     });
     if (day.steps) f.steps = day.steps.total;
     day.acts.forEach(function (e) {
@@ -4805,13 +5127,16 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function captureForm() {
     return {
       plan: picked("plan"),
-      food: state.food.map(function (x) { return { meal: x.meal, kcal: x.kcal || "", qty: qtyOf(x), posted: x.posted !== false, name: x.name || "", base: x.base, bmeal: x.bmeal, skip: !!x.skip, noSnack: !!(x.skip && x.noSnack), snackFor: snackOf(x) }; }),
+      rest: !!state.rest,
+      food: state.food.map(function (x) { return { meal: x.meal, kcal: x.kcal || "", qty: qtyOf(x), posted: x.posted !== false, name: x.name || "", base: x.base, bmeal: x.bmeal, brest: !!x.brest, skip: !!x.skip, noSnack: !!(x.skip && x.noSnack), snackFor: snackOf(x) }; }),
       acts: state.acts.map(function (a) { return Object.assign({}, a); }),
       steps: $("steps").value
     };
   }
   function applyForm(f) {
     setPicked("plan", f.plan || "");
+    state.rest = !!f.rest;
+    renderRest();
     state.food = (f.food || []).map(function (x) { return clone(x); });
     state.armedFood = -1;
     renderFoodList();
@@ -4835,7 +5160,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       if (Object.keys(cx).length) w.push(JSON.stringify(cx));
       return w;
     });
-    return JSON.stringify([f.plan || "", food, Math.round(num(f.steps)), aw]);
+    var key = [f.plan || "", food, Math.round(num(f.steps)), aw];
+    if (f.rest) key.push("rest");
+    return JSON.stringify(key);
   }
   function isDirty(date, f) { return canonForm(f) !== canonForm(savedForm(date)); }
   function loadDrafts() {
@@ -4893,9 +5220,11 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     $("viewing").hidden = !past;
     $("viewingTxt").textContent = "Showing " + fmtDay(date);
   }
-  // The strength day after the last one logged, in My plan: strength order.
+  // The strength day after the last one logged, in My plan: strength order. The home routine stands in on a busy
+  // day without moving the rotation: the next gym day is still next.
+  function rotation() { return activities().filter(function (a) { return a.group === "strength" && a.rate !== "home"; }); }
   function suggestLift(date) {
-    var ids = activities().filter(function (a) { return a.group === "strength"; }).map(function (a) { return a.id; });
+    var ids = rotation().map(function (a) { return a.id; });
     if (!ids.length) return "";
     var prior = null, last = "";
     allDays().forEach(function (d) {
@@ -4919,6 +5248,64 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     $("tDays").textContent = String(ts.run);
     $("tPts").textContent = String(ts.pts);
   }
+  // ---------- Rest-day plan ----------
+  // A switch above the meal plan question. On, the picked day is eaten against the rest-day meals: each plan
+  // meal's calories (what a different meal costs against) and the day's plan total (its deficit). It's part of the
+  // day's log, saved with it.
+  function restDaysInWeek(date) {
+    var n = 0;
+    for (var d = weekStart(date), end = addDays(weekStart(date), 6); d <= end; d = addDays(d, 1)) {
+      if (d === date) continue;
+      var x = getDay(d);
+      if (x && x.rest) n++;
+    }
+    return n;
+  }
+  function renderRest() {
+    var on = !!state.rest, btn = $("restBtn");
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    var q = $("planQ").querySelector("legend").firstChild, qt = on ? "Did you stick to the rest-day plan?" : "Did you stick to the meal plan?";
+    if (q && q.nodeType === 3 && q.nodeValue !== qt) q.nodeValue = qt;
+    var r = profile().restMeals;
+    $("restLeft").textContent = restReady() ? fmt(restPlanKcal()) + " cal a day" : "";
+    $("restHint").hidden = !on;
+    $("restHint").textContent = !on ? "" : restReady() ? "Plan meals: breakfast " + fmt(r.breakfast) + ", lunch " + fmt(r.lunch) + ", dinner " + fmt(r.dinner) + ". Off-plan food is priced against these." :
+      "Your rest-day meals aren't set, so new food is priced against the full plan. Enter them in Settings → Your numbers.";
+  }
+  function toggleRest() {
+    if (state.readOnly) return;
+    if (!state.rest && !restReady()) { openRestSetup(); return; }
+    state.rest = !state.rest;
+    buzz();
+    renderRest();
+    updatePreview();
+  }
+  // First time on: the three rest-day meals, saved with your numbers.
+  function openRestSetup() {
+    if (state.readOnly) return;
+    if (!ready()) { openSetup(); return; }
+    var body = el("div", "pf");
+    body.innerHTML = '<p class="fine" style="margin:0">Your rest-day plan\'s meals, for days you don\'t lift. You can change them later in Settings.</p>' +
+      restFieldsHTML("rs");
+    var save = button("btn primary", "Save and turn on", function () {
+      var rm = readRestFields("rs");
+      if (rm.error) { toast(rm.error); return; }
+      if (!rm.meals) { toast("Enter the calories for each rest-day meal."); return; }
+      var p = Object.assign({}, rawSettings().profile || {}, { restMeals: rm.meals });
+      saveSettings({ profile: p }).then(function (ok) {
+        if (!ok) return;
+        closeSheet();
+        state.rest = true;
+        renderRest();
+        updatePreview();
+        toast("Rest-day plan on for " + fmtShort(state.logDate));
+      });
+    });
+    openSheet("Rest-day plan", body, [save, button("btn ghost", "Cancel", closeSheet)]);
+    fillRestFields("rs");
+    wireRestFields("rs");
+  }
+
   // ---------- Event days ----------
   // The toggle at the top of the log: on or off for the picked day, its own entry (ev-DATE), saved right away.
   function renderEvent() {
@@ -4982,6 +5369,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     o.classList.toggle("late", pts <= 0 && fresh > 0);
   }
   function updatePreview() {
+    renderRest();
     var date = state.logDate, f = captureForm(), prev = getDay(date), now = Date.now(), evd = isEvent(date);
     var basis = prev ? { weight: prev.weight, tight: prev.tight } : settings();
     var b = bandFor(basis.weight || 250), k = rateK(basis.tight);
@@ -4995,7 +5383,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var off = f.plan === "no";
     $("food").hidden = !off;
     if (off) {
-      var frs = settleForm(state.food, date).rows;
+      var frs = settleForm(state.food, date, f.rest).rows;
       // The skipped meals an Extra food entry can be the snack for (not ones marked No snack), in meal order.
       var snackable = frs.filter(function (r) { return r && r.skip && !r.skip.noSnack; }).map(function (r) { return r.meal; })
         .sort(function (a, b) { return MEAL_KEYS.indexOf(a) - MEAL_KEYS.indexOf(b); });
@@ -5106,10 +5494,16 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var lostLate = lateNow && (ev ? ev.lateBurn > 0 : fresh.total > day.activityPts);
     if (lostLate) warns.push(ev ? { kind: "info", text: "Past noon the next day, so new activity doesn't add to the burn. Food still counts.", help: "events" }
       : { kind: "info", text: "Past noon the next day, so new activity earns nothing. Food still counts.", help: "logging" });
+    // The rest-day plan is for days you don't lift, a day or two a week.
+    if (f.rest && day.acts.some(function (e) { return e.rate === "L" || e.rate === "U" || e.rate === "C"; })) {
+      warns.push({ kind: "warn", text: "Lifting days stay on the full plan: recovery needs the extra food.", help: "restday" });
+    }
+    var restWeek = f.rest ? restDaysInWeek(date) + 1 : 0;
+    if (restWeek > 2) warns.push({ kind: "info", text: "Rest-day plan " + restWeek + " days this week. Keep it to 1–2 so the dips don't stack up.", help: "restday" });
     if (ready() && shown) {
       var W = basis.weight;
       var std = stdActivity(day);
-      var intake = planKcal() + intakeDelta(day, 0);
+      var intake = dayPlan(day) + intakeDelta(day, 0);
       var deficit = maintenance(W) + BURN_PER_PT * std - intake;
       if (std > BIG_DAY) warns.push({ kind: "warn", text: "Big activity day. Fine now and then; work up to days like this.", help: "warnings" });
       if (deficit > DEFICIT_PER_LB * W) warns.push({ kind: "warn", text: "Deficit about " + fmt(near50(deficit)) + " today, past the 1%-a-week pace (" + fmt(near50(5 * W)) + "). Eating some points is fine.", help: "warnings" });
@@ -5743,6 +6137,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   }
   function describeDay(d) {
     var parts = d.event ? ["Event day"] : [];
+    if (d.rest) parts.push("Rest-day plan");
     d.acts.forEach(function (e) { parts.push(e.name + " " + (e.mode === "kcal" ? fmt(e.kcal) + " cal" : e.min + " min" + detailBrief(e))); });
     if (d.steps) parts.push(fmt(d.steps.total) + " steps");
     if (!parts.length) parts.push(d.onPlan ? "On plan" : "No activity");
@@ -6053,7 +6448,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       var li = el("li"), open = inStrip(b.date);
       var row = el(open ? "button" : "div", "hrow" + (open ? "" : " static"));
       var NB = " ";
-      var when = fmtDay(b.date) + (b.partial ? " (so far)" : "") + (isEvent(b.date) ? " · Event day" : "");
+      var when = fmtDay(b.date) + (b.partial ? " (so far)" : "") + (isEvent(b.date) ? " · Event day" : "") + (b.restPlan ? " · Rest-day plan" : "");
       var beyond = "Ate " + fmt(b.ate) + " · Burned " + fmt(b.life + b.act) + " beyond" + NB + "BMR";
       var parts = "Daily life" + NB + fmt(b.life) + " + activity" + NB + fmt(b.act);
       var rest = "BMR " + fmt(b.bmr) + " at" + NB + lbStr(b.lb) + NB + "lb" + (b.lbDate && b.lbDate !== b.date ? " (" + fmtShort(b.lbDate) + ")" : "");
@@ -6081,7 +6476,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   }
 
   // ---------- Your numbers ----------
-  function profileFieldsHTML(px, withWeight) {
+  function profileFieldsHTML(px, withWeight, withRest) {
     function row(id, label, mode, ph) {
       return '<div class="field two"><label for="' + px + id + '">' + label + '</label><input id="' + px + id + '" type="number" inputmode="' + mode + '" placeholder="' + (ph || "0") + '"></div>';
     }
@@ -6096,7 +6491,42 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       row("Plan", "Daily plan calories", "numeric", "0") +
       '<p class="minor">Plan meals, calories</p>' +
       row("B", "Breakfast", "numeric", "0") + row("L", "Lunch", "numeric", "0") + row("D", "Dinner", "numeric", "0") +
-      '<p class="hint" id="' + px + 'Sum"></p>';
+      '<p class="hint" id="' + px + 'Sum"></p>' +
+      (withRest ? '<p class="minor">Rest-day meals, calories<button type="button" class="qm qm-sm" data-help="restday" aria-label="Help: the rest-day plan">?</button></p>' + restFieldsHTML(px) : "");
+  }
+  // The rest-day plan's meals (optional): all three, or none.
+  function restFieldsHTML(px) {
+    function row(id, label) {
+      return '<div class="field two"><label for="' + px + id + '">' + label + '</label><input id="' + px + id + '" type="number" inputmode="numeric" placeholder="—"></div>';
+    }
+    return row("RB", "Breakfast") + row("RL", "Lunch") + row("RD", "Dinner") + '<p class="hint" id="' + px + 'RSum"></p>';
+  }
+  function fillRestFields(px) {
+    var r = profile().restMeals;
+    [["RB", "breakfast"], ["RL", "lunch"], ["RD", "dinner"]].forEach(function (x) { var e = $(px + x[0]); if (e) e.value = isNum(r[x[1]]) ? String(Math.round(r[x[1]])) : ""; });
+    restSumHint(px);
+  }
+  // { meals } when all three are filled in, { meals: null } when all are blank, { error } otherwise.
+  function readRestFields(px) {
+    var v = { breakfast: numOrNull($(px + "RB").value), lunch: numOrNull($(px + "RL").value), dinner: numOrNull($(px + "RD").value) };
+    var filled = MEAL_KEYS.filter(function (k) { return v[k] != null; });
+    if (!filled.length) return { meals: null };
+    if (filled.length < 3 || !MEAL_KEYS.every(function (k) { return v[k] >= 0 && v[k] <= 4000; })) return { error: "Enter calories for all three rest-day meals, or leave them all blank." };
+    MEAL_KEYS.forEach(function (k) { v[k] = Math.round(v[k]); });
+    return { meals: v };
+  }
+  function restSumHint(px) {
+    var hint = $(px + "RSum");
+    if (!hint) return;
+    var r = readRestFields(px);
+    if (!r.meals) { hint.textContent = r.error ? "" : "For days you don't lift. Leave blank if you don't use one."; return; }
+    var full = numOrNull(($(px + "B") || {}).value), lun = numOrNull(($(px + "L") || {}).value), din = numOrNull(($(px + "D") || {}).value);
+    var total = r.meals.breakfast + r.meals.lunch + r.meals.dinner;
+    var less = full != null && lun != null && din != null ? full + lun + din - total : mealSum(false) - total;
+    hint.textContent = "Rest-day meals add up to " + fmt(total) + (less > 0 ? ", " + fmt(less) + " less than the full plan." : ".");
+  }
+  function wireRestFields(px) {
+    ["RB", "RL", "RD", "B", "L", "D"].forEach(function (id) { var e = $(px + id); if (e) e.addEventListener("input", function () { restSumHint(px); }); });
   }
   function fillProfileForm(px, withWeight) {
     var p = profile(), s = settings();
@@ -6111,6 +6541,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     set("L", p.meals.lunch);
     set("D", p.meals.dinner);
     profileSumHint(px);
+    if ($(px + "RB")) fillRestFields(px);
   }
   function readProfileForm(px, withWeight) {
     var ft = numOrNull($(px + "Ft").value), inch = numOrNull($(px + "In").value);
@@ -6126,7 +6557,15 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     if (p.planKcal != null) p.planKcal = Math.round(p.planKcal);
     MEAL_KEYS.forEach(function (k) { if (p.meals[k] != null) p.meals[k] = Math.round(p.meals[k]); });
     var weight = withWeight ? numOrNull($(px + "W").value) : settings().weight;
-    return { profile: p, weight: weight == null ? 0 : round1(weight), errors: profileProblems(p, weight == null ? 0 : weight) };
+    var errors = profileProblems(p, weight == null ? 0 : weight);
+    // Rest-day meals: from the form when it has them (all blank turns the rest-day plan off), otherwise whatever's
+    // saved.
+    if ($(px + "RB")) {
+      var rm = readRestFields(px);
+      if (rm.error) errors.push(rm.error);
+      p.restMeals = rm.meals || { breakfast: null, lunch: null, dinner: null };
+    } else if ((rawSettings().profile || {}).restMeals) p.restMeals = rawSettings().profile.restMeals;
+    return { profile: p, weight: weight == null ? 0 : round1(weight), errors: errors };
   }
   function profileSumHint(px) {
     var hint = $(px + "Sum");
@@ -6196,9 +6635,10 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     if (state.tab !== "settings" && !refill) return;
     var form = $("pfForm");
     if (!form.getAttribute("data-built")) {
-      form.innerHTML = profileFieldsHTML("pf", false);
+      form.innerHTML = profileFieldsHTML("pf", false, true);
       form.setAttribute("data-built", "1");
       wireProfileForm("pf");
+      wireRestFields("pf");
       refill = true;
     }
     var s = settings();
@@ -6410,7 +6850,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     allOf("spend").forEach(function (s) { slot(s.date).spends.push(s); });
     weighIns().forEach(function (w) { slot(w.date).weigh = w; });
     var header = ["Date", "Weight (lb)", "Stuck to plan", "Off-plan food", "Off-plan calories", "Activities", "Steps",
-      "Activity points", "On-plan bonus", "Points spent", "Net", "Bank after", "Logged late", "Event day"];
+      "Activity points", "On-plan bonus", "Points spent", "Net", "Bank after", "Logged late", "Event day", "Rest-day plan"];
     var lines = [header.map(function (h) { return csvCell(h); }).join(",")];
     var bank = 0, hits = tallyState().hits, hi = 0;
     Object.keys(byDate).sort().forEach(function (date) {
@@ -6433,7 +6873,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         [d ? d.acts.map(function (e) { return e.name + " " + (e.mode === "kcal" ? e.kcal + " cal" + (e.min ? ", " + e.min + " min" : "") : e.min + " min" + detailBrief(e)); }).join("; ") : "", true],
         [d && d.steps ? d.steps.total : ""],
         [d ? d.activityPts : ""], [d ? d.bonus : ""], [logged ? spent : ""], [logged ? earned - spent : ""], [logged ? bank : ""],
-        [d ? (d.late ? "Yes" : "No") : ""], [d ? (d.event ? "Yes" : "No") : ""]
+        [d ? (d.late ? "Yes" : "No") : ""], [d ? (d.event ? "Yes" : "No") : ""], [d ? (d.rest ? "Yes" : "No") : ""]
       ];
       lines.push(row.map(function (c) { return csvCell(c[0], c[1]); }).join(","));
     });
@@ -6877,6 +7317,534 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     }).then(function (g) { state.persisted = !!g; renderSettingsTab(false); }, function () { /* not supported */ });
   }
 
+  // ---------- Timer ----------
+  // The Timer tab runs the strength plan's workouts set by set: tap Done after a set and its rest counts down;
+  // planks, side planks and carries count down on their own; the home routine runs 45 seconds on, 15 off. Time comes
+  // from timestamps, so a phone that sleeps or an app that restarts picks up where it was (kept on this device). It
+  // beeps through the last 3 seconds of each part and at the start of the next, and keeps the screen on.
+  var TM_KEY = "cheat-points-timer", TM_HOURS = 6, TM_SET_EST = 40, TM_HOLD = [10, 120];
+  var WORKOUTS = {
+    L: { act: "L", name: "Lower", rest: 90, restOpts: [60, 75, 90],
+      warm: "5 minutes on the treadmill or elliptical, then 1–2 light sets of the leg press.",
+      ex: [
+        { id: "legpress", name: "Leg press", reps: "8–12", rest: 120, cue: "Feet shoulder-width, mid-plate. Go as deep as your lower back stays on the pad." },
+        { id: "rdl", name: "Smith machine RDL", reps: "8–12", cue: "Rack the bar at mid-thigh. Soft knees, push your hips back, lower to just below the knees." },
+        { id: "split", name: "Split squat", reps: "8–12", per: "leg", cue: "Hold the stall bar. Long stance, back knee toward the floor, push through the front heel." },
+        { id: "curl", name: "Cable leg curl", reps: "8–12", per: "leg", cue: "Ankle strap, low pulley, hold the frame. Slow on the way back." }
+      ] },
+    U: { act: "U", name: "Upper", rest: 90, restOpts: [60, 75, 90],
+      warm: "5 minutes on the treadmill or elliptical, then 1–2 light sets of the bench press.",
+      ex: [
+        { id: "bench", name: "Smith machine bench press", reps: "8–12", rest: 120, cue: "Bar to lower chest, shoulder blades pinned back. Twist to rack on any hook if a rep stalls." },
+        { id: "row", name: "One-arm cable row", reps: "8–12", per: "arm", cue: "Pulley at chest height, staggered stance, free hand on the frame. Pull your elbow to your side." },
+        { id: "press", name: "Seated dumbbell shoulder press", reps: "8–12", cue: "Bench upright. Ribs down; don't arch your back." },
+        { id: "pulldown", name: "Cable pulldown", reps: "8–12", cue: "Both pulleys at the top, a handle in each hand, on a bench facing the machine. Elbows to your sides." },
+        { id: "facepull", name: "Face pull", reps: "12–15", cue: "Rope at eye level, light weight. Pull toward your forehead, elbows high." }
+      ] },
+    C: { act: "C", name: "Core", rest: 60, restOpts: [45, 60, 75],
+      warm: "5 minutes on the treadmill or elliptical.",
+      after: "This afternoon: 45 minutes of easy cardio (the treadmill at 2.5 mph and 2%, the elliptical or the rower), at a pace you can talk in full sentences. Log it as its own workout.",
+      ex: [
+        { id: "deadbug", name: "Dead bug", reps: "10", per: "side", cue: "Move slowly. Your lower back stays on the floor." },
+        { id: "plank", name: "Plank", hold: [30, 60], cue: "Straight line, squeeze your glutes. On your knees until you hit 60 seconds every set, then on your toes." },
+        { id: "side", name: "Side plank", hold: [20, 40], sides: true, cue: "Elbow under shoulder, hips up. Knees bent until you hit 40 seconds every set, then on your feet." },
+        { id: "pallof", name: "Pallof press", reps: "10–12", per: "side", cue: "Handle at chest height, side to the machine. Press out and resist the twist." },
+        { id: "carry", name: "Farmer's carry", hold: [30, 60], cue: "The heaviest dumbbells you can grip. Walk laps, stand tall. At 60 seconds every set, go heavier and start back at 30." }
+      ] },
+    H: { act: "home", name: "Home", on: 45, off: 15, rounds: 3, ready: 10,
+      after: "Take your 15-minute walk too, after your biggest meal if you can. On the rest-day plan today? Turn it on in the log before you save.",
+      ex: [
+        { id: "squat", name: "Squat", cue: "Hips back and down until your thighs are about parallel. Heels down; drive up through your heels." },
+        { id: "pushup", name: "Push-up", cue: "Hands under shoulders, body straight, elbows back at about 45°. Finish on your knees when your form breaks." },
+        { id: "lunge", name: "Reverse lunge", cue: "Hands on hips. Step back 2–3 ft, back knee toward the floor, push through your front heel. Alternate legs." },
+        { id: "climber", name: "Mountain climber", cue: "From a push-up position, drive one knee toward your chest, then switch. Hips level, steady pace." },
+        { id: "burpee", name: "Step-back burpee", cue: "Squat, hands down, step back to a plank, step in, stand up tall." }
+      ] }
+  };
+  var tm = { s: null, steps: [], pick: "", beeped: 0, last: 0, raf: 0, to: 0, ac: null, lock: null, locking: false, armedEnd: false, shown: {} };
+  function tmPrefs() {
+    var m = meta().timer;
+    m = m && typeof m === "object" ? m : {};
+    return { sets: m.sets === 1 || m.sets === 2 ? m.sets : 3, rest: m.rest && typeof m.rest === "object" ? m.rest : {}, warm: m.warm !== false,
+      sound: m.sound !== false, hold: m.hold && typeof m.hold === "object" ? m.hold : {} };
+  }
+  function setTmPrefs(patch) { var m = meta().timer; setMeta({ timer: Object.assign({}, m && typeof m === "object" ? m : {}, patch) }); }
+  function tmRestFor(wk, p) { var W = WORKOUTS[wk], r = p.rest[wk]; return W.restOpts && W.restOpts.indexOf(r) >= 0 ? r : W.rest; }
+  function tmHoldFor(e, p) { var h = p.hold[e.id]; return isNum(h) && h >= TM_HOLD[0] && h <= TM_HOLD[1] ? Math.round(h) : e.hold[0]; }
+  function repsText(e) { return e.reps + " reps" + (e.per ? " per " + e.per : ""); }
+  function setsText(e, sets, hold) { return sets + " × " + (e.hold ? hold + " s" + (e.sides ? " a side" : "") : e.reps + (e.per ? " a " + e.per : "")); }
+  function clockText(sec) {
+    sec = Math.max(0, Math.round(sec));
+    var h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, x = sec % 60;
+    return (h ? h + ":" + pad(m) : String(m)) + ":" + pad(x);
+  }
+  // The workout as a list of steps. o: the options it started with (sets, rest, warm-up, hold times), so changing
+  // them later doesn't shift a workout that's running. A rest step names the set that follows it.
+  function tmSteps(wk, o) {
+    var W = WORKOUTS[wk], out = [];
+    if (W.on) {
+      var n = W.ex.length * W.rounds;
+      out.push({ k: "ready", dur: W.ready, ex: 0, round: 1, n: 1, of: n });
+      for (var j = 0; j < n; j++) {
+        out.push({ k: "work", dur: W.on, ex: j % W.ex.length, round: Math.floor(j / W.ex.length) + 1, n: j + 1, of: n });
+        if (j < n - 1) out.push({ k: "rest", dur: W.off, ex: (j + 1) % W.ex.length, round: Math.floor((j + 1) / W.ex.length) + 1, n: j + 2, of: n });
+      }
+    } else {
+      if (o.warm) out.push({ k: "warm", dur: 300, ex: 0, set: 1 });
+      W.ex.forEach(function (e, i) {
+        for (var s = 1; s <= o.sets; s++) {
+          if (e.hold) {
+            var t = o.hold[e.id] || e.hold[0];
+            if (e.sides) {
+              out.push({ k: "hold", dur: t, ex: i, set: s, side: 1 });
+              out.push({ k: "switch", dur: 5, ex: i, set: s });
+              out.push({ k: "hold", dur: t, ex: i, set: s, side: 2 });
+            } else out.push({ k: "hold", dur: t, ex: i, set: s });
+          } else out.push({ k: "set", ex: i, set: s });
+          if (s < o.sets) out.push({ k: "rest", dur: e.rest || o.rest, ex: i, set: s + 1 });
+          else if (i < W.ex.length - 1) out.push({ k: "rest", dur: e.rest || o.rest, ex: i + 1, set: 1, move: true });
+        }
+      });
+    }
+    out.push({ k: "done" });
+    return out;
+  }
+  // About how long a workout takes: its countdowns plus about 40 seconds a set (each leg or arm counts).
+  function tmEstimate(wk, o) {
+    var W = WORKOUTS[wk];
+    return sum(tmSteps(wk, o), function (st) { return st.dur || (st.k === "set" ? TM_SET_EST * (W.ex[st.ex].per ? 2 : 1) : 0); });
+  }
+  // The session, saved on this device: { wk, o, i (step), t0 (when the step started), add (seconds added to it),
+  // paused (when, or 0), start, pausedMs, end (when it finished, or 0), early (ended by hand), logged (the date) }.
+  function tmSave() {
+    try { if (tm.s) window.localStorage.setItem(TM_KEY, JSON.stringify(tm.s)); else window.localStorage.removeItem(TM_KEY); } catch (e) { /* it still runs */ }
+  }
+  function tmRestore() {
+    var o = null;
+    try { o = JSON.parse(window.localStorage.getItem(TM_KEY) || "null"); } catch (e) { o = null; }
+    if (!o || typeof o !== "object" || !WORKOUTS[o.wk] || !o.o || typeof o.o !== "object" || !isNum(o.start) || !isNum(o.t0) || !isNum(o.i)) return;
+    if (Date.now() - (o.end || o.start) > TM_HOURS * 3600000) { tm.s = null; tmSave(); return; }
+    o.o.sets = o.o.sets >= 1 && o.o.sets <= 3 ? Math.round(o.o.sets) : 3;
+    o.o.hold = o.o.hold && typeof o.o.hold === "object" ? o.o.hold : {};
+    o.o.rest = isNum(o.o.rest) ? o.o.rest : WORKOUTS[o.wk].rest || 60;
+    tm.s = o;
+    tm.steps = tmSteps(o.wk, o.o);
+    o.i = Math.max(0, Math.min(tm.steps.length - 1, Math.round(o.i)));
+    o.pausedMs = o.pausedMs || 0;
+    tm.pick = o.wk;
+    tmAdvance(Date.now(), false);
+  }
+  function tmActive() { return !!(tm.s && !tm.s.end); }
+  function tmStepEnd(st) { return tm.s.t0 + (st.dur + (tm.s.add || 0)) * 1000; }
+  function tmSecs(now) { var s = tm.s; return Math.max(0, ((s.end || s.paused || now) - s.start - (s.pausedMs || 0)) / 1000); }
+  function tmMinutes() { return Math.max(1, Math.round(tmSecs(Date.now()) / 60)); }
+  // Moves past countdowns that have run out (several, if the phone slept through them). live: sound the change.
+  function tmAdvance(now, live) {
+    var s = tm.s, n = 0;
+    while (s && !s.paused && !s.end && n++ < 1000) {
+      var st = tm.steps[s.i];
+      if (!st || !st.dur) break;
+      var end = tmStepEnd(st);
+      if (now < end) break;
+      tmGo(s.i + 1, end, live && now - end < 1500);
+    }
+  }
+  function tmGo(i, at, cue) {
+    var s = tm.s;
+    s.i = Math.max(0, Math.min(tm.steps.length - 1, i));
+    s.t0 = at;
+    s.add = 0;
+    tm.beeped = 0;
+    var st = tm.steps[s.i];
+    if (st.k === "done" && !s.end) { s.end = at; tmLock(false); }
+    tmSave();
+    if (cue) tmCue(st);
+    tmAnnounce(st);
+    tmRender();
+  }
+  function tmUnpause(now) { var s = tm.s; if (s && s.paused) { s.t0 += now - s.paused; s.pausedMs = (s.pausedMs || 0) + now - s.paused; s.paused = 0; } }
+  // The clock: every frame while the Timer is on screen, a few times a second otherwise (for the beeps).
+  function tmKick() {
+    if (tm.raf) { cancelAnimationFrame(tm.raf); tm.raf = 0; }
+    if (tm.to) { clearTimeout(tm.to); tm.to = 0; }
+    tmLoop();
+  }
+  function tmLoop() {
+    tm.raf = 0;
+    tm.to = 0;
+    if (!tmActive()) return;
+    var now = Date.now();
+    tmAdvance(now, true);
+    if (!tmActive()) return;
+    var s = tm.s, st = tm.steps[s.i];
+    if (st.dur && !s.paused) {
+      var sec = Math.ceil((tmStepEnd(st) - now) / 1000);
+      if (sec >= 1 && sec <= 3 && sec !== tm.beeped) {
+        tm.beeped = sec;
+        if (now - tm.last < 1200) tone(880, 0.13, 0, 0.32);   // not for seconds that passed while the phone slept
+      }
+    }
+    tm.last = now;
+    var shown = state.tab === "timer" && !document.hidden;
+    if (shown) tmDraw(now);
+    // The ring moves every frame while a countdown runs; a set's clock (counting up) or a pause needs less.
+    if (shown && st.dur && !s.paused) tm.raf = requestAnimationFrame(tmLoop);
+    else tm.to = setTimeout(tmLoop, shown ? 200 : 250);
+  }
+  // Sound: short beeps, made on the spot (no files). Phones only allow sound after a tap, so Start and the buttons
+  // wake it.
+  function tmAC() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      if (!tm.ac || tm.ac.state === "closed") tm.ac = new AC();
+      if (tm.ac.state !== "running" && tm.ac.resume) { var p = tm.ac.resume(); if (p && p.catch) p.catch(function () { /* waits for a tap */ }); }
+      return tm.ac;
+    } catch (e) { return null; }
+  }
+  function tone(freq, dur, at, vol) {
+    if (!tmPrefs().sound) return;
+    var ac = tmAC();
+    if (!ac) return;
+    try {
+      var t = ac.currentTime + (at || 0) + 0.01, o = ac.createOscillator(), g = ac.createGain();
+      o.type = "triangle";
+      o.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol || 0.4, t + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g);
+      g.connect(ac.destination);
+      o.start(t);
+      o.stop(t + dur + 0.05);
+    } catch (e) { /* no sound here */ }
+  }
+  function tmWake() { if (tmPrefs().sound) tone(440, 0.03, 0, 0.0002); }
+  function vibe(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { /* no haptics */ } }
+  // A rising note when work starts, a lower one for a rest, a little run of three when it's all done.
+  function tmCue(st) {
+    if (st.k === "done") { tone(660, 0.16); tone(880, 0.16, 0.15); tone(1320, 0.5, 0.3); vibe([60, 50, 60, 50, 200]); return; }
+    var go = st.k === "set" || st.k === "hold" || st.k === "work";
+    tone(go ? 1320 : 660, go ? 0.42 : 0.32, 0, 0.45);
+    vibe(go ? [200] : [80, 60, 80]);
+  }
+  // Keeps the screen on while a workout runs.
+  function tmLock(on) {
+    if (!("wakeLock" in navigator)) return;
+    if (on) {
+      if (tm.lock || tm.locking || document.hidden) return;
+      tm.locking = true;
+      navigator.wakeLock.request("screen").then(function (l) {
+        tm.locking = false;
+        if (!tmActive()) { l.release().catch(function () { /* already */ }); return; }
+        tm.lock = l;
+        l.addEventListener("release", function () { if (tm.lock === l) tm.lock = null; });
+      }, function () { tm.locking = false; });
+    } else if (tm.lock) {
+      var l = tm.lock;
+      tm.lock = null;
+      l.release().catch(function () { /* already */ });
+    }
+  }
+  // The workout the picker opens on: what you picked, else the next lift in your rotation.
+  function tmNext() {
+    var nx = suggestLift(today()) || suggestLift(addDays(today(), 1));
+    return WORKOUTS[nx] && nx !== "H" ? nx : "";
+  }
+  function tmPicked() { return WORKOUTS[tm.pick] ? tm.pick : tmNext() || "L"; }
+  function tmDot() {
+    var b = document.querySelector('.tabbtn[data-tab="timer"]'), dot = b ? b.querySelector(".dot") : null, want = tmActive() && state.tab !== "timer";
+    if (want && !dot) { var d = el("span", "dot"); d.setAttribute("aria-hidden", "true"); b.appendChild(d); }
+    if (!want && dot) dot.remove();
+  }
+  function tmText(id, t) { if (tm.shown[id] !== t) { tm.shown[id] = t; $(id).textContent = t; } }
+  function tmRender() {
+    tmDot();
+    if (state.tab !== "timer") return;
+    var s = tm.s, run = tmActive();
+    $("tab-timer").classList.toggle("running", run);
+    $("tmPick").hidden = !!s;
+    $("tmRun").hidden = !run;
+    $("tmDone").hidden = !(s && s.end);
+    if (!s) tmRenderPick();
+    else if (s.end) tmRenderDone();
+    else { tmRenderRun(); tmDraw(Date.now()); }
+  }
+  function tmRenderPick() {
+    var wk = tmPicked(), W = WORKOUTS[wk], p = tmPrefs(), next = tmNext(), home = !!W.on;
+    Array.prototype.forEach.call(document.querySelectorAll("#tmTabs button"), function (b) {
+      var k = b.getAttribute("data-wk"), wn = b.querySelector(".wn");
+      b.setAttribute("aria-selected", k === wk ? "true" : "false");
+      wn.textContent = k === next ? "Next" : k === "H" ? "15 min" : "";
+      wn.classList.toggle("next", k === next);
+      b.setAttribute("aria-label", WORKOUTS[k].name + (k === next ? ", next in your rotation" : k === "H" ? ", the 15-minute home routine" : ""));
+    });
+    var o = { sets: p.sets, rest: tmRestFor(wk, p), warm: !home && p.warm, hold: {} };
+    W.ex.forEach(function (e) { if (e.hold) o.hold[e.id] = tmHoldFor(e, p); });
+    var mins = Math.round(tmEstimate(wk, o) / 60);
+    var special = W.ex.filter(function (e) { return e.rest; }).map(function (e) { return e.name.replace(/^Smith machine /, "").toLowerCase(); });
+    $("tmNote").textContent = home ? "15 minutes: " + W.on + " seconds on, " + W.off + " off, the 5 moves 3 times through. Round 1 is your warm-up. No jumping; about 6 × 6 ft of floor." :
+      "About " + mins + " minutes. Rest " + o.rest + " seconds between sets" + (special.length ? ", 2 minutes after the " + special.join(" and ") : "") + ". Stop each set with 1–2 reps left.";
+    var list = $("tmList");
+    list.textContent = "";
+    W.ex.forEach(function (e) {
+      var li = el("li", "wrow");
+      li.appendChild(el("span", "wname", e.name));
+      li.appendChild(el("span", "wsets", home ? W.on + " s" : setsText(e, p.sets, o.hold[e.id])));
+      li.appendChild(el("span", "wcue", e.cue));
+      if (e.hold) {
+        var row = el("div", "wstep"), box = el("div", "qty"), minus = button("qbtn", "−"), plus = button("qbtn", "+"), v = el("output", "qv", o.hold[e.id] + " s");
+        box.setAttribute("role", "group");
+        box.setAttribute("aria-label", e.name + " hold time");
+        minus.setAttribute("aria-label", "5 seconds less");
+        plus.setAttribute("aria-label", "5 seconds more");
+        v.id = "tmHold-" + e.id;
+        minus.disabled = o.hold[e.id] <= TM_HOLD[0];
+        plus.disabled = o.hold[e.id] >= TM_HOLD[1];
+        var step = function (d) {
+          var h = Object.assign({}, tmPrefs().hold);
+          h[e.id] = Math.max(TM_HOLD[0], Math.min(TM_HOLD[1], tmHoldFor(e, tmPrefs()) + d));
+          setTmPrefs({ hold: h });
+          buzz();
+          tmRenderPick();
+        };
+        minus.addEventListener("click", function () { step(-5); });
+        plus.addEventListener("click", function () { step(5); });
+        box.appendChild(minus);
+        box.appendChild(v);
+        box.appendChild(plus);
+        row.appendChild(box);
+        row.appendChild(el("span", "fine", "Hold" + (e.sides ? " each side" : "") + ". Plan: " + e.hold[0] + " to " + e.hold[1] + " s"));
+        li.appendChild(row);
+      }
+      if (e.rest && !home) li.appendChild(el("span", "wrest", "Rest " + (e.rest / 60) + " minutes after each set"));
+      list.appendChild(li);
+    });
+    var opts = $("tmOpts");
+    opts.textContent = "";
+    if (!home) {
+      var r1 = el("div", "tmopt");
+      r1.appendChild(el("span", "flabel small", "Sets"));
+      r1.appendChild(segRadios("three", "tmSets", "Sets of each", [["1", "1"], ["2", "2"], ["3", "3"]], String(p.sets), function (v) { setTmPrefs({ sets: +v }); tmRenderPick(); }));
+      opts.appendChild(r1);
+      var r2 = el("div", "tmopt");
+      r2.appendChild(el("span", "flabel small", "Rest"));
+      r2.appendChild(segRadios("three", "tmRestSec", "Rest between sets", W.restOpts.map(function (x) { return [String(x), x + " s"]; }), String(o.rest), function (v) {
+        var r = Object.assign({}, tmPrefs().rest);
+        r[wk] = +v;
+        setTmPrefs({ rest: r });
+        tmRenderPick();
+      }));
+      opts.appendChild(r2);
+    }
+    var checks = el("div", "tmchecks");
+    if (!home) checks.appendChild(tmCheck("tmWarm", "5-minute warm-up", p.warm, function (on) { setTmPrefs({ warm: on }); tmRenderPick(); }));
+    checks.appendChild(tmCheck("tmSound", "Beeps", p.sound, function (on) { setTmPrefs({ sound: on }); if (on) { tmAC(); tone(1320, 0.2); } }));
+    opts.appendChild(checks);
+    if (!home) opts.appendChild(el("p", "fine", "First 2 weeks: 2 sets while you learn the moves. Every 6–8 weeks, an easy week: half the sets."));
+    $("tmStart").textContent = "Start " + W.name;
+  }
+  function tmCheck(id, text, on, fn) {
+    var lab = el("label", "check"), cb = el("input");
+    cb.type = "checkbox";
+    cb.id = id;
+    cb.checked = !!on;
+    cb.addEventListener("change", function () { fn(cb.checked); });
+    lab.appendChild(cb);
+    lab.appendChild(el("span", null, text));
+    return lab;
+  }
+  function tmStart() {
+    var wk = tmPicked(), W = WORKOUTS[wk], p = tmPrefs();
+    var o = { sets: p.sets, rest: tmRestFor(wk, p), warm: !W.on && p.warm, hold: {} };
+    W.ex.forEach(function (e) { if (e.hold) o.hold[e.id] = tmHoldFor(e, p); });
+    var now = Date.now();
+    tm.s = { wk: wk, o: o, i: 0, t0: now, add: 0, paused: 0, start: now, pausedMs: 0, end: 0, early: false, logged: "" };
+    tm.steps = tmSteps(wk, o);
+    tm.beeped = 0;
+    tm.last = now;
+    tm.armedEnd = false;
+    tm.shown = {};
+    tmWake();
+    tmSave();
+    tmLock(true);
+    tmCue(tm.steps[0]);
+    tmAnnounce(tm.steps[0]);
+    tmRender();
+    window.scrollTo(0, 0);
+    tmKick();
+  }
+  // What the board says for the step: its phase, the line under the clock, and the exercise below.
+  function tmLabels(st) {
+    var s = tm.s, W = WORKOUTS[s.wk], e = W.ex[st.ex] || W.ex[0], sets = s.o.sets, hold = s.o.hold[e.id] || (e.hold ? e.hold[0] : 0);
+    var o = { phase: "", sub: "", lab: "", name: e.name, reps: W.on ? "" : setsText(e, sets, hold), cue: e.cue };
+    if (st.k === "warm") { o.phase = "Warm-up"; o.sub = "Easy pace"; o.lab = "Then"; o.cue = W.warm; }
+    else if (st.k === "set") { o.phase = "Set " + st.set + " of " + sets; o.sub = repsText(e); }
+    else if (st.k === "hold") { o.phase = (e.sides ? "Side " + st.side : "Hold") + " · set " + st.set + " of " + sets; o.sub = "of " + (st.dur + (s.add || 0)) + " s"; }
+    else if (st.k === "switch") { o.phase = "Switch sides"; o.sub = "Side 2 next"; }
+    else if (st.k === "rest" && W.on) { o.phase = "Rest"; o.sub = st.round > tm.steps[s.i - 1].round ? "Round " + st.round + " next" : "Breathe"; o.lab = "Up next"; }
+    else if (st.k === "rest") { o.phase = "Rest"; o.sub = st.move ? "New exercise next" : "Set " + st.set + " of " + sets + " next"; o.lab = st.move ? "Up next" : ""; }
+    else if (st.k === "ready") { o.phase = "Get ready"; o.sub = "Round 1 is your warm-up"; o.lab = "First up"; }
+    else if (st.k === "work") { o.phase = "Round " + st.round + " of " + W.rounds; o.sub = st.round === 1 ? "Warm-up round: go easy" : st.round === 2 ? "Count your reps" : "Hard but steady"; }
+    return o;
+  }
+  function tmRenderRun() {
+    var s = tm.s, st = tm.steps[s.i], W = WORKOUTS[s.wk], L = tmLabels(st);
+    var top = W.name + " · " + (W.on ? "interval " + st.n + " of " + st.of : "exercise " + (st.ex + 1) + " of " + W.ex.length);
+    tmText("tmWk", top);
+    tmText("tmPhase", (s.paused ? "Paused · " : "") + L.phase);
+    tmText("tmSub", L.sub);
+    tmText("tmExLab", L.lab);
+    tmText("tmEx", L.name);
+    tmText("tmReps", L.reps);
+    tmText("tmCue", L.cue);
+    // Progress: a segment per exercise (lifts) or per interval (home), the current one filling.
+    var bar = $("tmBar"), n = W.on ? st.of : W.ex.length, cur = W.on ? st.n - 1 : st.ex;
+    var frac = W.on ? (st.k === "work" ? 0.5 : 0) : st.k === "warm" ? 0 : (st.set - 1) / s.o.sets;
+    if (bar.children.length !== n) { bar.textContent = ""; for (var i = 0; i < n; i++) bar.appendChild(el("i")); }
+    Array.prototype.forEach.call(bar.children, function (seg, i) {
+      seg.className = i < cur ? "on" : i === cur ? "cur" : "";
+      if (i === cur) seg.style.setProperty("--p", Math.round(frac * 100) + "%"); else seg.style.removeProperty("--p");
+    });
+    var timed = !!st.dur;
+    tmText("tmMain", timed ? (s.paused ? "Resume" : "Pause") : "Done");
+    $("tmMain").setAttribute("aria-label", timed ? (s.paused ? "Resume" : "Pause") : "Done with set " + st.set + " of " + L.name);
+    $("tmSkip").setAttribute("aria-label", st.k === "rest" ? "Skip the rest" : st.k === "warm" ? "Skip the warm-up" : "Skip to the next part");
+    $("tmBack").disabled = s.i <= 0;
+    $("tmAdd").hidden = !timed;
+    tmText("tmEnd", tm.armedEnd ? "Tap again to end" : "End workout");
+    $("tmEnd").classList.toggle("armed", tm.armedEnd);
+  }
+  // Each frame: the clock, the ring and the workout's running time.
+  function tmDraw(now) {
+    var s = tm.s, st = tm.steps[s.i];
+    if (!st || s.end) return;
+    var timed = !!st.dur, gone = ((s.paused || now) - s.t0) / 1000, dur = timed ? st.dur + (s.add || 0) : 0, left = Math.max(0, dur - gone);
+    tmText("tmClock", clockText(timed ? Math.ceil(left - 0.001) : Math.floor(gone)));
+    tmText("tmTotal", clockText(Math.floor(tmSecs(now))));
+    var face = $("tmFace"), resting = st.k === "rest" || st.k === "switch" || st.k === "ready" || st.k === "warm";
+    face.classList.toggle("rest", resting);
+    face.classList.toggle("ending", timed && left <= 3 && !s.paused);
+    face.classList.toggle("open", !timed);
+    face.classList.toggle("paused", !!s.paused);
+    var off = timed ? Math.round(1000 * Math.min(1, gone / dur)) : 0;
+    if (tm.shown.arc !== off) { tm.shown.arc = off; $("tmArc").style.strokeDashoffset = String(off); }
+  }
+  function tmAnnounce(st) {
+    if (!tm.s || state.tab !== "timer") return;
+    var L = st.k === "done" ? null : tmLabels(st);
+    $("tmLive").textContent = !L ? "Workout done." : L.phase + (st.dur ? ", " + (st.dur + (tm.s.add || 0)) + " seconds" : "") + ". " + L.name + ".";
+  }
+  function tmRenderDone() {
+    var s = tm.s, W = WORKOUTS[s.wk], min = tmMinutes(), date = tmLogDate();
+    $("tmDoneH").textContent = W.name + (s.early ? " ended" : " done");
+    $("tmDoneSub").textContent = min + " min";
+    var act = actById(W.act), name = act ? act.name : W.name;
+    $("tmLog").textContent = "Log " + min + " min to " + (date === today() ? "today" : fmtShort(date));
+    $("tmLog").setAttribute("aria-label", "Add " + name + ", " + min + " minutes, to the log for " + fmtDay(date));
+    $("tmLog").disabled = state.readOnly || !act;
+    $("tmLogged").hidden = s.logged !== date;
+    $("tmLogged").textContent = s.logged === date ? "Added to " + (date === today() ? "today's log" : "the log for " + fmtDay(date)) + ". Save the day there to keep it." : "";
+    $("tmAfter").hidden = !W.after;
+    $("tmAfter").textContent = W.after || "";
+  }
+  // The day a workout counts for: the day it started (today, if that's off the strip).
+  function tmLogDate() { var d = isoDate(new Date(tm.s.start)); return inStrip(d) ? d : today(); }
+  // Puts the workout in that day's log with its minutes (or updates the minutes already there). Saving the day
+  // logs it, the same as anything else added to the form.
+  function tmLog() {
+    var s = tm.s;
+    if (!s || !s.end || state.readOnly) return;
+    var W = WORKOUTS[s.wk], act = actById(W.act), min = tmMinutes(), date = tmLogDate();
+    if (!act) return;
+    showTab("today", { keepScroll: true });
+    if (state.logDate !== date) selectDay(date, { scroll: "sel" });
+    var at = -1;
+    state.acts.forEach(function (a, i) { if (at < 0 && a.act === W.act) at = i; });
+    if (at >= 0 && state.acts[at].mode === "kcal") { snack(act.name + " is already in the log, by calories."); return; }
+    if (at < 0) { state.acts.push(newRow(W.act)); at = state.acts.length - 1; }
+    state.acts[at].min = String(min);
+    renderActList();
+    updatePreview();
+    s.logged = date;
+    tmSave();
+    var li = $("actList").children[at];
+    if (li) {
+      setTimeout(function () {
+        li.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+        li.classList.add("flash");
+        setTimeout(function () { li.classList.remove("flash"); }, 1800);
+      }, 60);
+    }
+    snack("Added " + act.name + ", " + min + " min. Save the day to log it.");
+  }
+  function tmMainAct() {
+    var s = tm.s;
+    if (!tmActive()) return;
+    var now = Date.now(), st = tm.steps[s.i];
+    tmWake();
+    if (!st.dur) tmGo(s.i + 1, now, true);
+    else if (s.paused) { tmUnpause(now); tmSave(); tmLock(true); tmRender(); }
+    else { s.paused = now; tmSave(); tmRender(); }
+    tmKick();
+  }
+  function tmSkip() { if (!tmActive()) return; var now = Date.now(); tmWake(); tmUnpause(now); tmGo(tm.s.i + 1, now, true); tmKick(); }
+  function tmBack() { if (!tmActive() || tm.s.i <= 0) return; var now = Date.now(); tmWake(); tmUnpause(now); tmGo(tm.s.i - 1, now, false); tmKick(); }
+  function tmAddTime() {
+    var s = tm.s;
+    if (!tmActive() || !tm.steps[s.i].dur) return;
+    s.add = (s.add || 0) + 15;
+    tm.beeped = 0;
+    tmSave();
+    tmRender();
+    tmKick();
+  }
+  function tmEndAct() {
+    if (!tmActive()) return;
+    if (!tm.armedEnd) {
+      tm.armedEnd = true;
+      tmRenderRun();
+      setTimeout(function () { if (tm.armedEnd) { tm.armedEnd = false; if (tmActive()) tmRenderRun(); } }, 4000);
+      return;
+    }
+    tm.armedEnd = false;
+    var s = tm.s, now = Date.now();
+    tmUnpause(now);
+    s.end = now;
+    s.early = true;
+    tmSave();
+    tmLock(false);
+    tmRender();
+  }
+  function tmNew() {
+    tm.s = null;
+    tm.steps = [];
+    tm.pick = "";
+    tm.shown = {};
+    tmSave();
+    tmLock(false);
+    tmRender();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("#tmTabs button"), function (b) {
+    b.addEventListener("click", function () { tm.pick = b.getAttribute("data-wk"); tmRenderPick(); });
+  });
+  $("tmStart").addEventListener("click", tmStart);
+  $("tmMain").addEventListener("click", tmMainAct);
+  $("tmSkip").addEventListener("click", tmSkip);
+  $("tmBack").addEventListener("click", tmBack);
+  $("tmAdd").addEventListener("click", tmAddTime);
+  $("tmEnd").addEventListener("click", tmEndAct);
+  $("tmLog").addEventListener("click", tmLog);
+  $("tmNew").addEventListener("click", tmNew);
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden || !tmActive()) return;
+    tm.last = 0;
+    tmAdvance(Date.now(), false);
+    tmLock(true);
+    tmRender();
+    tmKick();
+  });
+
   // ---------- Tabs and access ----------
   function showTab(name, opts) {
     if (TABS.indexOf(name) < 0) name = "today";
@@ -6890,15 +7858,17 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     });
     if (name === "today") { renderStrip("sel"); fitBank(); }
     if (name === "redeem") renderRedeem();
+    if (name === "timer") { tm.shown = {}; tmRender(); tmKick(); }
     if (name === "progress") renderProgress();
     if (name === "guide") renderGuide(opts && opts.topic);
     if (name === "settings") renderSettingsTab(true);
+    tmDot();
     if (!(opts && (opts.topic || opts.keepScroll))) window.scrollTo(0, 0);
   }
   function renderAccess() {
     var ro = state.readOnly;
     ["steps", "addAct", "nextAdd", "actEdit", "actEdit2", "cheatAdd", "addFood", "weight", "wLb", "wSave", "favPick",
-      "pfSave", "goalNameIn", "goalPtsIn", "goalSave", "goalClear", "restoreBtn", "eraseBtn", "tYes", "tNo", "evBtn"]
+      "pfSave", "goalNameIn", "goalPtsIn", "goalSave", "goalClear", "restoreBtn", "eraseBtn", "tYes", "tNo", "evBtn", "restBtn"]
       .forEach(function (id) { var e = $(id); if (e) e.disabled = ro; });
     radios("plan").concat(radios("rate")).forEach(function (r) { r.disabled = ro; });
     Array.prototype.forEach.call(document.querySelectorAll("#foodList input, #foodList select, #foodList button, #actList input, #actList select, #actList button, #pfForm input"), function (c) { if (ro) c.disabled = true; });
@@ -6914,6 +7884,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     renderTally();
     renderDayLabels();
     if (state.tab === "redeem") renderRedeem();
+    if (state.tab === "timer") tmRender();
     if (state.tab === "progress") renderProgress();
     if (state.tab === "settings") renderSettingsTab(false);
     renderAccess();
@@ -6999,6 +7970,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   $("week").addEventListener("scroll", stripFades, { passive: true });
   $("tYes").addEventListener("click", function () { setTally("y"); });
   $("evBtn").addEventListener("click", toggleEvent);
+  $("restBtn").addEventListener("click", toggleRest);
   $("tNo").addEventListener("click", function () { setTally("n"); });
   $("histMore").addEventListener("click", function () { state.histAll = !state.histAll; renderHistory(); });
   $("weeksMore").addEventListener("click", function () { state.weeksAll = !state.weeksAll; renderWeeks(); });
@@ -7508,7 +8480,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
 
   // Buttons and boxed sections glow cyan under the mouse (CSS :hover). On a touch screen, whatever you tap glows
   // for a moment instead; a scroll that starts on it cancels the glow.
-  var GLOW_TAP = ".btn, .songbtn, .seg label, .rtabs button, .ptabs button, .rangebar button, .day, .qm, .redeem-pill, .music, " +
+  var GLOW_TAP = ".btn, .songbtn, .seg label, .rtabs button, .wtabs button, .ptabs button, .rangebar button, .day, .qm, .redeem-pill, .music, " +
     ".stripnav, .ritem, .topic > summary, .tabbtn, .linkbtn, .board, .hero, .fitem, .aitem, .tally, .evbtn";
   function untap(n) {
     clearTimeout(n._tap);
@@ -7620,13 +8592,18 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
 
   // ---------- Start ----------
   state.drafts = loadDrafts();
+  tmRestore();
   selectDay(today(), { scroll: "end" });
   renderAll();
+  tmDot();
+  if (tmActive()) tmKick();
 
   function afterLoad() {
     if (state.mode === "local" && IS_PWA && hasAnyDays()) requestPersist();
     if (syncOn()) syncNow(false);
     maybeWelcome();
+    // A workout still running (the app was closed or reloaded mid-workout) opens on the Timer.
+    if (tmActive()) showTab("timer");
     handleGo();
   }
   function startLocal(msg) {
