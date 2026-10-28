@@ -564,7 +564,9 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .field label, .flabel { font-weight: 600; }
 .flab { display: flex; align-items: center; min-width: 0; }
 .pts { text-align: right; font-family: var(--display); font-weight: 400; font-size: 1.6rem; color: var(--earn); }
-.pts.late { font-size: 1.15rem; }
+/* Scored but logged late: the points show, tagged, and don't count toward the bank. */
+.pts.late { display: grid; justify-items: end; font-size: 1.12rem; line-height: 1; }
+.pts.late small { font-family: var(--body); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.05em; color: var(--muted); }
 .pts.zero { color: var(--dim); }
 
 .seg { border: 0; margin: 0; padding: 0; min-width: 0; }
@@ -1073,7 +1075,7 @@ html.still dialog.sheet[open] { animation: none; }
 .arow { display: grid; grid-template-columns: minmax(0, 1fr) 6.4em 3.4em; gap: 8px; align-items: center; }
 .arow input[type="number"] { width: 100%; }
 .arow .pts { font-size: 1.45rem; }
-.arow .pts.late { font-size: 1.05rem; }
+.arow .pts.late { font-size: 1.02rem; }
 .aitem .seg.mini span { min-height: 38px; font-size: 0.9rem; }
 .aitem .check { min-width: 0; }
 .arow select.wide { grid-column: span 2; }
@@ -2012,6 +2014,7 @@ html.still .tr-fg { transition: none; }
         <div class="ln" id="sumAteRow" hidden><span>Ate (estimate)</span><b class="spend" id="sumAte">0</b></div>
         <div class="ln" id="sumOverRow" hidden><span id="sumOverLab">Under your burn</span><b class="earn" id="sumOver">0</b></div>
         <div class="ln net"><span>Day total</span><strong id="dayTotal">0</strong></div>
+        <div class="after" id="sumCounts" hidden></div>
         <div class="after" id="sumWas" hidden></div>
         <div class="after" id="bankAfter"></div>
         <ul class="warns" id="dayWarns" aria-live="polite"></ul>
@@ -2568,7 +2571,7 @@ html.still .tr-fg { transition: none; }
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.23.1","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.28.3","profile":null};</script>
 <script>
 /* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
    strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
@@ -2610,9 +2613,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   var BACKUP_DAYS = 7;
   var TALLY_RUN = 7, TALLY_HIT = 1000;
   // Event days (a wedding, a vacation day, a holiday): the goal is maintenance. Up to EVENT_MAX in a calendar
-  // month, set by noon the next day. Days before EVENT_SINCE (the wedding and the trip, logged before the update
-  // was installed) can be set until noon the day after EVENT_GRACE.
-  var EVENT_MAX = 6, EVENT_SINCE = "2026-10-21", EVENT_GRACE = "2026-10-24";
+  // month, set or cleared any time (no noon deadline: reporting one late is fine).
+  var EVENT_MAX = 6;
   var STRIP_DAYS = 30;        // the day strip runs from 30 days back to today
   var FAV_LIMIT = 200;
   var MEAL_KEYS = ["breakfast", "lunch", "dinner"];
@@ -3036,9 +3038,11 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
 
   // ---------- Day records ----------
   // A day holds what was logged for it: a workout, the step total, cardio, other activity, and any off-plan
-  // food. Saving the form replaces the day. Points come only from what was logged by noon the next day: after
-  // that, changes still record but can't add points (lowering something still lowers them), except that
-  // correcting a step total reported on time keeps it on time.
+  // food. Saving the form replaces the day. Points count only from what was logged by noon the next day: after
+  // that, changes still record and the day is still scored like normal (full), but what they'd earn doesn't count
+  // toward the bank (lowering something still lowers it), except that correcting a step total reported on time
+  // keeps it on time. Calories don't follow the late rule: the burn, intake and deficit (and so an event day's
+  // cost) count everything logged.
   function deadline(date) { var d = parseISO(date); return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 12, 0, 0).getTime(); }
   function finalizeDay(day) {
     delete day.event;
@@ -3053,34 +3057,40 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     day.spent = fs ? fs.spent : sum(day.food, foodCost);
     day.penalty = fs ? fs.pen : 0;
     day.pts = day.activityPts + day.bonus;
+    // As scored: the day as if it had all been logged on time, so its total shows how it went. Points earned late
+    // show here but don't count toward the bank (pts is what counts).
+    day.fullActivity = sum(day.acts, function (x) { return entryFull(day, x, false); }) + (day.steps ? entryFull(day, day.steps, true) : 0);
+    day.fullBonus = day.onPlan ? Math.round(ON_PLAN_BONUS * rateK(day.tight)) : 0;
+    day.full = Math.max(day.pts, day.fullActivity + day.fullBonus);
     if (isEvent(day.date)) scoreEvent(day);
     return day;
   }
+  // What an entry scores as if logged on time. Entries saved since 2026.10.28.3 keep it (full) when they earned
+  // less; older ones logged late are priced again, and older on-time ones scored what they earned.
+  function entryFull(day, e, isSteps) {
+    if (isNum(e.full)) return e.full;
+    if (!e.late) return e.pts || 0;
+    var b = bandFor(day.weight || 250), k = rateK(day.tight);
+    if (isSteps) return stepPts(b, k, e.total);
+    return e.mode === "kcal" ? screenPts(b, k, e.kcal, e.steps ? e.min : 0) : entryPts(b, k, e.rate, e.min, e.steps, e, day.weight || 250);
+  }
   // An event day (a wedding, a vacation day, a holiday) aims to maintain: food up to the day's estimated burn is
-  // free and only calories past it cost, 1 point each. Nothing is earned; activity counts by raising the burn, as
-  // far as it was logged on time. The burn is the Deficit view's (see Daily deficit). day.event keeps the numbers,
-  // and what the day nets as a normal day (normal, with its on-plan bonus).
+  // free and only calories past it cost, 1 point each. Nothing is earned; activity counts by raising the burn,
+  // whenever it was logged: the late rule holds back points, and the burn is calories. It's the Deficit view's
+  // burn (see Daily deficit). day.event keeps the numbers, and what the day nets as a normal day (normal, with its
+  // on-plan bonus).
   function scoreEvent(day) {
     var b = dayBalance(day.date, day, weighIns(), 0);
-    var act = Math.round(BURN_PER_PT * onTimeActivity(day)), burn = b.bmr + b.life + act;
-    day.event = { burn: burn, ate: b.ate, over: Math.max(0, b.ate - burn), room: Math.max(0, burn - b.ate), lateBurn: Math.max(0, b.act - act),
-      normal: day.pts - day.spent, bonus: day.bonus };
+    day.event = { burn: b.burn, ate: b.ate, over: Math.max(0, b.ate - b.burn), room: Math.max(0, b.burn - b.ate),
+      normal: day.pts - day.spent, bonus: day.bonus, normalFull: day.full - day.spent, bonusFull: day.fullBonus };
     day.activityPts = 0;
     day.bonus = 0;
     day.penalty = 0;
     day.pts = 0;
+    day.fullActivity = 0;
+    day.fullBonus = 0;
+    day.full = 0;
     day.spent = day.event.over;
-  }
-  // Activity in standard points (as stdActivity), each entry counted only as far as it earned: something logged
-  // past the deadline adds nothing, and a raise past it adds only what the late rule let it earn.
-  function onTimeActivity(day) {
-    var bs = bandFor(day.weight), be = bandFor(day.weight || 250), k = rateK(day.tight);
-    function part(std, fresh, e) { return fresh > 0 ? std * Math.min(1, (e.pts || 0) / fresh) : e.late ? 0 : std; }
-    var s = day.steps ? part(stepPts(bs, 1, day.steps.total), stepPts(be, k, day.steps.total), day.steps) : 0;
-    return s + sum(day.acts, function (e) {
-      return e.mode === "kcal" ? part(screenPts(bs, 1, e.kcal, e.steps ? e.min : 0), screenPts(be, k, e.kcal, e.steps ? e.min : 0), e)
-        : part(entryPts(bs, 1, e.rate, e.min, e.steps, e, day.weight), entryPts(be, k, e.rate, e.min, e.steps, e, day.weight), e);
-    });
   }
   function isEvent(date) { var d = state.docs.get("ev-" + date); return !!d && d.kind === "event"; }
   function eventsIn(month) {
@@ -3088,8 +3098,6 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     state.docs.forEach(function (d, id) { if (id.indexOf("ev-") === 0 && d && d.kind === "event" && String(d.date).slice(0, 7) === month) n++; });
     return n;
   }
-  // Event days are set (or cleared) by the same deadline as everything else: noon the next day.
-  function eventDeadline(date) { return date < EVENT_SINCE ? Math.max(deadline(date), deadline(EVENT_GRACE)) : deadline(date); }
   function monthName(date) { return parseISO(date).toLocaleDateString("en-US", { month: "long" }); }
   function blankDay(date, basis, late) {
     return { kind: "day", v: 2, date: date, weight: basis.weight, tight: basis.tight, late: late, food: [], acts: [], steps: null, ts: 0 };
@@ -3185,8 +3193,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var b = bandFor(day.weight || 250), k = rateK(day.tight);
     var st = Math.round(num(f.steps));
     if (st) {
-      var es = earnFor(prev && prev.steps, stepPts(b, k, st), lateNow, true);
+      var sf = stepPts(b, k, st), es = earnFor(prev && prev.steps, sf, lateNow, true);
       day.steps = { total: st, late: es.late, pts: es.pts };
+      if (es.pts < sf) day.steps.full = sf;
     }
     var rows = formActs(f), sc = scoreActs(prev, rows, b, k, lateNow, day.weight || 250);
     rows.forEach(function (a, i) {
@@ -3195,6 +3204,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       var m = Math.round(num(a.min)), kc = a.mode === "kcal";
       var entry = { act: d.id, name: d.name, rate: d.rate, steps: d.steps, mode: kc ? "kcal" : "min",
         min: !kc || d.steps ? m : 0, kcal: kc ? Math.round(num(a.kcal)) : 0, late: r.late, pts: r.pts };
+      if (r.pts < r.fresh) entry.full = r.fresh;
       if (d.rate === "tread" && !kc && treadSpeed(a.mph)) { entry.mph = treadSpeed(a.mph); entry.grade = treadGrade(a.grade); }
       if (!kc) Object.assign(entry, cleanDetails(rowDetails(a, d)));
       day.acts.push(entry);
@@ -3328,13 +3338,6 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       }
       return { fresh: fresh, pts: pts, late: late };
     });
-  }
-  // Full points for form f with no deadline, to show what late changes would have earned.
-  function freshPts(f, basis) {
-    var b = bandFor(basis.weight || 250), k = rateK(basis.tight);
-    var st = stepPts(b, k, num(f.steps));
-    var ac = sum(formActs(f), function (a) { return actAmount(a) ? actPts(a, b, k, basis.weight || 250) : 0; });
-    return { steps: st, acts: ac, total: st + ac };
   }
   // Activity in standard points (no Tight, no late rule), for burn estimates.
   function stdActivity(day) {
@@ -3714,9 +3717,10 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "Pick a day on the strip. The form shows what's saved for it; change anything and tap <b>Update</b>.",
         "Changes you haven't saved stay with their day when you switch days or close the app, and a dot marks the day. <b>Discard changes</b> puts the day back. Undo right after saving or deleting puts it back too.",
         "An on-plan day earns <b>" + c.bonus + "</b> even with no activity" + (c.s.tight ? " (25 on the Standard rate)." : " (17 on the Tight rate)."),
-        "<b>Log by noon the next day.</b> Changes after that still record, and off-plan food still counts, but they can't add points; lowering something still lowers them. Correcting a step total you reported on time keeps it on time.",
+        "<b>Log by noon the next day.</b> After that the day is still scored like normal, so its total shows how the day went, but points it earns late (new activity, a raise, the on-plan bonus) don't count toward the bank. They're tagged <i>late</i>, and the log shows what counts. Lowering something still lowers what counts, and off-plan food always counts. Correcting a step total you reported on time keeps it on time.",
+        "Late activity still counts toward your burn and deficit, and on an event day it raises the burn like any other.",
         "Until noon, the app reminds you if yesterday isn't logged.",
-        "A wedding or a vacation day? Turn on <b>Event day</b> at the top of the form: the goal that day is to maintain.",
+        "A wedding or a vacation day? Turn on <b>Event day</b> at the top of the form, even days later: the goal that day is to maintain.",
         "Ate your lighter rest-day meals? Turn on <b>Rest-day plan</b> before answering the meal plan question."
       ]);
     } },
@@ -3725,7 +3729,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "Food up to your estimated burn is free. Only calories past it cost points, 1 per calorie.",
         "Nothing is earned that day: no activity points and no on-plan bonus. Steps and workouts still count, by raising the burn, so a big walking day leaves more room.",
         "The burn is the Deficit view's estimate: resting burn at your weigh-in, 20% of it for daily life, and about " + BURN_PER_PT + " calories per point of activity. Today's counts the activity logged so far.",
-        "Up to <b>" + EVENT_MAX + "</b> a month. Turn it on or off by noon the next day, like everything else. Activity added after that doesn't raise the burn.",
+        "Up to <b>" + EVENT_MAX + "</b> a month. Turn it on or off any time, even after noon the next day. Activity you log late still raises the burn.",
         "Log what you eat as best you can. Skipped meals are just calories that day: no snack rule, and they don't use up the week's first skip.",
         "The log shows what the day would net as a normal day, for comparison. Event days get a gold ✦ on the strip."
       ]);
@@ -3853,7 +3857,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         ["Big bank", "The bank passes " + fmt(BIG_BANK) + ".", "Fine for an event. Regular cheats are easier to bounce back from."],
         ["Losing too fast", "Your 7-day average drops more than 1% a week after week 2.", "Eat more: spend points, or add back your plan's last trims."],
         ["Slower than predicted", "Your pace runs 0.5 lb a week or more under what your logs predict.", "Measure portions and check off-plan calories. Three weeks of this: switch to Tight."],
-        ["Logged late", "You add or raise activity after noon the next day.", "It records, but the added activity earns nothing."]
+        ["Logged late", "You log a day, or add or raise activity, after noon the next day.", "It's scored like normal and adds to your burn, but the points it earns late don't count toward the bank."]
       ];
       return "<p>The app never blocks or caps anything. It explains instead.</p><dl class=\"wl\">" + list.map(function (x) {
         return "<div><dt>" + x[0] + "</dt><dd><span>When</span>" + x[1] + "</dd><dd><span>Do</span>" + x[2] + "</dd></div>";
@@ -5308,13 +5312,14 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
 
   // ---------- Event days ----------
   // The toggle at the top of the log: on or off for the picked day, its own entry (ev-DATE), saved right away.
+  // Any day on the strip, even past noon the next day; only the monthly limit locks it.
   function renderEvent() {
     var date = state.logDate, on = isEvent(date), used = eventsIn(date.slice(0, 7));
-    var open = Date.now() <= eventDeadline(date), full = !on && used >= EVENT_MAX;
+    var full = !on && used >= EVENT_MAX;
     var btn = $("evBtn");
     btn.setAttribute("aria-pressed", on ? "true" : "false");
-    btn.classList.toggle("locked", !open || full);
-    btn.setAttribute("aria-disabled", !open || full ? "true" : "false");
+    btn.classList.toggle("locked", full);
+    btn.setAttribute("aria-disabled", full ? "true" : "false");
     $("evLeft").textContent = Math.max(0, EVENT_MAX - used) + " of " + EVENT_MAX + " left in " + monthName(date);
     $("evHint").hidden = !on;
     $("evHint").textContent = on ? "Goal: maintain. Only calories past your burn cost points, and nothing is earned." : "";
@@ -5323,7 +5328,6 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var date = state.logDate;
     if (state.readOnly || !validDate(date) || date > today()) return;
     var id = "ev-" + date, on = isEvent(date);
-    if (Date.now() > eventDeadline(date)) { toast("Past noon the next day, so " + fmtShort(date) + " can't change now."); return; }
     if (!on && eventsIn(date.slice(0, 7)) >= EVENT_MAX) { toast("All " + EVENT_MAX + " event days in " + monthName(date) + " are used."); return; }
     // What the saved day nets each way, for the message.
     var d = getDay(date), change = 0;
@@ -5346,27 +5350,25 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     if (cur && cur.kind === "tally" && cur.a === a) remove(id);
     else write(id, { kind: "tally", date: date, a: a, ts: Date.now() });
   }
-  // How much of an entry's full value it earned: all of it on time, none if it was logged late, part of it if it
-  // was raised after the deadline.
-  function earnedShare(pts, fresh, late) { return fresh > 0 ? Math.min(1, (pts || 0) / fresh) : late ? 0 : 1; }
   function calTxt(n) { n = Math.round(n); return (n > 0 ? "+" : n < 0 ? "−" : "") + fmt(Math.abs(n)) + " cal"; }
-  // On an event day a field shows the calories it adds to the burn ("late" when it's past the deadline).
-  function setCal(id, cal, late) {
+  // On an event day a field shows the calories it adds to the burn, logged late or not.
+  function setCal(id, cal) {
     var o = typeof id === "string" ? $(id) : id;
     cal = Math.round(cal);
     o.classList.add("cal");
-    o.textContent = cal > 0 ? "+" + fmt(cal) : late ? "late" : "0";
+    o.classList.remove("late");
+    o.textContent = cal > 0 ? "+" + fmt(cal) : "0";
     if (cal > 0) o.appendChild(el("small", null, " cal"));
     o.classList.toggle("zero", cal <= 0);
-    o.classList.toggle("late", cal <= 0 && !!late);
   }
-  // A field's points: what it will earn, "late" when it would earn but it's past the deadline.
-  function setPts(id, pts, fresh) {
-    var o = typeof id === "string" ? $(id) : id;
+  // A field's points as scored (full), marked "late" when some of it won't count because it's past the deadline.
+  function setPts(id, pts, full) {
+    var o = typeof id === "string" ? $(id) : id, show = Math.max(pts, full || 0), late = show > pts;
     o.classList.remove("cal");
-    o.textContent = pts > 0 ? plus(pts) : fresh > 0 ? "late" : "0";
-    o.classList.toggle("zero", pts <= 0);
-    o.classList.toggle("late", pts <= 0 && fresh > 0);
+    o.textContent = show > 0 ? plus(show) : "0";
+    if (late) o.appendChild(el("small", null, " late"));
+    o.classList.toggle("zero", show <= 0);
+    o.classList.toggle("late", late);
   }
   function updatePreview() {
     renderRest();
@@ -5445,16 +5447,15 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     // The day as it would be saved (food waiting on its meal isn't counted yet).
     var fp = f.plan === "no" ? Object.assign({}, f, { food: f.food.filter(function (x) { return !!x.meal; }) }) : f;
     var day = buildDay(prev, fp, date, now), ev = day.event;
-    if (f.plan !== "yes") { day.bonus = 0; day.pts = day.activityPts; }
-    var fresh = freshPts(f, basis);
-    // On an event day each activity shows the calories it adds to the burn instead of points.
-    if (ev) setCal("stepPts", day.steps ? BURN_PER_PT * stepPts(b, 1, day.steps.total) * earnedShare(day.steps.pts, stepPts(b, k, day.steps.total), day.steps.late) : 0, day.steps && day.steps.late);
-    else setPts("stepPts", day.steps ? day.steps.pts : 0, fresh.steps);
+    if (f.plan !== "yes") { day.bonus = 0; day.pts = day.activityPts; day.fullBonus = 0; day.full = Math.max(day.pts, day.fullActivity); }
+    // On an event day each activity shows the calories it adds to the burn instead of points, late or not.
+    if (ev) setCal("stepPts", day.steps ? BURN_PER_PT * stepPts(b, 1, day.steps.total) : 0);
+    else setPts("stepPts", day.steps ? day.steps.pts : 0, day.steps ? entryFull(day, day.steps, true) : 0);
     var sc = scoreActs(prev, f.acts, b, k, lateNow, basis.weight || 250);
     state.acts.forEach(function (a, i) {
       var els = state.actEls[i], r = sc[i];
       if (!els) return;
-      if (ev) setCal(els.pts, r ? BURN_PER_PT * actPts(a, b, 1, basis.weight || 250) * earnedShare(r.pts, r.fresh, r.late) : 0, r && r.late);
+      if (ev) setCal(els.pts, r ? BURN_PER_PT * actPts(a, b, 1, basis.weight || 250) : 0);
       else setPts(els.pts, r ? r.pts : 0, r ? r.fresh : 0);
       els.how.textContent = actHow(a, b, k, basis.weight || 250);
       if (els.save) els.save.disabled = state.readOnly || !String(a.name || "").trim();
@@ -5463,9 +5464,10 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var dirty = isDirty(date, f);
     var shown = !!prev || !!f.plan;
     $("sumEarnRow").hidden = !!ev;
-    $("sumEarn").textContent = plus(day.activityPts);
-    $("sumBonusRow").hidden = !!ev || !day.bonus;
-    $("sumBonus").textContent = plus(day.bonus);
+    // Scored like normal even when it's late (see the Counts line for what reaches the bank).
+    $("sumEarn").textContent = plus(day.fullActivity);
+    $("sumBonusRow").hidden = !!ev || !day.fullBonus;
+    $("sumBonus").textContent = plus(day.fullBonus);
     var ns = settle(savedItems(day.food), date, !day.snackLinks);
     $("sumFoodRow").hidden = !!ev || !ns.gross;
     $("sumFood").textContent = ns.gross ? "−" + fmt(ns.gross) : "0";
@@ -5482,18 +5484,21 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       $("sumOver").textContent = ev.over ? "−" + fmt(ev.over) : fmt(ev.room);
       $("sumOver").className = ev.over ? "spend" : "earn";
     }
-    var net = shown ? day.pts - day.spent : 0;
+    // The day total is the day as scored, so it shows how the day went; past the deadline, what counts can be less.
+    var net = shown ? day.full - day.spent : 0, counts = shown ? day.pts - day.spent : 0;
     var dt = $("dayTotal");
     dt.textContent = signed(net);
     dt.classList.toggle("neg", net < 0);
+    $("sumCounts").hidden = net === counts;
+    $("sumCounts").textContent = net === counts ? "" : "Counts toward the bank: " + signed(counts);
     $("sumWas").hidden = !(ev && shown);
-    $("sumWas").textContent = ev && shown ? "As a normal day: " + signed(ev.normal - (f.plan !== "yes" ? ev.bonus : 0)) : "";
+    $("sumWas").textContent = ev && shown ? "As a normal day: " + signed(ev.normalFull - (f.plan !== "yes" ? ev.bonusFull : 0)) : "";
     $("bankAfter").textContent = dirty && shown ? "Bank after saving: " + money(bankWith(date, day)) : "";
 
     var warns = [];
-    var lostLate = lateNow && (ev ? ev.lateBurn > 0 : fresh.total > day.activityPts);
-    if (lostLate) warns.push(ev ? { kind: "info", text: "Past noon the next day, so new activity doesn't add to the burn. Food still counts.", help: "events" }
-      : { kind: "info", text: "Past noon the next day, so new activity earns nothing. Food still counts.", help: "logging" });
+    // Points earned late show but don't count; the activity still adds to the burn. An event day earns nothing anyway.
+    var lostLate = lateNow && !ev && day.full > day.pts;
+    if (lostLate) warns.push({ kind: "info", text: "Past noon the next day, so points earned late show in the total but don't count toward the bank. Activity still adds to your burn, and food still counts.", help: "logging" });
     // The rest-day plan is for days you don't lift, a day or two a week.
     if (f.rest && day.acts.some(function (e) { return e.rate === "L" || e.rate === "U" || e.rate === "C"; })) {
       warns.push({ kind: "warn", text: "Lifting days stay on the full plan: recovery needs the extra food.", help: "restday" });
@@ -5564,11 +5569,13 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var day = buildDay(prev, f, date, now);
     var tr = day.acts.filter(function (e) { return e.mph; }).pop();
     if (tr) setMeta({ tread: { mph: tr.mph, grade: tr.grade } });
-    var fresh = freshPts(f, prev ? { weight: prev.weight, tight: prev.tight } : settings());
-    var late = now > deadline(date) && (day.event ? day.event.lateBurn > 0 : fresh.total > day.activityPts);
+    var late = now > deadline(date) && !day.event && day.full > day.pts;
     var btn = $("saveDay");
     btn.disabled = true;
     var rec = Object.assign({}, day);
+    delete rec.fullActivity;
+    delete rec.fullBonus;
+    delete rec.full;
     delete rec.event;
     write(id, rec).then(function (ok) {
       btn.disabled = state.readOnly;
