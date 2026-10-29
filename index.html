@@ -1023,7 +1023,9 @@ dialog.sheet {
 dialog.sheet[open] { display: flex; flex-direction: column; animation: sheet-up 0.22s ease-out; }
 dialog.sheet::backdrop { background: rgba(3, 5, 22, 0.66); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
 @keyframes sheet-up { from { transform: translateY(24px); opacity: 0.4; } to { transform: none; opacity: 1; } }
-.sheet-inner { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+/* flex-basis auto, not flex: 1 (0%): Safari resolves a 0% basis to 0 when the sheet's height comes from its content,
+   which collapsed every sheet to its 240px minimum on iPhone. */
+.sheet-inner { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
 .sheet-grip { width: 42px; height: 4px; margin: 8px auto 2px; border-radius: 4px; background: rgba(185, 195, 255, 0.45); }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 16px 10px; }
 .sheet-head h3:focus { outline: none; }
@@ -1514,7 +1516,7 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 /* Buttons and boxed sections light up cyan under the mouse; on a touch screen, whatever you tap glows for a
    moment (the script adds .tap). */
 .btn, .songbtn, .rtabs button, .wtabs button, .ptabs button, .rangebar button, .qm, .redeem-pill, .stripnav, .seg span, .day, .ritem,
-.fitem, .aitem, .wrow, .board, .hero, .tally, .evbtn, input, select { transition: border-color 0.25s ease, box-shadow 0.25s ease; }
+.fitem, .aitem, .tmrow, .board, .hero, .tally, .evbtn, input, select { transition: border-color 0.25s ease, box-shadow 0.25s ease; }
 .topic > summary, .linkbtn, .tabbtn { transition: color 0.25s ease, text-shadow 0.25s ease; }
 .tabbtn svg { transition: color 0.25s ease, filter 0.25s ease; }
 @media (hover: hover) and (pointer: fine) {
@@ -1627,12 +1629,12 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 .wtabs button[aria-selected="true"] .wn { color: #e3e9ff; text-shadow: none; }
 .wtabs button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .wlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; counter-reset: wl; }
-.wrow { counter-increment: wl; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 4px 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5); }
-.wrow::before { content: counter(wl); display: grid; place-items: center; width: 22px; height: 22px; margin-top: 1px; border: 1px solid rgba(127, 214, 255, 0.7); border-radius: 50%; color: var(--accent); font: 400 1rem/1 var(--display); }
-.wrow .wname { font-weight: 700; overflow-wrap: anywhere; }
-.wrow .wsets { font-family: var(--display); font-size: 1.3rem; line-height: 1; color: var(--earn); white-space: nowrap; }
-.wrow .wcue { grid-column: 2 / -1; color: var(--muted); font-size: 0.86rem; line-height: 1.35; }
-.wrow .wrest { grid-column: 2 / -1; color: var(--dim); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em; }
+.tmrow { counter-increment: wl; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 4px 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 18px rgba(5, 8, 35, 0.5); }
+.tmrow::before { content: counter(wl); display: grid; place-items: center; width: 22px; height: 22px; margin-top: 1px; border: 1px solid rgba(127, 214, 255, 0.7); border-radius: 50%; color: var(--accent); font: 400 1rem/1 var(--display); }
+.tmrow .wname { font-weight: 700; overflow-wrap: anywhere; }
+.tmrow .wsets { font-family: var(--display); font-size: 1.3rem; line-height: 1; color: var(--earn); white-space: nowrap; }
+.tmrow .wcue { grid-column: 2 / -1; color: var(--muted); font-size: 0.86rem; line-height: 1.35; }
+.tmrow .wrest { grid-column: 2 / -1; color: var(--dim); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em; }
 .wstep { grid-column: 2 / -1; display: flex; align-items: center; gap: 10px; }
 .wstep .qty { flex: none; height: 38px; }
 .wstep .qbtn { width: 38px; }
@@ -1684,6 +1686,51 @@ html.still .vhs, html.still .shoot, html.still .bankfloat { display: none !impor
 .tmmain { min-height: 58px; font-size: 1.2rem; }
 .tmbtns2 { display: flex; justify-content: space-between; gap: 12px; margin-top: -2px; }
 .tmdonesub { margin: -4px 0 0; font-family: var(--display); font-size: 2.2rem; line-height: 1; color: var(--earn); text-shadow: 0 0 10px var(--glow-cyan); }
+.tmdonesets { margin: -2px 0 0; color: var(--muted); font-weight: 600; }
+
+/* ---------- Sets: weight and reps ----------
+   On the running board: two steppers (weight, reps) under the exercise, filled in from last time. In the log: a Sets
+   line on each lifting day, an editor sheet, and a history sheet per exercise. */
+.tmset { display: grid; gap: 6px; width: 100%; max-width: 420px; justify-self: center; margin-top: -4px; }
+.tmset[hidden] { display: none; }
+.tmset { min-height: 92px; align-content: start; }
+/* Lifting workouts make room for the numbers: a smaller ring (it's mostly counting up during a set) and a shorter
+   exercise area, so the board still fits a 360 × 740 phone above the tab bar. */
+.tmboard.lift .tmface { width: min(72vw, 286px, 29vh); }
+.tmboard.lift .tmex { min-height: 128px; }
+.tmset-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 10px; }
+.tmset-col { display: grid; gap: 4px; justify-items: stretch; min-width: 0; }
+.tmset-lab { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--board-dim); text-align: center; }
+.stp { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: stretch; height: 48px; border: 1px solid var(--line); border-radius: 12px; background: var(--field); overflow: hidden; }
+.stp .qbtn { width: 100%; }
+.stp input[type="number"] { width: 100%; min-width: 0; height: 100%; padding: 0 2px; border: 0; border-radius: 0; background: transparent; box-shadow: none; text-align: center; font: 400 1.6rem/1 var(--display); color: var(--ink); }
+.stp input[type="number"]:focus { outline: none; background: rgba(127, 214, 255, 0.08); }
+.stp input[type="number"], .setline input[type="number"], .setwarm input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.stp input::-webkit-outer-spin-button, .stp input::-webkit-inner-spin-button, .setline input::-webkit-outer-spin-button,
+.setline input::-webkit-inner-spin-button, .setwarm input::-webkit-outer-spin-button, .setwarm input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.stp:focus-within { border-color: var(--accent); box-shadow: 0 0 10px var(--glow-cyan); }
+.stp.need { border-color: #ff5c7a; box-shadow: 0 0 10px rgba(255, 92, 122, 0.35); }
+.tmlast { margin: 0; color: var(--board-dim); font-size: 0.8rem; line-height: 1.3; text-align: center; }
+.tmrow .wlast { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; color: var(--muted); font-size: 0.8rem; }
+.tmrow .wlast .linkbtn { font-size: 0.8rem; }
+.arow.setsrow { grid-template-columns: auto minmax(0, 1fr) auto; }
+.setsrow .setsum { color: var(--muted); font-size: 0.86rem; overflow-wrap: anywhere; }
+.setsed .setex { margin-top: 14px; }
+.setex-h { display: grid; gap: 2px; margin-bottom: 6px; }
+.setex-h h4 { margin: 0; font-size: 1rem; }
+.setex-h .fine { margin: 0; font-size: 0.8rem; }
+.setlist { list-style: none; margin: 0 0 4px; padding: 0; display: grid; gap: 6px; }
+.setline { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.setline input[type="number"] { width: 4.6em; min-height: 40px; }
+.setline .u, .setwarm .u { color: var(--muted); font-size: 0.86rem; }
+.setline input.need { border-color: #ff5c7a; box-shadow: 0 0 10px rgba(255, 92, 122, 0.35); }
+.setn { flex: none; display: grid; place-items: center; min-width: 26px; height: 26px; padding: 0 4px; border: 1px solid rgba(127, 214, 255, 0.6); border-radius: 13px; color: var(--accent); font: 400 0.95rem/1 var(--display); }
+.setrm { appearance: none; margin-left: auto; width: 36px; height: 36px; flex: none; border: 1px solid var(--line); border-radius: 50%; background: transparent; color: var(--muted); font-size: 1.2rem; line-height: 1; cursor: pointer; }
+.setwarm { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.setwarm input[type="number"] { width: 4.6em; min-height: 40px; }
+.help ul.exhist { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.exhist li { display: grid; gap: 2px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.exhist li span { color: var(--muted); }
 .aitem.flash { box-shadow: 0 0 0 2px var(--accent), 0 0 18px var(--glow-cyan); transition: box-shadow 0.3s ease; }
 html.still .tmface.open .tr-fg { animation: none; }
 html.still .tr-fg { transition: none; }
@@ -2189,6 +2236,7 @@ html.still .tr-fg { transition: none; }
         <span class="tmreps" id="tmReps"></span>
         <p class="tmcue" id="tmCue"></p>
       </div>
+      <div class="tmset" id="tmSet" hidden></div>
       <div class="tmbar" id="tmBar" aria-hidden="true"></div>
       <div class="tmbtns">
         <button type="button" class="btn ghost" id="tmBack">Back</button>
@@ -2205,6 +2253,7 @@ html.still .tr-fg { transition: none; }
     <section class="block first" id="tmDone" aria-labelledby="tmDoneH" hidden>
       <h2 id="tmDoneH">Done</h2>
       <p class="tmdonesub" id="tmDoneSub"></p>
+      <p class="tmdonesets" id="tmDoneSets" hidden></p>
       <div class="btns">
         <button type="button" class="btn primary" id="tmLog">Log to Today</button>
         <button type="button" class="btn ghost" id="tmNew">New workout</button>
@@ -2571,7 +2620,7 @@ html.still .tr-fg { transition: none; }
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.28.3","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.29.1","profile":null};</script>
 <script>
 /* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
    strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
@@ -2641,9 +2690,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   ];
   var GROUP_IDS = { strength: 1, cardio: 1, other: 1 };
   var BUILTIN_ACTS = [
-    { id: "L", name: "Lower day", group: "strength", rate: "L", steps: false, track: "time" },
-    { id: "U", name: "Upper day", group: "strength", rate: "U", steps: false, track: "time" },
-    { id: "C", name: "Core day", group: "strength", rate: "C", steps: false, track: "time" },
+    { id: "L", name: "Lower day", group: "strength", rate: "L", steps: false, track: "sets" },
+    { id: "U", name: "Upper day", group: "strength", rate: "U", steps: false, track: "sets" },
+    { id: "C", name: "Core day", group: "strength", rate: "C", steps: false, track: "sets" },
     // For busy days without the gym. It isn't part of the rotation: the next gym day stays next.
     { id: "home", name: "Home routine", group: "strength", rate: "home", steps: false, track: "time" },
     { id: "tread", name: "Treadmill", group: "cardio", rate: "tread", steps: true, track: "tread" },
@@ -2855,12 +2904,15 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     if (meters >= 100 && meters <= 50000) o.meters = Math.round(meters);
     if (watts >= 10 && watts <= 800) o.watts = Math.round(watts);
     if (floors >= 1 && floors <= 1000) o.floors = Math.round(floors);
+    var sets = cleanSets(x.sets);
+    if (sets) o.sets = sets;
     return o;
   }
   function rowerWatts(meters, min) { var pace = min * 60 / meters; return Math.min(800, 2.8 / (pace * pace * pace)); }
   // Net calories from an entry's details, or null when it has none an estimate can use.
   function detailKcal(x, min, lb) {
     var c = cleanDetails(x), kgw = kg(lb || 250);
+    if (c.sets) return setsKcal(c.sets, min, lb);
     if (c.mi) {
       var t = min > 0 ? treadBlend(c.mi / (min / 60)) : 0;
       var o2 = c.mi * 1609.34 * (0.1 * (1 - t) + 0.2 * t) * TRAIL + (c.ft || 0) * 0.3048 * (1.8 * (1 - t) + 0.9 * t);   // ml per kg
@@ -2876,6 +2928,81 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var c = cleanDetails(x);
     return c.mi ? c.mi * 1609.34 / (0.415 * (profile().heightIn || 70) * 0.0254) : c.floors ? c.floors * FLOOR_STEPS : 0;
   }
+  // ---------- Lifting days by set ----------
+  // With its sets logged (the Timer does it, or Edit sets), a Lower, Upper or Core day's burn comes from the work
+  // done, not the minutes. Measured in the lab (Knausenberger, Luchini, Scott & Steitz 2014, CEJSSM), a set's whole
+  // energy cost, the lift plus the recovery right after it (about half the total), ran about 10 times the work done
+  // on the weight (weight × how far it moves × reps) for squats, deadlifts and incline presses alike, and 2.5–3
+  // times that for small single-joint moves. So a set costs LIFT_RATIO × its work × cls (1 for compound lifts, more
+  // for isolation moves), plus the share of your own weight the move lifts (body). At beginner weights a session
+  // comes out around 2.5–3 METs, under the Compendium's 3.5 for resistance training (multiple exercises,
+  // 8–15 reps), which averages lighter people lifting more for their size, and it grows with the weight you move. Moves that hold or don't lift a weight (planks, dead bugs,
+  // the Pallof press, carries) count their seconds at Compendium METs (3 seconds a rep). The whole session counts
+  // as light time on your feet (1.5 METs, so 0.5 above rest: walking between machines and setting up, since the
+  // recovery after each set is already in its cost), on top of the sets, so a slow session adds only a little.
+  // Net of rest, like every other estimate.
+  var LIFT_RATIO = 10, LIFT_LIGHT = 0.5, LIFT_REP_SEC = 3, WARM_MET = 3.5, CARRY_MET = [3.5, 6.5, 50];
+  var liftIdx = null;
+  // An exercise from the plan's workouts by id (only ones with a burn model).
+  function liftEx(id) {
+    if (!liftIdx) {
+      liftIdx = {};
+      Object.keys(WORKOUTS).forEach(function (k) { WORKOUTS[k].ex.forEach(function (e) { if (e.burn) liftIdx[e.id] = e; }); });
+    }
+    return Object.prototype.hasOwnProperty.call(liftIdx, id) ? liftIdx[id] : null;
+  }
+  // A set: { x: exercise, w: weight in lb (what its box means; see WORKOUTS), r: reps (a side, for one-sided moves),
+  // t: seconds (holds) }, or { x: "warm", t: seconds of warm-up cardio }. Anything else is dropped.
+  function cleanSets(list) {
+    if (!Array.isArray(list)) return null;
+    var out = [];
+    list.slice(0, 120).forEach(function (x) {
+      if (!x || typeof x !== "object") return;
+      var t = Math.round(num(x.t));
+      if (x.x === "warm") { if (t >= 1 && t <= 3600) out.push({ x: "warm", t: t }); return; }
+      var e = liftEx(x.x);
+      if (!e) return;
+      var o = { x: e.id }, w = Math.round(num(x.w) * 10) / 10;
+      if (e.w && w > 0 && w <= 2000) o.w = w;
+      if (e.hold) { if (t < 1 || t > 900) return; o.t = t; }
+      else { var r = Math.round(num(x.r)); if (r < 1 || r > 200) return; o.r = r; }
+      out.push(o);
+    });
+    return out.length ? out : null;
+  }
+  function setSides(e) { return e.per ? 2 : 1; }
+  function setLoadLb(e, x) { return (x.w || 0) * (e.w === "each" || e.w === "side2" ? 2 : 1); }
+  // Net calories for one set, on top of the session's light time.
+  function setKcal(x, kgw) {
+    if (x.x === "warm") return (WARM_MET - 1 - LIFT_LIGHT) * kgw * x.t / 3600;
+    var e = liftEx(x.x), b = e && e.burn;
+    if (!b) return 0;
+    if (e.hold) {
+      var met = b.carry ? CARRY_MET[0] + (CARRY_MET[1] - CARRY_MET[0]) * Math.min(1, setLoadLb(e, x) / CARRY_MET[2]) : b.met;
+      return Math.max(0, met - 1 - LIFT_LIGHT) * kgw * x.t / 3600;
+    }
+    if (b.met) return Math.max(0, b.met - 1 - LIFT_LIGHT) * kgw * x.r * setSides(e) * LIFT_REP_SEC / 3600;
+    var joules = (kg(setLoadLb(e, x)) * b.rom + kgw * (b.body || 0)) * 9.81 * x.r * setSides(e);
+    return LIFT_RATIO * b.cls * joules / 4184;
+  }
+  // Net calories for a session's sets and its minutes.
+  function setsKcal(sets, min, lb) {
+    var kgw = kg(lb || 250);
+    return sum(sets, function (x) { return setKcal(x, kgw); }) + LIFT_LIGHT * kgw * Math.min(Math.max(0, +min || 0), 180) / 60;
+  }
+  // Pounds moved: weight × reps (each side) for the sets with a weight.
+  function setsVolume(sets) {
+    return sum(sets, function (x) { var e = liftEx(x.x); return e && !e.hold && x.r ? setLoadLb(e, x) * x.r * setSides(e) : 0; });
+  }
+  // A side plank logs each side on its own, so two of those make a set.
+  function setsCount(sets) {
+    return Math.ceil(sum(sets, function (x) { var e = x.x === "warm" ? null : liftEx(x.x); return !e ? 0 : e.sides ? 0.5 : 1; }));
+  }
+  // Sets of a lifting move with no weight in them (their burn counts only the body's part, if any).
+  function setsMissingWeight(sets) {
+    return sets.filter(function (x) { var e = liftEx(x.x); return e && e.w && e.w !== "added" && !(e.burn && e.burn.met) && (!e.hold || e.burn.carry) && !x.w; }).length;
+  }
+
   // Points for a logged entry or form row: from its details (the treadmill's speed and incline, or the others)
   // when it has them, otherwise from its rate.
   function entryPts(b, k, rate, min, steps, x, lb) {
@@ -3311,7 +3438,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function rowDetails(a, d) {
     var t = d ? d.track : "";
     return t === "tread" ? { mph: a.mph, grade: a.grade } : t === "hike" ? { mi: a.mi, ft: a.ft } : t === "rower" ? { meters: a.meters } :
-      t === "bike" ? { watts: a.watts } : t === "stairs" ? { floors: a.floors } : {};
+      t === "bike" ? { watts: a.watts } : t === "stairs" ? { floors: a.floors } : t === "sets" ? { sets: a.sets } : {};
   }
   function actAmount(a) { return rowDef(a) ? Math.round(num(a.mode === "kcal" ? a.kcal : a.min)) : 0; }
   function actPts(a, b, k, lb) {
@@ -3773,21 +3900,24 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
           "The list has three parts: <b>My plan: strength</b>, <b>My plan: cardio</b> and <b>Other activities</b>. <b>Edit activities</b> shows every activity with its estimated calories a minute. Move any of them between parts as your plan changes, or add your own.",
           "<b>Something else…</b> logs a one-off. Name it, pick the effort, and tap <b>Save activity</b> to add it to Other activities.",
           "Above the list, <b>Next in your rotation</b> shows the next strength day in My plan, in list order. <b>Add it</b> adds that day.",
-          "<b>Home routine</b>: the 15-minute busy-day circuit, 45 seconds on and 15 off, 5 moves 3 times through. It stands in for the gym without moving the rotation, so the next gym day stays next. The <b>Timer</b> tab runs it and logs it for you."
+          "<b>Home routine</b>: the 15-minute busy-day circuit, 45 seconds on and 15 off, 5 moves 3 times through. It stands in for the gym without moving the rotation, so the next gym day stays next. The <b>Timer</b> tab runs it and logs it for you.",
+          "<b>Lower, Upper and Core days by set</b>: log each set's weight and reps and the burn comes from the work you did, not how long it took. The <b>Timer</b> asks as you go and logs them; or tap <b>Add sets</b> on the day's row. Planks and carries use their seconds, and the minutes count only as light time on your feet. Points follow the burn."
         ]) +
-        "<p>Lower, Upper and Core days are priced for 45 minutes and scale with time, up to 60. The home routine is priced for its 15 minutes:</p>" +
+        "<p>Without sets, Lower, Upper and Core days are priced for 45 minutes and scale with time, up to 60. The home routine is priced for its 15 minutes:</p>" +
         tableHTML(["lb", "Lower", "Upper", "Core", "Home"], rows, [1, 2, 3, 4], BANDS.indexOf(c.b)) +
         (c.s.tight ? "<p class=\"fine\">Shown at the Tight rate.</p>" : "");
     } },
     timer: { title: "Workout timer", html: function () {
       return ul([
         "The <b>Timer</b> tab runs your strength plan. Pick <b>Lower</b>, <b>Upper</b>, <b>Core</b> or <b>Home</b>; it opens on the next workout in your rotation.",
-        "<b>Lifts</b>: do the set, tap <b>Done</b>, and the rest counts down on its own: 90 seconds (or pick 60 or 75), 2 minutes after the leg press and the bench press, 60 on Core days. Planks, side planks and carries count down by themselves; set their times with − and + as you progress.",
+        "<b>Lifts</b>: do the set, check the weight and reps (filled in from last time), tap <b>Done</b>, and the rest counts down on its own: 90 seconds (or pick 60 or 75), 2 minutes after the leg press and the bench press, 60 on Core days. Planks, side planks and carries count down by themselves; set their times with − and + as you progress, and enter a carry's dumbbell weight.",
+        "Weights mean what you'd read off the machine: the stack or plates, the Smith bar plus its plates, one dumbbell, or each side's stack on the pulldown. Split squats count your body weight; add any dumbbells you hold.",
+        "Under each exercise, <b>Last</b> shows what you did last time, and <b>History</b> every session.",
         "<b>Home</b>: 45 seconds on, 15 off, the 5 moves 3 times through, 15 minutes. Round 1 is your warm-up; count your reps in round 2 and try to beat them next time.",
         "<b>Sets</b>: 2 for your first 2 weeks. Every 6–8 weeks, an easy week: same weights, half the sets.",
         "It beeps through the last 3 seconds of each part and when the next starts, and keeps your screen on while it runs. On iPhone, the silent switch can mute the beeps.",
         "<b>Pause</b>, <b>Skip</b> or <b>+15 s</b> anytime, and <b>Back</b> undoes a tap. It keeps time while you're on other tabs, and if the app closes it picks up where it was.",
-        "When you're done, <b>Log</b> adds the workout and its minutes to that day's log. Save the day there to keep it."
+        "When you're done, <b>Log</b> adds the workout, its sets and minutes to that day's log. Save the day there to keep it. Its burn comes from the sets (see Workouts and activities)."
       ]);
     } },
     steps: { title: "Steps", html: function (c) {
@@ -3975,8 +4105,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         ]);
     } },
     numbers: { title: "How the numbers were figured", html: function () {
-      return "<p>Burns are net calories (above rest), using MET values from the Compendium of Physical Activities at the low end of each range: Lower day 4.0, Upper day 3.5, Core day 3.0 for 45 minutes; the home routine 5.5 for 15 (vigorous bodyweight circuit work, 45 seconds of every minute, with an easy first round); walking at about 3 mph 3.3 (about 46 calories per 1,000 steps at 295 lb); moderate cardio 5.0 (a moderate rower is 4.8, so it uses the same value); other activity 3.0 light, 4.5 moderate, 7.0 hard. Net burn = (MET − 1) × weight in kg × hours.</p>" +
+      return "<p>Burns are net calories (above rest), using MET values from the Compendium of Physical Activities at the low end of each range: Lower day 4.0, Upper day 3.5, Core day 3.0 for 45 minutes (logged without sets); the home routine 5.5 for 15 (vigorous bodyweight circuit work, 45 seconds of every minute, with an easy first round); walking at about 3 mph 3.3 (about 46 calories per 1,000 steps at 295 lb); moderate cardio 5.0 (a moderate rower is 4.8, so it uses the same value); other activity 3.0 light, 4.5 moderate, 7.0 hard. Net burn = (MET − 1) × weight in kg × hours.</p>" +
         "<p>Points are half of that, rounded to friendly numbers. Treadmill pays the cardio value minus what its steps already earn, about 1,070 steps per 10 minutes. Steps count past 3,000 because the daily-life allowance (1.2 × resting burn) already covers a low-step day. Calories logged by kcal earn " + Math.round(SCREEN_SHARE * 100) + "% of the number: half, less 20% for resting burn and screens that read high.</p>" +
+        "<p><b>Lifting days with sets</b>: in a lab study of squats, deadlifts and incline presses (Knausenberger, Luchini, Scott &amp; Steitz, 2014), a set's whole cost, the lift plus the recovery right after it, ran about 10 times the work done on the weight (weight × how far it moves × reps), and 2.5–3 times that for small single-joint moves. So each set counts 10 × its work, 1.5–2 × that for the leg curl and the face pull, plus the share of your weight that split squats and RDLs lift. Planks, dead bugs, the Pallof press and carries count their seconds at Compendium values (2.8 to 6.5 METs, carries by weight), the warm-up at 3.5, and the session's minutes as light time on your feet at 1.5 (the recovery between sets is already in each set's cost). At beginner weights a session comes to about 2.5–3 METs, under the Compendium's 3.5 for this kind of training, which averages lighter people lifting more for their size, and more as your weights go up.</p>" +
         "<p>Resting burn uses the Mifflin-St Jeor equation. Warnings and predictions use 1.2 × resting burn plus about 2.3 calories per standard point (the middle of each range), minus your plan calories and any off-plan changes. 3,500 calories is about 1 lb of fat. Costs are recalculated each week as your weight drops and assume every point gets spent.</p>";
     } }
   };
@@ -4012,7 +4143,13 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var d = $("sheet");
     if (!d.open) return;
     var h = Math.round((window.visualViewport && window.visualViewport.height) || window.innerHeight || 0);
-    d.style.maxHeight = h > 300 ? Math.round(h * 0.88) + "px" : "";
+    var max = h > 300 ? Math.round(h * 0.88) : 0;
+    d.style.maxHeight = max ? max + "px" : "";
+    // The body scrolls within what the header and buttons leave, set here in pixels so the sheet's height never
+    // hangs on how the browser sizes its flex boxes (Safari shrank every sheet to a sliver).
+    var b = $("sheetBody"), rest = 2;
+    Array.prototype.forEach.call(b.parentNode.children, function (c) { if (c !== b) rest += c.offsetHeight; });
+    b.style.maxHeight = max ? Math.max(120, max - rest) + "px" : "";
   }
   // Run fn once the page is visible again and laid out (after the file picker closes).
   function whenSettled(fn) {
@@ -4647,11 +4784,19 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   // Short form for history and the spreadsheet.
   function detailBrief(e) {
     var c = cleanDetails(e);
+    if (c.sets) { var n = setsCount(c.sets); return ", " + n + " set" + (n === 1 ? "" : "s"); }
     return c.mi ? ", " + c.mi + " mi" + (c.ft ? ", " + fmt(c.ft) + " ft" : "") : c.meters ? ", " + fmt(c.meters) + " m" : c.watts ? ", " + c.watts + " W" : c.floors ? ", " + fmt(c.floors) + " floors" : "";
   }
   function actHow(a, b, k, lb) {
     var d = rowDef(a);
     if (!d) return "";
+    if (a.mode !== "kcal" && d.track === "sets") {
+      var cs = cleanSets(a.sets), mm = Math.round(num(a.min));
+      if (!cs) return "Log it from the Timer, or add your sets, for a closer estimate. Without them: " + rateText(b, k, d.rate, d.steps);
+      var n = setsCount(cs), vol = setsVolume(cs), miss = setsMissingWeight(cs);
+      return n + " set" + (n === 1 ? "" : "s") + (vol ? ", " + fmt(vol) + " lb lifted" : "") + (mm ? ", " + mm + " min" : "") + " ≈ " + fmt(setsKcal(cs, mm, lb)) + " cal: " +
+        fmt(entryPts(b, k, d.rate, mm, d.steps, { sets: cs }, lb)) + " pts" + (miss ? ". " + miss + (miss === 1 ? " set has" : " sets have") + " no weight" : "");
+    }
     var ds = DETAILS[d.track];
     if (a.mode !== "kcal" && ds) {
       var c = cleanDetails(rowDetails(a, d)), m = Math.round(num(a.min)), kc = detailKcal(c, m, lb);
@@ -4887,6 +5032,15 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         drow.appendChild(din);
         li.appendChild(drow);
       }
+      if (a.act && !kcalMode && d && d.track === "sets") {
+        var setsRow = el("div", "arow setsrow"), cs = cleanSets(a.sets), sn = cs ? setsCount(cs) : 0;
+        setsRow.appendChild(el("span", "flabel small", "Sets"));
+        setsRow.appendChild(el("span", "setsum", sn ? sn + " set" + (sn === 1 ? "" : "s") + (setsMissingWeight(cs) ? ", some without a weight" : "") : "None yet"));
+        var eb = button("linkbtn", sn ? "Edit sets" : "Add sets", function () { openSetsEditor(i); });
+        eb.id = "actSets" + i;
+        setsRow.appendChild(eb);
+        li.appendChild(setsRow);
+      }
       if (a.act && kcalMode && d && d.steps) {
         var srow = el("div", "arow");
         srow.appendChild(el("span", "flabel small", "Minutes, for its steps"));
@@ -4948,6 +5102,171 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     });
     state.shownActs = activities();
     renderAccess();
+  }
+
+  // ---------- Sets: history and Edit sets ----------
+  var WEIGHT_HINT = { machine: "What the stack or plates say", bar: "The bar plus plates (a Smith bar is usually 15–25 lb)", each: "One dumbbell",
+    side2: "Each side's stack", added: "Extra weight, if any; 0 for bodyweight" };
+  var WEIGHT_LAB = { machine: "Weight", bar: "Bar + plates", each: "Each dumbbell", side2: "Each side", added: "Added" };
+  function wtTxt(w) { return String(Math.round(w * 10) / 10); }
+  // " a leg", " an arm", " a side".
+  function perA(e) { return (e.per === "arm" ? " an " : " a ") + e.per; }
+  // The middle of the plan's rep range (8–12 → 10), where a first set starts.
+  function repsMid(e) {
+    var m = String(e.reps || "").match(/(\d+)(?:\D+(\d+))?/);
+    return m ? Math.floor((+m[1] + +(m[2] || m[1])) / 2) : 10;
+  }
+  // One exercise's sets, short: "180 × 10, 10, 9", "200 × 8, 210 × 6 a leg", "10, 10 reps a side", "45, 40 s".
+  function exSetsText(e, list) {
+    if (!list.length) return "";
+    if (e.hold) {
+      var ws = list.filter(function (x) { return x.w; }), ts = [];
+      // Side planks come in pairs, one per side: "30, 30" when both match, "30/25" when they don't.
+      if (e.sides) for (var k = 0; k < list.length; k += 2) ts.push(list[k + 1] && list[k + 1].t !== list[k].t ? list[k].t + "/" + list[k + 1].t : String(list[k].t));
+      else ts = list.map(function (x) { return x.t; });
+      return (ws.length ? wtTxt(ws[ws.length - 1].w) + " lb each: " : "") + ts.join(", ") + " s" + (e.sides ? " a side" : "");
+    }
+    var parts = [], cur = null;
+    list.forEach(function (x) {
+      var w = e.w && x.w ? x.w : 0;
+      if (cur && cur.w === w) cur.r.push(x.r); else { cur = { w: w, r: [x.r] }; parts.push(cur); }
+    });
+    var weighed = parts.some(function (p) { return p.w; });
+    return parts.map(function (p) { return (p.w ? wtTxt(p.w) + " × " : "") + p.r.join(", "); }).join(", ") + (weighed ? "" : " reps") + (e.per ? perA(e) : "");
+  }
+  // Saved sessions with sets of one exercise, newest first: [{ date, sets }].
+  function exHistory(id, limit) {
+    var out = [];
+    allDays().slice().sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; }).some(function (d) {
+      var list = [];
+      d.acts.forEach(function (en) { (cleanSets(en.sets) || []).forEach(function (x) { if (x.x === id) list.push(x); }); });
+      if (list.length) out.push({ date: d.date, sets: list });
+      return out.length >= (limit || 12);
+    });
+    return out;
+  }
+  function lastSetsOf(id) { var h = exHistory(id, 1); return h.length ? h[0].sets : []; }
+  // An exercise's history in a sheet: each session's sets and the heaviest weight.
+  function openExHistory(e) {
+    var body = el("div", "help");
+    var h = exHistory(e.id, 20);
+    if (!h.length) body.appendChild(el("p", null, "Nothing logged yet. Log a workout from the Timer, or add sets to a lifting day in the log, and its sets show here."));
+    else {
+      var best = 0;
+      h.forEach(function (x) { x.sets.forEach(function (y) { if (y.w > best) best = y.w; }); });
+      if (best && e.w && !e.hold) body.appendChild(el("p", "fine", "Heaviest: " + wtTxt(best) + " lb" + (e.w === "each" ? " each" : e.w === "side2" ? " each side" : e.w === "added" ? " added" : "") + "."));
+      var ul = el("ul", "exhist");
+      h.forEach(function (x) {
+        var li = el("li");
+        li.appendChild(el("b", null, fmtDay(x.date)));
+        li.appendChild(el("span", null, exSetsText(e, x.sets)));
+        ul.appendChild(li);
+      });
+      body.appendChild(ul);
+    }
+    openSheet(e.name, body, [button("btn ghost", "Done", closeSheet)]);
+  }
+  // A lifting day's sets by exercise, to fix them or log them without the Timer.
+  function openSetsEditor(i) {
+    var a = state.acts[i], d = a && rowDef(a), W = d && WORKOUTS[d.rate];
+    if (!W || W.on || state.readOnly) return;
+    var work = (cleanSets(a.sets) || []).map(function (x) { return Object.assign({}, x); });
+    var order = {};
+    W.ex.forEach(function (e, k) { order[e.id] = k; });
+    var body = el("div", "help setsed");
+    function box(val, label, step, onIn) {
+      var x = el("input");
+      x.type = "number";
+      x.inputMode = step < 1 ? "decimal" : "numeric";
+      x.min = "0";
+      x.step = String(step);
+      x.placeholder = "0";
+      x.setAttribute("aria-label", label);
+      x.value = val == null || val === "" ? "" : String(val);
+      x.addEventListener("input", function () { onIn(x.value); });
+      return x;
+    }
+    function draw(focusEx) {
+      if (!$("sheet").open || $("sheetBody").firstChild !== body) return;
+      var top = $("sheetBody").scrollTop;
+      body.textContent = "";
+      body.appendChild(el("p", "fine", "Weight and reps for each set (a side, for one-sided moves), or seconds for holds. The burn comes from these, and the minutes count as light time on your feet."));
+      var wu = work.filter(function (x) { return x.x === "warm"; })[0];
+      var wrow = el("div", "setline setwarm");
+      wrow.appendChild(el("span", "flabel small", "Warm-up cardio"));
+      wrow.appendChild(box(wu ? Math.round(wu.t / 60) : "", "Warm-up minutes", 1, function (v) {
+        var m = Math.round(num(v));
+        work = work.filter(function (x) { return x.x !== "warm"; });
+        if (m > 0) work.unshift({ x: "warm", t: m * 60 });
+      }));
+      wrow.appendChild(el("span", "u", "min"));
+      body.appendChild(wrow);
+      var newest = null;
+      W.ex.forEach(function (e) {
+        var sec = el("section", "setex");
+        var hd = el("div", "setex-h");
+        hd.appendChild(el("h4", null, e.name));
+        if (e.w) hd.appendChild(el("span", "fine", WEIGHT_HINT[e.w] + "."));
+        sec.appendChild(hd);
+        var ol = el("ol", "setlist"), n = 0;
+        work.forEach(function (x, j) {
+          if (x.x !== e.id) return;
+          n++;
+          // A side plank's sides are lines of their own: set 1 side 1, set 1 side 2, …
+          var sn = e.sides ? Math.ceil(n / 2) : n, side = e.sides ? (n % 2 ? 1 : 2) : 0;
+          var li = el("li", "setline"), lab = e.name + ", set " + sn + (side ? ", side " + side : "");
+          li.appendChild(el("span", "setn", side ? sn + (side === 1 ? "a" : "b") : String(sn)));
+          if (e.w) {
+            var wb = box(x.w, lab + ", " + WEIGHT_LAB[e.w].toLowerCase() + " in pounds", 0.5, function (v) { x.w = num(v); });
+            if (!x.w && e.w !== "added" && !(e.burn && e.burn.met)) wb.classList.add("need");
+            li.appendChild(wb);
+            li.appendChild(el("span", "u", "lb"));
+          }
+          if (e.hold) li.appendChild(box(x.t, lab + ", seconds", 1, function (v) { x.t = Math.round(num(v)); }));
+          else li.appendChild(box(x.r, lab + ", reps", 1, function (v) { x.r = Math.round(num(v)); }));
+          li.appendChild(el("span", "u", e.hold ? "s" + (side ? ", side " + side : "") : "reps" + (e.per ? perA(e) : "")));
+          var rm = button("setrm", "×", function () { work.splice(j, 1); draw(); });
+          rm.setAttribute("aria-label", "Remove " + lab);
+          li.appendChild(rm);
+          ol.appendChild(li);
+          if (focusEx === e.id) newest = li;
+        });
+        sec.appendChild(ol);
+        var add = button("linkbtn", "Add a set", function () {
+          var mine = work.filter(function (x) { return x.x === e.id; }), prev = mine[mine.length - 1] || lastSetsOf(e.id)[0] || null;
+          var nx = { x: e.id };
+          if (e.hold) { nx.t = prev && prev.t ? prev.t : e.hold[0]; if (e.w && prev && prev.w) nx.w = prev.w; }
+          else { nx.r = prev && prev.r ? prev.r : repsMid(e); if (e.w && prev && prev.w) nx.w = prev.w; }
+          work.push(nx);
+          if (e.sides) work.push(Object.assign({}, nx));   // both sides
+          work = work.map(function (x, j) { return [x, j]; }).sort(function (p, q) {
+            var a1 = p[0].x === "warm" ? -1 : order[p[0].x], b1 = q[0].x === "warm" ? -1 : order[q[0].x];
+            return a1 - b1 || p[1] - q[1];
+          }).map(function (p) { return p[0]; });
+          draw(e.id);
+        });
+        add.id = "setAdd-" + e.id;
+        sec.appendChild(add);
+        body.appendChild(sec);
+      });
+      $("sheetBody").scrollTop = top;
+      if (newest) {
+        var inp = newest.querySelector("input");
+        if (inp) { try { inp.focus({ preventScroll: true }); } catch (err) { inp.focus(); } }
+        newest.scrollIntoView({ block: "nearest" });
+      }
+    }
+    var save = button("btn primary", "Save sets", function () {
+      var c = cleanSets(work);
+      if (c) a.sets = c; else delete a.sets;
+      closeSheet();
+      renderActList();
+      updatePreview();
+      toast(c ? "Sets updated. Save the day to keep them." : "Sets cleared. Save the day to keep it.");
+    });
+    save.id = "setsSave";
+    openSheet(d.name + " sets", body, [save, button("btn ghost", "Cancel", closeSheet)]);
+    draw();
   }
 
   // ---------- Activities page ----------
@@ -5123,6 +5442,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       row.kcal = e.kcal || "";
       if (e.mph) { row.mph = e.mph; row.grade = e.grade || 0; }
       ["mi", "ft", "meters", "watts", "floors"].forEach(function (key) { if (isNum(e[key])) row[key] = e[key]; });
+      if (Array.isArray(e.sets) && e.sets.length) row.sets = clone(e.sets);
       f.acts.push(row);
     });
     return f;
@@ -7330,33 +7650,39 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   // from timestamps, so a phone that sleeps or an app that restarts picks up where it was (kept on this device). It
   // beeps through the last 3 seconds of each part and at the start of the next, and keeps the screen on.
   var TM_KEY = "cheat-points-timer", TM_HOURS = 6, TM_SET_EST = 40, TM_HOLD = [10, 120];
+  // Each exercise: w, what its weight box means (machine: the stack or plates; bar: bar plus plates; each: one
+  // dumbbell of a pair; side2: each of two stacks; added: extra weight on a bodyweight move; none: no weight), and
+  // burn, how its sets turn into calories (see Lifting days by set): rom, how far the weight travels a rep (meters);
+  // body, the share of your weight that moves times how far it moves; cls, 1 for compound lifts and more for
+  // isolation moves, which cost more per unit of work; met, a Compendium value for moves timed rather than lifted
+  // (3 seconds a rep).
   var WORKOUTS = {
     L: { act: "L", name: "Lower", rest: 90, restOpts: [60, 75, 90],
       warm: "5 minutes on the treadmill or elliptical, then 1–2 light sets of the leg press.",
       ex: [
-        { id: "legpress", name: "Leg press", reps: "8–12", rest: 120, cue: "Feet shoulder-width, mid-plate. Go as deep as your lower back stays on the pad." },
-        { id: "rdl", name: "Smith machine RDL", reps: "8–12", cue: "Rack the bar at mid-thigh. Soft knees, push your hips back, lower to just below the knees." },
-        { id: "split", name: "Split squat", reps: "8–12", per: "leg", cue: "Hold the stall bar. Long stance, back knee toward the floor, push through the front heel." },
-        { id: "curl", name: "Cable leg curl", reps: "8–12", per: "leg", cue: "Ankle strap, low pulley, hold the frame. Slow on the way back." }
+        { id: "legpress", name: "Leg press", reps: "8–12", rest: 120, w: "machine", burn: { rom: 0.4, cls: 1 }, cue: "Feet shoulder-width, mid-plate. Go as deep as your lower back stays on the pad." },
+        { id: "rdl", name: "Smith machine RDL", reps: "8–12", w: "bar", burn: { rom: 0.3, body: 0.12, cls: 1 }, cue: "Rack the bar at mid-thigh. Soft knees, push your hips back, lower to just below the knees." },
+        { id: "split", name: "Split squat", reps: "8–12", per: "leg", w: "added", burn: { rom: 0.3, body: 0.27, cls: 1 }, cue: "Hold the stall bar. Long stance, back knee toward the floor, push through the front heel." },
+        { id: "curl", name: "Cable leg curl", reps: "8–12", per: "leg", w: "machine", burn: { rom: 0.4, body: 0.012, cls: 1.5 }, cue: "Ankle strap, low pulley, hold the frame. Slow on the way back." }
       ] },
     U: { act: "U", name: "Upper", rest: 90, restOpts: [60, 75, 90],
       warm: "5 minutes on the treadmill or elliptical, then 1–2 light sets of the bench press.",
       ex: [
-        { id: "bench", name: "Smith machine bench press", reps: "8–12", rest: 120, cue: "Bar to lower chest, shoulder blades pinned back. Twist to rack on any hook if a rep stalls." },
-        { id: "row", name: "One-arm cable row", reps: "8–12", per: "arm", cue: "Pulley at chest height, staggered stance, free hand on the frame. Pull your elbow to your side." },
-        { id: "press", name: "Seated dumbbell shoulder press", reps: "8–12", cue: "Bench upright. Ribs down; don't arch your back." },
-        { id: "pulldown", name: "Cable pulldown", reps: "8–12", cue: "Both pulleys at the top, a handle in each hand, on a bench facing the machine. Elbows to your sides." },
-        { id: "facepull", name: "Face pull", reps: "12–15", cue: "Rope at eye level, light weight. Pull toward your forehead, elbows high." }
+        { id: "bench", name: "Smith machine bench press", reps: "8–12", rest: 120, w: "bar", burn: { rom: 0.4, body: 0.024, cls: 1 }, cue: "Bar to lower chest, shoulder blades pinned back. Twist to rack on any hook if a rep stalls." },
+        { id: "row", name: "One-arm cable row", reps: "8–12", per: "arm", w: "machine", burn: { rom: 0.45, cls: 1.1 }, cue: "Pulley at chest height, staggered stance, free hand on the frame. Pull your elbow to your side." },
+        { id: "press", name: "Seated dumbbell shoulder press", reps: "8–12", w: "each", burn: { rom: 0.45, body: 0.024, cls: 1.1 }, cue: "Bench upright. Ribs down; don't arch your back." },
+        { id: "pulldown", name: "Cable pulldown", reps: "8–12", w: "side2", burn: { rom: 0.5, cls: 1 }, cue: "Both pulleys at the top, a handle in each hand, on a bench facing the machine. Elbows to your sides." },
+        { id: "facepull", name: "Face pull", reps: "12–15", w: "machine", burn: { rom: 0.35, cls: 2 }, cue: "Rope at eye level, light weight. Pull toward your forehead, elbows high." }
       ] },
     C: { act: "C", name: "Core", rest: 60, restOpts: [45, 60, 75],
       warm: "5 minutes on the treadmill or elliptical.",
       after: "This afternoon: 45 minutes of easy cardio (the treadmill at 2.5 mph and 2%, the elliptical or the rower), at a pace you can talk in full sentences. Log it as its own workout.",
       ex: [
-        { id: "deadbug", name: "Dead bug", reps: "10", per: "side", cue: "Move slowly. Your lower back stays on the floor." },
-        { id: "plank", name: "Plank", hold: [30, 60], cue: "Straight line, squeeze your glutes. On your knees until you hit 60 seconds every set, then on your toes." },
-        { id: "side", name: "Side plank", hold: [20, 40], sides: true, cue: "Elbow under shoulder, hips up. Knees bent until you hit 40 seconds every set, then on your feet." },
-        { id: "pallof", name: "Pallof press", reps: "10–12", per: "side", cue: "Handle at chest height, side to the machine. Press out and resist the twist." },
-        { id: "carry", name: "Farmer's carry", hold: [30, 60], cue: "The heaviest dumbbells you can grip. Walk laps, stand tall. At 60 seconds every set, go heavier and start back at 30." }
+        { id: "deadbug", name: "Dead bug", reps: "10", per: "side", burn: { met: 2.8 }, cue: "Move slowly. Your lower back stays on the floor." },
+        { id: "plank", name: "Plank", hold: [30, 60], burn: { met: 2.8 }, cue: "Straight line, squeeze your glutes. On your knees until you hit 60 seconds every set, then on your toes." },
+        { id: "side", name: "Side plank", hold: [20, 40], sides: true, burn: { met: 2.8 }, cue: "Elbow under shoulder, hips up. Knees bent until you hit 40 seconds every set, then on your feet." },
+        { id: "pallof", name: "Pallof press", reps: "10–12", per: "side", w: "machine", burn: { met: 3.5 }, cue: "Handle at chest height, side to the machine. Press out and resist the twist." },
+        { id: "carry", name: "Farmer's carry", hold: [30, 60], w: "each", burn: { carry: true }, cue: "The heaviest dumbbells you can grip. Walk laps, stand tall. At 60 seconds every set, go heavier and start back at 30." }
       ] },
     H: { act: "home", name: "Home", on: 45, off: 15, rounds: 3, ready: 10,
       after: "Take your 15-minute walk too, after your biggest meal if you can. On the rest-day plan today? Turn it on in the log before you save.",
@@ -7379,7 +7705,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function tmRestFor(wk, p) { var W = WORKOUTS[wk], r = p.rest[wk]; return W.restOpts && W.restOpts.indexOf(r) >= 0 ? r : W.rest; }
   function tmHoldFor(e, p) { var h = p.hold[e.id]; return isNum(h) && h >= TM_HOLD[0] && h <= TM_HOLD[1] ? Math.round(h) : e.hold[0]; }
   function repsText(e) { return e.reps + " reps" + (e.per ? " per " + e.per : ""); }
-  function setsText(e, sets, hold) { return sets + " × " + (e.hold ? hold + " s" + (e.sides ? " a side" : "") : e.reps + (e.per ? " a " + e.per : "")); }
+  function setsText(e, sets, hold) { return sets + " × " + (e.hold ? hold + " s" + (e.sides ? " a side" : "") : e.reps + (e.per ? perA(e) : "")); }
   function clockText(sec) {
     sec = Math.max(0, Math.round(sec));
     var h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, x = sec % 60;
@@ -7438,6 +7764,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     tm.steps = tmSteps(o.wk, o.o);
     o.i = Math.max(0, Math.min(tm.steps.length - 1, Math.round(o.i)));
     o.pausedMs = o.pausedMs || 0;
+    o.log = o.log && typeof o.log === "object" ? o.log : {};
     tm.pick = o.wk;
     tmAdvance(Date.now(), false);
   }
@@ -7457,7 +7784,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     }
   }
   function tmGo(i, at, cue) {
-    var s = tm.s;
+    var s = tm.s, was = tm.steps[s.i];
+    if (was && i > s.i && (was.k === "hold" || was.k === "warm")) tmTimed(s.i, at);
     s.i = Math.max(0, Math.min(tm.steps.length - 1, i));
     s.t0 = at;
     s.add = 0;
@@ -7595,7 +7923,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var list = $("tmList");
     list.textContent = "";
     W.ex.forEach(function (e) {
-      var li = el("li", "wrow");
+      var li = el("li", "tmrow");
       li.appendChild(el("span", "wname", e.name));
       li.appendChild(el("span", "wsets", home ? W.on + " s" : setsText(e, p.sets, o.hold[e.id])));
       li.appendChild(el("span", "wcue", e.cue));
@@ -7625,6 +7953,17 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         li.appendChild(row);
       }
       if (e.rest && !home) li.appendChild(el("span", "wrest", "Rest " + (e.rest / 60) + " minutes after each set"));
+      // What you did last time, and the move's whole history.
+      var hist = !home && e.burn ? exHistory(e.id, 1)[0] : null;
+      if (hist) {
+        var lr = el("div", "wlast");
+        lr.appendChild(el("span", null, "Last, " + fmtShort(hist.date) + ": " + exSetsText(e, hist.sets)));
+        var hb = button("linkbtn", "History", function () { openExHistory(e); });
+        hb.id = "tmHist-" + e.id;
+        hb.setAttribute("aria-label", e.name + " history");
+        lr.appendChild(hb);
+        li.appendChild(lr);
+      }
       list.appendChild(li);
     });
     var opts = $("tmOpts");
@@ -7666,7 +8005,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var o = { sets: p.sets, rest: tmRestFor(wk, p), warm: !W.on && p.warm, hold: {} };
     W.ex.forEach(function (e) { if (e.hold) o.hold[e.id] = tmHoldFor(e, p); });
     var now = Date.now();
-    tm.s = { wk: wk, o: o, i: 0, t0: now, add: 0, paused: 0, start: now, pausedMs: 0, end: 0, early: false, logged: "" };
+    tm.s = { wk: wk, o: o, i: 0, t0: now, add: 0, paused: 0, start: now, pausedMs: 0, end: 0, early: false, logged: "", log: {} };
     tm.steps = tmSteps(wk, o);
     tm.beeped = 0;
     tm.last = now;
@@ -7721,6 +8060,105 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     $("tmAdd").hidden = !timed;
     tmText("tmEnd", tm.armedEnd ? "Tap again to end" : "End workout");
     $("tmEnd").classList.toggle("armed", tm.armedEnd);
+    tmRenderSet(st);
+  }
+  // ---------- Timer: weight and reps ----------
+  // Each set's weight and reps (a carry's weight; a hold's seconds come from the clock), kept by step in the
+  // session's log: { w, r, t, ok }. A set counts once Done is tapped; a hold or the warm-up when it's over or
+  // skipped (5 seconds or more). Values start from this workout's last set of the move, else last time's same set.
+  function tmLogged(i) { var x = tm.s.log && tm.s.log[i]; return x && typeof x === "object" ? x : null; }
+  function tmSetPut(i, patch) {
+    var s = tm.s;
+    if (!s.log) s.log = {};
+    s.log[i] = Object.assign({}, tmSetVals(i), tmLogged(i) || {}, patch);
+    tmSave();
+  }
+  function tmSetVals(i) {
+    var s = tm.s, st = tm.steps[i], e = WORKOUTS[s.wk].ex[st.ex], x = tmLogged(i);
+    if (x) return { w: x.w, r: x.r };
+    for (var j = i - 1; j >= 0; j--) {
+      var sj = tm.steps[j], y = tmLogged(j);
+      if (sj.ex === st.ex && (sj.k === "set" || sj.k === "hold") && y && y.ok) return { w: y.w, r: y.r };
+    }
+    var last = lastSetsOf(e.id), L = last.length ? last[Math.min(st.set || 1, last.length) - 1] : null;
+    return { w: L && L.w ? L.w : e.w === "added" ? 0 : null, r: L && L.r ? L.r : e.hold ? null : repsMid(e) };
+  }
+  function tmTimed(i, at) {
+    var s = tm.s, st = tm.steps[i], t = Math.round(Math.min(st.dur + (s.add || 0), Math.max(0, (at - s.t0) / 1000)));
+    if (t >= 5) tmSetPut(i, { t: t, ok: true });
+  }
+  // The sets done, in order, as the log keeps them.
+  function tmSetsDone() {
+    var s = tm.s, W = WORKOUTS[s.wk], out = [];
+    if (!s || W.on) return [];
+    tm.steps.forEach(function (st, i) {
+      var x = tmLogged(i);
+      if (!x || !x.ok) return;
+      if (st.k === "warm") { out.push({ x: "warm", t: x.t }); return; }
+      if (st.k !== "set" && st.k !== "hold") return;
+      var e = W.ex[st.ex];
+      out.push(e.hold ? { x: e.id, t: x.t, w: x.w } : { x: e.id, w: x.w, r: x.r });
+    });
+    return cleanSets(out) || [];
+  }
+  // A − value + box. dec: step and shown decimals for weights.
+  function tmStepper(label, value, step, max, onSet) {
+    var wrap = el("div", "stp"), minus = button("qbtn", "−"), plus = button("qbtn", "+"), inp = el("input");
+    inp.type = "number";
+    inp.inputMode = step < 1 ? "decimal" : "numeric";
+    inp.min = "0";
+    inp.step = "any";
+    inp.placeholder = "0";
+    inp.value = value == null ? "" : String(value);
+    inp.setAttribute("aria-label", label);
+    minus.setAttribute("aria-label", label + ", " + step + " less");
+    plus.setAttribute("aria-label", label + ", " + step + " more");
+    function put(v) { v = Math.max(0, Math.min(max, Math.round(v * 10) / 10)); inp.value = String(v); onSet(v); }
+    minus.addEventListener("click", function () { put(num(inp.value) - step); buzz(); });
+    plus.addEventListener("click", function () { put(num(inp.value) + step); buzz(); });
+    inp.addEventListener("input", function () { onSet(num(inp.value)); });
+    wrap.appendChild(minus);
+    wrap.appendChild(inp);
+    wrap.appendChild(plus);
+    return wrap;
+  }
+  // A step whose weight or reps get entered: a set, or a hold with a weight (a carry).
+  function tmEntryStep(st) { var W = WORKOUTS[tm.s.wk], e = st && W.ex[st.ex]; return !W.on && !!e && !!e.burn && (st.k === "set" || (st.k === "hold" && !!e.w)); }
+  function tmRenderSet(st) {
+    var box = $("tmSet"), s = tm.s, W = WORKOUTS[s.wk], i = s.i;
+    // Lifting workouts keep the space on every step, so the buttons below stay put. During a rest (or the warm-up)
+    // it shows the next set's numbers, to set up the weight while you rest.
+    $("tmRun").classList.toggle("lift", !W.on);
+    box.hidden = !!W.on;
+    if (st && (st.k === "rest" || st.k === "warm") && tmEntryStep(tm.steps[i + 1])) i++;
+    var show = tmEntryStep(tm.steps[i]), e = show && W.ex[tm.steps[i].ex];
+    box.classList.toggle("empty", !show);
+    if (!show) { if (box.firstChild) box.textContent = ""; box.removeAttribute("data-i"); return; }
+    if (box.getAttribute("data-i") === String(i)) return;
+    box.setAttribute("data-i", String(i));
+    box.textContent = "";
+    var v = tmSetVals(i), grid = el("div", "tmset-grid");
+    if (e.w) {
+      var cw = el("div", "tmset-col");
+      cw.appendChild(el("span", "tmset-lab", WEIGHT_LAB[e.w] + " (lb)"));
+      var ws = tmStepper(WEIGHT_LAB[e.w] + " in pounds", v.w, 5, 2000, function (x) { tmSetPut(i, { w: x }); ws.classList.toggle("need", !x && e.w !== "added" && !(e.burn && e.burn.met)); });
+      ws.id = "tmW";
+      ws.classList.toggle("need", !v.w && e.w !== "added" && !(e.burn && e.burn.met));
+      cw.appendChild(ws);
+      grid.appendChild(cw);
+    }
+    if (!e.hold) {
+      var cr = el("div", "tmset-col");
+      cr.appendChild(el("span", "tmset-lab", "Reps" + (e.per ? perA(e) : "")));
+      var rs = tmStepper("Reps", v.r, 1, 200, function (x) { tmSetPut(i, { r: x }); });
+      rs.id = "tmR";
+      cr.appendChild(rs);
+      grid.appendChild(cr);
+    }
+    box.appendChild(grid);
+    var hist = exHistory(e.id, 1)[0];
+    if (hist) box.appendChild(el("p", "tmlast", "Last time, " + fmtShort(hist.date) + ": " + exSetsText(e, hist.sets)));
+    else if (e.w && e.w !== "added") box.appendChild(el("p", "tmlast", WEIGHT_HINT[e.w] + "."));
   }
   // Each frame: the clock, the ring and the workout's running time.
   function tmDraw(now) {
@@ -7743,12 +8181,16 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     $("tmLive").textContent = !L ? "Workout done." : L.phase + (st.dur ? ", " + (st.dur + (tm.s.add || 0)) + " seconds" : "") + ". " + L.name + ".";
   }
   function tmRenderDone() {
-    var s = tm.s, W = WORKOUTS[s.wk], min = tmMinutes(), date = tmLogDate();
+    var s = tm.s, W = WORKOUTS[s.wk], min = tmMinutes(), date = tmLogDate(), sets = tmSetsDone(), n = setsCount(sets);
     $("tmDoneH").textContent = W.name + (s.early ? " ended" : " done");
     $("tmDoneSub").textContent = min + " min";
-    var act = actById(W.act), name = act ? act.name : W.name;
-    $("tmLog").textContent = "Log " + min + " min to " + (date === today() ? "today" : fmtShort(date));
-    $("tmLog").setAttribute("aria-label", "Add " + name + ", " + min + " minutes, to the log for " + fmtDay(date));
+    // With sets: how many, the pounds moved and the burn they come to (at the weight points use).
+    var lb = settings().weight || 250, vol = setsVolume(sets);
+    $("tmDoneSets").hidden = !n;
+    $("tmDoneSets").textContent = n ? n + " set" + (n === 1 ? "" : "s") + (vol ? " · " + fmt(vol) + " lb lifted" : "") + " · about " + fmt(setsKcal(sets, min, lb)) + " calories burned" : "";
+    var act = actById(W.act), name = act ? act.name : W.name, what = n ? n + " set" + (n === 1 ? "" : "s") : min + " min";
+    $("tmLog").textContent = "Log " + what + " to " + (date === today() ? "today" : fmtShort(date));
+    $("tmLog").setAttribute("aria-label", "Add " + name + ", " + what + ", to the log for " + fmtDay(date));
     $("tmLog").disabled = state.readOnly || !act;
     $("tmLogged").hidden = s.logged !== date;
     $("tmLogged").textContent = s.logged === date ? "Added to " + (date === today() ? "today's log" : "the log for " + fmtDay(date)) + ". Save the day there to keep it." : "";
@@ -7757,12 +8199,12 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   }
   // The day a workout counts for: the day it started (today, if that's off the strip).
   function tmLogDate() { var d = isoDate(new Date(tm.s.start)); return inStrip(d) ? d : today(); }
-  // Puts the workout in that day's log with its minutes (or updates the minutes already there). Saving the day
-  // logs it, the same as anything else added to the form.
+  // Puts the workout in that day's log with its minutes and sets (or updates the ones already there). Saving the
+  // day logs it, the same as anything else added to the form.
   function tmLog() {
     var s = tm.s;
     if (!s || !s.end || state.readOnly) return;
-    var W = WORKOUTS[s.wk], act = actById(W.act), min = tmMinutes(), date = tmLogDate();
+    var W = WORKOUTS[s.wk], act = actById(W.act), min = tmMinutes(), date = tmLogDate(), sets = tmSetsDone(), n = setsCount(sets);
     if (!act) return;
     showTab("today", { keepScroll: true });
     if (state.logDate !== date) selectDay(date, { scroll: "sel" });
@@ -7771,6 +8213,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     if (at >= 0 && state.acts[at].mode === "kcal") { snack(act.name + " is already in the log, by calories."); return; }
     if (at < 0) { state.acts.push(newRow(W.act)); at = state.acts.length - 1; }
     state.acts[at].min = String(min);
+    if (sets.length) state.acts[at].sets = sets;
     renderActList();
     updatePreview();
     s.logged = date;
@@ -7783,14 +8226,14 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         setTimeout(function () { li.classList.remove("flash"); }, 1800);
       }, 60);
     }
-    snack("Added " + act.name + ", " + min + " min. Save the day to log it.");
+    snack("Added " + act.name + ", " + min + " min" + (n ? ", " + n + " set" + (n === 1 ? "" : "s") : "") + ". Save the day to log it.");
   }
   function tmMainAct() {
     var s = tm.s;
     if (!tmActive()) return;
     var now = Date.now(), st = tm.steps[s.i];
     tmWake();
-    if (!st.dur) tmGo(s.i + 1, now, true);
+    if (!st.dur) { tmSetPut(s.i, { ok: true }); tmGo(s.i + 1, now, true); }
     else if (s.paused) { tmUnpause(now); tmSave(); tmLock(true); tmRender(); }
     else { s.paused = now; tmSave(); tmRender(); }
     tmKick();
