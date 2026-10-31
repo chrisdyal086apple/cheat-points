@@ -2339,6 +2339,7 @@ html.still .tr-fg { transition: none; }
       </div>
       <p class="hint" id="wBurnNote"></p>
       <p class="note info" id="wStatus"></p>
+      <ul class="notes" id="wRoll"></ul>
       <div class="wout" id="dOut" hidden>
         <div class="wstat"><span class="k" id="dAvgK">7-day average</span><b id="dAvg">—</b></div>
         <div class="wstat"><span class="k">Est. pace</span><b id="dPace">—</b></div>
@@ -2620,7 +2621,7 @@ html.still .tr-fg { transition: none; }
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.29.1","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.30.1","profile":null};</script>
 <script>
 /* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
    strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
@@ -2661,6 +2662,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   var KCAL_PER_LB = 3500;
   var BACKUP_DAYS = 7;
   var TALLY_RUN = 7, TALLY_HIT = 1000;
+  // Old debt roll-off: the most over-plan food can cost of your progress, days from the first weigh-in to the first
+  // Monday it can run (2 weeks of water, then 3 to judge), and the days of the 21 that need logging.
+  var ROLL_SHARE = 0.15, ROLL_WAIT = 35, ROLL_LOGGED = 14, ROLL_LIM = " (limit " + Math.round(ROLL_SHARE * 100) + "%)";
   // Event days (a wedding, a vacation day, a holiday): the goal is maintenance. Up to EVENT_MAX in a calendar
   // month, set or cleared any time (no noon deadline: reporting one late is fine).
   var EVENT_MAX = 6;
@@ -3048,7 +3052,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   // Unused plan calories (a skipped or smaller meal) offset that day's food, never drinks, and never carry to
   // another day. From SKIP_RULES (a Monday) on, a skipped meal also needs a snack: at least a quarter of the
   // meal, from that day's extra food. A meal under a quarter of its plan counts as skipped, with itself as the
-  // snack. A snack short of the minimum costs twice the gap (no snack: half the meal). The first skip of the
+  // snack. A snack short of the minimum costs the gap, as if you'd eaten it (no snack: a quarter of the meal), so
+  // skipping the snack never comes out ahead of eating it, and the snack itself is free. The first skip of the
   // week (Monday to Sunday, by date, then breakfast, lunch, dinner) keeps what's left after the snack for that
   // day's food; later ones only cover their snack, and the rest isn't eligible for anything.
   var SKIP_RULES = "2026-10-12";
@@ -3148,7 +3153,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         var s = r.skip;
         s.snack = s.own + s.got;
         s.short = Math.max(0, s.min - s.snack);
-        s.pen = 2 * s.short;
+        s.pen = s.short;
         s.rem = Math.max(0, r.base - s.snack);
         r.credit = s.rem;
         if (s.ok) credit += s.rem; else out.voidLeft += s.rem;
@@ -3173,11 +3178,27 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function deadline(date) { var d = parseISO(date); return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 12, 0, 0).getTime(); }
   function finalizeDay(day) {
     delete day.event;
+    delete day.grace;
     day.food = day.food || [];
     if (!Array.isArray(day.acts)) day.acts = legacyActs(day);
+    // Days before the first one you logged on time came before you started using the app, so nothing on them is
+    // late: every entry counts in full. grace marks them so a save keeps the day's stored late flag (it's what
+    // finds that first on-time day).
+    if (graceDay(day.date)) {
+      day.acts.forEach(function (e) { e.pts = entryFull(day, e, false); e.late = false; delete e.full; });
+      if (day.steps) { day.steps.pts = entryFull(day, day.steps, true); day.steps.late = false; delete day.steps.full; }
+      day.late = false;
+      day.grace = true;
+    }
     day.onPlan = day.food.length === 0;
+    // Lighter versions of your plan meals (nothing extra, nothing skipped) still earn the on-plan bonus, as long as
+    // the day reaches your floor; under it, the bonus would reward eating too little.
+    day.lighter = !day.onPlan && day.food.every(function (f) {
+      var base = foodBase(f), est = foodEst(f);
+      return isPlanMeal(f.meal) && !f.skip && base > 0 && est <= base && est >= snackMin(base);
+    }) && dayPlan(day) + intakeDelta(day, 0) >= floorKcal();
     day.activityPts = sum(day.acts, function (x) { return x.pts || 0; }) + (day.steps ? day.steps.pts || 0 : 0);
-    day.bonus = day.onPlan && !day.late ? Math.round(ON_PLAN_BONUS * rateK(day.tight)) : 0;
+    day.bonus = (day.onPlan || day.lighter) && !day.late ? Math.round(ON_PLAN_BONUS * rateK(day.tight)) : 0;
     // Days saved since skipped meals arrived settle the day's food together (see Skipped meals). Older days
     // keep the costs they were saved with.
     var fs = day.netFood ? settle(savedItems(day.food), day.date, !day.snackLinks) : null;
@@ -3187,11 +3208,23 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     // As scored: the day as if it had all been logged on time, so its total shows how it went. Points earned late
     // show here but don't count toward the bank (pts is what counts).
     day.fullActivity = sum(day.acts, function (x) { return entryFull(day, x, false); }) + (day.steps ? entryFull(day, day.steps, true) : 0);
-    day.fullBonus = day.onPlan ? Math.round(ON_PLAN_BONUS * rateK(day.tight)) : 0;
+    day.fullBonus = day.onPlan || day.lighter ? Math.round(ON_PLAN_BONUS * rateK(day.tight)) : 0;
     day.full = Math.max(day.pts, day.fullActivity + day.fullBonus);
     if (isEvent(day.date)) scoreEvent(day);
     return day;
   }
+  // The first day you logged on time: you were using the app from then on, so days before it can't be late. Saved
+  // days only change through write/remove/sync, which also replace normCache, so that's the cache key.
+  var graceCache = { key: null, start: "" };
+  function graceStart() {
+    if (graceCache.key !== normCache) {
+      var first = "";
+      state.docs.forEach(function (d) { if (d && d.kind === "day" && validDate(d.date) && d.late !== true && (!first || d.date < first)) first = d.date; });
+      graceCache = { key: normCache, start: first };
+    }
+    return graceCache.start;
+  }
+  function graceDay(date) { var g = graceStart(); return !!g && date < g; }
   // What an entry scores as if logged on time. Entries saved since 2026.10.28.3 keep it (full) when they earned
   // less; older ones logged late are priced again, and older on-time ones scored what they earned.
   function entryFull(day, e, isSteps) {
@@ -3311,7 +3344,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function buildDay(prev, f, date, now) {
     var basis = prev ? { weight: prev.weight, tight: prev.tight } : settings();
     var lateNow = now > deadline(date);
-    var day = blankDay(date, basis, prev ? !!prev.late : lateNow);
+    var day = blankDay(date, basis, prev ? !!(prev.late || prev.grace) : lateNow);
     // The plan calories the day was eaten against, so changing the plan later doesn't rewrite its deficit.
     // Today always takes the current plan, and so does a day switched between the full and rest-day plans.
     var rest = !!f.rest;
@@ -3496,7 +3529,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function weighIns() {
     return allOf("weigh").filter(function (w) { return isNum(w.lb) && w.lb > 0; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; });
   }
-  function currentBank() { return ledger(allDays(), allOf("spend")) - tallyHit(); }
+  function currentBank() { return ledger(allDays(), allOf("spend")) + rollState().total - tallyHit(); }
   function bankWith(replaceDate, replacement) {
     var days = allDays().filter(function (d) { return d.date !== replaceDate; });
     // Later days in the same week can gain or lose their first-skip status.
@@ -3505,7 +3538,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     days = days.map(function (d) { return d.netFood && d.date > replaceDate && rulesOn(d.date) && weekStart(d.date) === ws ? finalizeDay(clone(d)) : d; });
     skipOverride = null;
     if (replacement) days.push(replacement);
-    return ledger(days, allOf("spend")) - tallyHit();
+    var spends = allOf("spend");
+    return ledger(days, spends) + rollOffs(days, spends).total - tallyHit();
   }
   // One yes/no per day, replayed in date order so edits stay consistent. A no adds a day; every
   // TALLY_RUN of them adds a point and restarts the count. A yes takes a point, or with none left,
@@ -3538,7 +3572,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       var raw = window.localStorage.getItem(LS_KEY);
       if (!raw) return;
       var o = JSON.parse(raw);
-      if (o && o.docs && typeof o.docs === "object") state.docs = new Map(Object.keys(o.docs).map(function (k) { return [k, o.docs[k]]; }));
+      // New docs: anything cached from the old ones (normCache is the key for the grace start and roll-offs) goes.
+      if (o && o.docs && typeof o.docs === "object") { state.docs = new Map(Object.keys(o.docs).map(function (k) { return [k, o.docs[k]]; })); normCache = new WeakMap(); }
     } catch (e) { state.storageOK = false; }
   }
   function saveLocal() {
@@ -3566,7 +3601,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   }
   function write(id, data) {
     if (state.readOnly) return Promise.resolve(false);
-    if (id === "settings" || /^(day|ev|w)-/.test(id)) normCache = new WeakMap();
+    if (id === "settings" || /^(day|ev|w|spend)-/.test(id)) normCache = new WeakMap();
     if (state.mode !== "db") {
       var prev = state.docs.get(id);
       // mt: when this device last changed it. Sync keeps the newest change of each entry.
@@ -3595,7 +3630,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   }
   function remove(id) {
     if (state.readOnly) return Promise.resolve(false);
-    if (/^(day|ev|w)-/.test(id)) normCache = new WeakMap();
+    if (/^(day|ev|w|spend)-/.test(id)) normCache = new WeakMap();
     if (state.mode !== "db") {
       var prev = state.docs.get(id);
       state.docs.delete(id);
@@ -3734,6 +3769,123 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     return { real: intake + pace * 500, formula: formula };
   }
 
+  // ---------- Old debt roll-off ----------
+  // Each Monday, debt at least 2 weeks old clears if the scale shows the 3 weeks before it stayed within budget:
+  // calories over plan, day by day, came to no more than ROLL_SHARE of your progress, the deficit your plan gives at
+  // the burn the scale shows (what you ate plus what you lost, 3,500 a pound, minus your plan calories). Days under
+  // plan don't offset days over, and an event day counts only what's past its burn, as the bank charges it. It
+  // starts once the 3 weeks are past your first 2 weeks of weigh-ins (mostly water), and needs 3 weigh-ins a week at
+  // both ends and ROLL_LOGGED of the 21 days logged. It only clears debt: never past 0, never spendable points.
+  // Nothing is stored; it's replayed from the logs, so edits keep it consistent.
+  function mondayOnOrAfter(date) { var m = weekStart(date); return m === date ? date : addDays(m, 7); }
+  function rollCtx(days, spends, ws) {
+    var byDate = {}, sp = {}, delta = {};
+    days.forEach(function (d) { byDate[d.date] = d; delta[d.date] = (delta[d.date] || 0) + (d.pts || 0) - (d.spent || 0); });
+    spends.forEach(function (s) { sp[s.date] = (sp[s.date] || 0) + (s.cost || 0); delta[s.date] = (delta[s.date] || 0) - (s.cost || 0); });
+    var dates = Object.keys(delta).sort(), cum = [], run = 0;
+    dates.forEach(function (d) { run += delta[d]; cum.push(run); });
+    // The ledger (days and cheats, before roll-offs) through a date.
+    function through(date) {
+      var lo = 0, hi = dates.length;
+      while (lo < hi) { var mid = (lo + hi) >> 1; if (dates[mid] <= date) lo = mid + 1; else hi = mid; }
+      return lo ? cum[lo - 1] : 0;
+    }
+    return { ws: ws, byDate: byDate, sp: sp, through: through, total: run };
+  }
+  // The 3 weeks before Monday M, judged by the scale.
+  function rollCheck(M, cx) {
+    var out = { date: M, a0: avgWindow(cx.ws, addDays(M, -22), 3), a1: avgWindow(cx.ws, addDays(M, -1), 3), logged: 0 };
+    var ate = 0, plan = 0, over = 0;
+    for (var i = 1; i <= 21; i++) {
+      var date = addDays(M, -i), day = cx.byDate[date] || null;
+      var p = dayPlan(day), a = Math.max(0, Math.round(p + intakeDelta(day, cx.sp[date])));
+      if (day) out.logged++;
+      ate += a;
+      plan += p;
+      over += day && day.event ? day.event.over : Math.max(0, a - p);
+    }
+    if (out.a0 == null || out.a1 == null) { out.why = "weigh"; return out; }
+    if (out.logged < ROLL_LOGGED) { out.why = "log"; return out; }
+    out.progress = ate / 21 + (out.a0 - out.a1) * KCAL_PER_LB / 21 - plan / 21;
+    out.over = over / 21;
+    if (!(out.progress > 0)) { out.why = "scale"; return out; }
+    out.share = out.over / out.progress;
+    out.pass = out.share <= ROLL_SHARE;
+    return out;
+  }
+  // A Monday's check runs at noon, once Sunday's log is final.
+  function rollDue(M) { return Date.now() >= deadline(addDays(M, -1)); }
+  function rollOffs(days, spends) {
+    var ws = weighIns(), out = { list: [], total: 0, start: null };
+    if (!ws.length) return out;
+    var t = today();
+    out.start = mondayOnOrAfter(addDays(ws[0].date, ROLL_WAIT));
+    if (out.start > t) return out;
+    var cx = rollCtx(days, spends, ws);
+    for (var M = out.start; M <= t && rollDue(M); M = addDays(M, 7)) {
+      var ck = rollCheck(M, cx);
+      if (!ck.pass) continue;
+      var old = cx.through(addDays(M, -15)) + out.total, cur = cx.through(addDays(M, -1)) + out.total;
+      if (old < 0 && cur < 0) {
+        var amt = Math.min(-old, -cur);
+        out.total += amt;
+        out.list.push({ date: M, amount: amt, share: ck.share });
+      }
+    }
+    return out;
+  }
+  // For the saved logs. Saved days, weigh-ins, cheats and settings change only through write/remove/sync/load, which
+  // replace normCache, so that, the date and whether today's noon has passed are the key.
+  var rollCache = { key: null, day: "", val: null };
+  function rollState() {
+    var t = today(), day = t + (rollDue(t) ? "+" : "");
+    if (rollCache.key !== normCache || rollCache.day !== day) rollCache = { key: normCache, day: day, val: rollOffs(allDays(), allOf("spend")) };
+    return rollCache.val;
+  }
+  // Where the roll-off stands, for the Weight view: null when there's no debt and nothing rolled off this week.
+  function rollStatus() {
+    var r = rollState(), ws = weighIns(), t = today();
+    if (!r.start) return null;
+    var cx = rollCtx(allDays(), allOf("spend"), ws);
+    var debt = cx.total + r.total, last = r.list[r.list.length - 1];
+    // The next check: today's until noon on a Monday, then the coming Monday's.
+    var next = weekStart(t) === t && !rollDue(t) ? t : addDays(weekStart(t), 7);
+    var out = { start: r.start, recent: last && daysBetween(last.date, t) < 7 ? last : null, debt: debt, next: next < r.start ? r.start : next };
+    if (debt >= 0 && !out.recent) return null;
+    // The last 21 full days, as if today were the Monday.
+    if (t >= addDays(ws[0].date, ROLL_WAIT)) out.live = rollCheck(t, cx);
+    var old = cx.through(addDays(out.next, -15)) + r.total;
+    out.eligible = old < 0 && debt < 0 ? Math.min(-old, -debt) : 0;
+    return out;
+  }
+  // A share of your progress as a percent. Within a point of the limit it gets a decimal, rounded away from the
+  // limit, so a pass never reads as over it or a miss as under it.
+  function sharePct(x, pass) {
+    var p = x * 100;
+    if (Math.abs(p - ROLL_SHARE * 100) >= 1) return Math.round(p) + "%";
+    return ((pass ? Math.floor(p * 10) : Math.ceil(p * 10)) / 10).toFixed(1) + "%";
+  }
+  function rollNote() {
+    var s = rollStatus();
+    if (!s) return null;
+    var when = s.next === today() ? "today at noon" : fmtDay(s.next);
+    if (s.recent) {
+      return { kind: "ok", text: fmtDay(s.recent.date) + ": " + fmt(s.recent.amount) + " of old debt rolled off. Over-plan food cost about " +
+        sharePct(s.recent.share, true) + " of your progress the 3 weeks before" + ROLL_LIM + "." + (s.debt < 0 ? " Next check " + when + "." : ""), help: "rolloff" };
+    }
+    if (!s.live) {
+      return { kind: "info", text: "Old debt can start rolling off " + fmtDay(s.start) + ". The scale judges 3 weeks at a time, starting after your first 2 weeks of weigh-ins (mostly water).", help: "rolloff" };
+    }
+    var L = s.live, again = "Old debt rolls off on Mondays when the scale shows your last 3 weeks within budget. ";
+    if (L.why === "weigh") return { kind: "info", text: again + "Weigh in at least 3 mornings a week so it can check.", help: "rolloff" };
+    if (L.why === "log") return { kind: "info", text: again + "It needs " + ROLL_LOGGED + " of those 21 days logged; you have " + L.logged + ".", help: "rolloff" };
+    if (L.why === "scale") return { kind: "info", text: "Last 3 weeks: the scale shows no loss past what you ate, so old debt stays for now.", help: "rolloff" };
+    var head = "Last 3 weeks: over-plan food cost about " + sharePct(L.share, L.pass) + " of your progress";
+    if (!L.pass) return { kind: "info", text: head + ", past the " + Math.round(ROLL_SHARE * 100) + "% limit for rolling off old debt.", help: "rolloff" };
+    return { kind: "ok", text: head + ROLL_LIM + ". " + (s.eligible > 0 ? "If that holds, " + when + " rolls off up to " + fmt(s.eligible) + " of old debt." :
+      "Debt rolls off once it's 2 weeks old."), help: "rolloff" };
+  }
+
   // ---------- Daily deficit ----------
   // Estimated calories in and out for each logged day. In: the plan calories with that day's off-plan changes
   // (different meals, skips, extras, drinks). Out: resting burn (BMR) at that morning's weigh-in, or the last
@@ -3835,15 +3987,30 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "<b>Streak</b>: days in a row logged on time.",
         "The strip shows the last 31 days with each day's net, today on the right. Swipe for earlier days. Tap a day and the whole page switches to it.",
         "<b>In the red</b>: the next cheat waits until you're back to 0. Never skip plan meals to pay it back.",
+        "<b>Old debt rolls off</b> on Mondays when the scale shows your last 3 weeks stayed within budget. See <i>Old debt roll-off</i>.",
         "<b>Over " + fmt(BIG_BANK) + "</b>: fine if you're saving for an event. Regular cheats are easier to bounce back from than one huge one.",
         "Set a <b>savings goal</b> in Settings to track it here."
       ]);
+    } },
+    rolloff: { title: "Old debt roll-off", html: function () {
+      var rn = rollNote();
+      return ul([
+        "Each <b>Monday at noon</b>, debt at least 2 weeks old clears if the scale shows the 3 weeks before stayed within budget: over-plan food cost no more than <b>" +
+          Math.round(ROLL_SHARE * 100) + "%</b> of your progress.",
+        "It only clears debt, never past 0, so it never adds points to spend. Debt from the last 2 weeks waits until it's that old.",
+        "<b>Your progress</b>: your real burn over the 3 weeks (what you ate, plus what the scale lost at " + fmt(KCAL_PER_LB) + " a pound) minus your plan calories. " +
+          "It's what your plan alone would lose at the burn your body actually has.",
+        "<b>Over-plan food</b> counts day by day. A day under plan doesn't offset one over, so skipping meals can't buy a roll-off. An event day counts only what's past its burn.",
+        "It starts once the 3 weeks are past your first 2 weeks of weigh-ins (mostly water). It needs 3 weigh-ins in the week before the 3 weeks and in their last week, and " +
+          ROLL_LOGGED + " of the 21 days logged."
+      ]) + (rn ? "<p><b>Now:</b> " + esc(rn.text) + "</p>" : "<p>The Weight view shows where you stand when you have debt.</p>");
     } },
     logging: { title: "Logging and the on-plan bonus", html: function (c) {
       return ul([
         "Pick a day on the strip. The form shows what's saved for it; change anything and tap <b>Update</b>.",
         "Changes you haven't saved stay with their day when you switch days or close the app, and a dot marks the day. <b>Discard changes</b> puts the day back. Undo right after saving or deleting puts it back too.",
-        "An on-plan day earns <b>" + c.bonus + "</b> even with no activity" + (c.s.tight ? " (25 on the Standard rate)." : " (17 on the Tight rate)."),
+        "An on-plan day earns <b>" + c.bonus + "</b> even with no activity" + (c.s.tight ? " (25 on the Standard rate)." : " (17 on the Tight rate).") +
+          " So does a day of lighter versions of your plan meals, with nothing extra and nothing skipped, as long as you still eat at least your " + fmt(floorKcal()) + "-calorie floor.",
         "<b>Log by noon the next day.</b> After that the day is still scored like normal, so its total shows how the day went, but points it earns late (new activity, a raise, the on-plan bonus) don't count toward the bank. They're tagged <i>late</i>, and the log shows what counts. Lowering something still lowers what counts, and off-plan food always counts. Correcting a step total you reported on time keeps it on time.",
         "Late activity still counts toward your burn and deficit, and on an event day it raises the burn like any other.",
         "Until noon, the app reminds you if yesterday isn't logged.",
@@ -3870,10 +4037,10 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "A different meal costs its calories minus the plan meal it replaced (" + meals + "). Extras cost their full calories.",
         "<b>Skipped a meal?</b> Pick <i>Skipped breakfast</i>, lunch or dinner. It earns no points, but its plan calories offset that day's food cheats (not drinks). A smaller meal's leftover calories do the same. Nothing carries to another day, and the day never goes below 0 for food.",
         "<b>One skip a week.</b> Every skipped meal needs a snack of at least a quarter of that meal" + (c.ok ? " (lunch: " + fmt(Math.round(m.lunch / 4)) + ")" : "") + ". Eat it around that meal's usual time, so you don't go long without food. Tap <i>Add a snack</i> on the skipped meal, or check <i>Snack for skipped…</i> on an Extra food entry; drinks don't count. Only a snack attached that way counts: a snack hours later or a bigger meal doesn't. The snack is covered by the skipped meal. The first skip of the week (Monday to Sunday) keeps the rest for that day's food cheats. After that, a skip only covers its snack and the rest isn't eligible.",
-        "<b>No snack?</b> Check <i>No snack</i>: it costs half the meal from the bank. A snack under the minimum costs twice what it's short. A meal under a quarter of its plan counts as skipped, with itself as the snack.",
+        "<b>No snack?</b> Check <i>No snack</i>: it costs the snack you skipped, a quarter of the meal, as if you'd eaten it. A snack under the minimum costs what it's short. The snack itself is free, so eating it always comes out ahead. A meal under a quarter of its plan counts as skipped, with itself as the snack.",
         "Each plan meal counts once a day. A second entry for the same meal costs its full calories.",
         "On a day with <b>Rest-day plan</b> on, the rest-day meals stand in for these: a different meal costs its calories minus the rest-day meal it replaced.",
-        "A day with a skipped meal counts as off plan, so it doesn't get the on-plan bonus.",
+        "A day with a skipped meal counts as off plan, so it doesn't get the on-plan bonus. A day of only lighter plan meals does, if it still reaches your " + fmt(floorKcal()) + "-calorie floor.",
         "<b>Posted calories</b> means a chain menu, an app or a label. Unchecked adds 25%, since big meals are easy to underestimate.",
         "<b>Cheats</b> are your go-to meals. Save them ahead of time with <b>Add a cheat</b> on the Redeem tab, or name an entry here and tap <b>Save cheat</b>. Add one to the log from the <b>Add a cheat…</b> list or the Redeem tab; Edit lists them so you can change or remove any.",
         "Drinking night: eat dinner first. The late-night food costs more than the drinks."
@@ -4111,7 +4278,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "<p>Resting burn uses the Mifflin-St Jeor equation. Warnings and predictions use 1.2 × resting burn plus about 2.3 calories per standard point (the middle of each range), minus your plan calories and any off-plan changes. 3,500 calories is about 1 lb of fat. Costs are recalculated each week as your weight drops and assume every point gets spent.</p>";
     } }
   };
-  var GUIDE_ORDER = ["points", "bank", "logging", "plan", "restday", "events", "redeem", "workouts", "timer", "steps", "cardio", "other", "weigh", "weeks", "deficit", "warnings", "rate", "weightpts", "goal", "buys", "costs", "profile", "backup", "sync", "install", "numbers"];
+  var GUIDE_ORDER = ["points", "bank", "rolloff", "logging", "plan", "restday", "events", "redeem", "workouts", "timer", "steps", "cardio", "other", "weigh", "weeks", "deficit", "warnings", "rate", "weightpts", "goal", "buys", "costs", "profile", "backup", "sync", "install", "numbers"];
 
   // ---------- Sheet ----------
   var sheetOnClose = null;
@@ -5767,7 +5934,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     // The day as it would be saved (food waiting on its meal isn't counted yet).
     var fp = f.plan === "no" ? Object.assign({}, f, { food: f.food.filter(function (x) { return !!x.meal; }) }) : f;
     var day = buildDay(prev, fp, date, now), ev = day.event;
-    if (f.plan !== "yes") { day.bonus = 0; day.pts = day.activityPts; day.fullBonus = 0; day.full = Math.max(day.pts, day.fullActivity); }
+    // The bonus waits for a Yes, or for food that's only lighter plan meals.
+    if (f.plan !== "yes" && !day.lighter) { day.bonus = 0; day.pts = day.activityPts; day.fullBonus = 0; day.full = Math.max(day.pts, day.fullActivity); }
     // On an event day each activity shows the calories it adds to the burn instead of points, late or not.
     if (ev) setCal("stepPts", day.steps ? BURN_PER_PT * stepPts(b, 1, day.steps.total) : 0);
     else setPts("stepPts", day.steps ? day.steps.pts : 0, day.steps ? entryFull(day, day.steps, true) : 0);
@@ -5776,7 +5944,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       var els = state.actEls[i], r = sc[i];
       if (!els) return;
       if (ev) setCal(els.pts, r ? BURN_PER_PT * actPts(a, b, 1, basis.weight || 250) : 0);
-      else setPts(els.pts, r ? r.pts : 0, r ? r.fresh : 0);
+      else setPts(els.pts, r ? (graceDay(date) ? r.fresh : r.pts) : 0, r ? r.fresh : 0);   // before you started, nothing is late
       els.how.textContent = actHow(a, b, k, basis.weight || 250);
       if (els.save) els.save.disabled = state.readOnly || !String(a.name || "").trim();
     });
@@ -5897,6 +6065,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     delete rec.fullBonus;
     delete rec.full;
     delete rec.event;
+    // A day before you started stays stored as late: only the reading of it changes.
+    if (rec.grace) rec.late = true;
+    delete rec.grace;
     write(id, rec).then(function (ok) {
       btn.disabled = state.readOnly;
       if (!ok) return;
@@ -5990,7 +6161,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   }
   function renderBoard() {
     var days = allDays(), spends = allOf("spend");
-    var bank = ledger(days, spends) - tallyHit();
+    var bank = ledger(days, spends) + rollState().total - tallyHit();
     var t = today(), ws = weekStart(t);
     var earned = 0, spent = 0;
     days.forEach(function (d) { if (d.date >= ws && d.date <= t) { earned += d.pts; spent += d.spent; } });
@@ -6156,6 +6327,12 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     if (ws.status && ws.status[0] === "warn") notes.push({ kind: "warn", text: ws.status[1], help: "weigh" });
     var bank = currentBank();
     if (bank > BIG_BANK) notes.push({ kind: "info", text: "Bank is past " + fmt(BIG_BANK) + ". Regular cheats are easier to bounce back from than one huge one.", help: "bank" });
+    // A roll-off shows for the week it ran, until dismissed.
+    var rl = rollState().list, roll = rl[rl.length - 1];
+    if (roll && daysBetween(roll.date, today()) < 7 && m.rollSeen !== roll.date) {
+      notes.push({ kind: "ok", text: "Old debt rolled off: +" + fmt(roll.amount) + ". The scale shows your last 3 weeks stayed within budget.", help: "rolloff",
+        dismiss: function () { setMeta({ rollSeen: roll.date }); renderNotes(); } });
+    }
     var ramp = rampUp();
     if (ramp) notes.push({ kind: "warn", text: "Activity is up " + ramp + "% on your previous two weeks. Ramp up gradually.", help: "warnings" });
     return notes;
@@ -6240,7 +6417,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     $("trendT").textContent = def ? "Deficit" : "Weight";
     $("trendQ").setAttribute("data-help", def ? "deficit" : "weigh");
     $("trendQ").setAttribute("aria-label", def ? "Help: deficit" : "Help: weigh-ins and the chart");
-    ["wOut", "wBurnNote", "wStatus", "weeksBlock", "histBlock"].forEach(function (id) { $(id).hidden = def; });
+    ["wOut", "wBurnNote", "wStatus", "wRoll", "weeksBlock", "histBlock"].forEach(function (id) { $(id).hidden = def; });
     ["dOut", "dWeeksBlock", "dDaysBlock"].forEach(function (id) { $(id).hidden = !def; });
     if (!def) { $("dNote").hidden = true; $("dStatus").hidden = true; }
     renderTrend();
@@ -6274,6 +6451,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var st = $("wStatus");
     st.className = "note " + w.status[0];
     st.textContent = w.status[1];
+    var rn = rollNote();
+    renderNoteList($("wRoll"), rn ? [rn] : []);
   }
   function chartRange() { var r = meta().chartRange; return r === "30" || r === "all" ? r : "90"; }
   function niceTicks(lo, hi) {
@@ -6480,10 +6659,13 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     }).join(", ") + (!d.event ? " (−" + fmt(d.spent) + ")" : d.event.over ? " (−" + fmt(d.event.over) + " past your burn)" : " (within your burn)");
   }
   function renderHistory() {
-    var items = allDays().map(function (d) { return Object.assign({ kind: "day" }, d); }).concat(allOf("spend"));
+    var items = allDays().map(function (d) { return Object.assign({ kind: "day" }, d); }).concat(allOf("spend"))
+      .concat(rollState().list.map(function (r) { return Object.assign({ kind: "roll" }, r); }));
+    // Newest first; on a date, cheats, then the day, then a roll-off (it runs first thing Monday).
+    var rank = { spend: 0, day: 1, roll: 2 };
     items.sort(function (a, b) {
       if (a.date !== b.date) return a.date < b.date ? 1 : -1;
-      if (a.kind !== b.kind) return a.kind === "spend" ? -1 : 1;
+      if (a.kind !== b.kind) return rank[a.kind] - rank[b.kind];
       return (b.ts || 0) - (a.ts || 0);
     });
     var list = $("hist");
@@ -6516,6 +6698,13 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         if (foodLine) row.appendChild(el("span", "what off", foodLine));
         row.appendChild(el("span", "amt " + (net < 0 ? "spend" : "earn"), signed(net)));
         li.appendChild(row);
+      } else if (it.kind === "roll") {
+        var rrow = el("div", "hrow static roll");
+        rrow.appendChild(el("span", "when", fmtDay(it.date)));
+        rrow.appendChild(el("span", "what", "Old debt rolled off"));
+        rrow.appendChild(el("span", "what", "Over-plan food cost " + sharePct(it.share, true) + " of your progress the 3 weeks before" + ROLL_LIM));
+        rrow.appendChild(el("span", "amt earn", signed(it.amount)));
+        li.appendChild(rrow);
       } else {
         var srow = el("div", "srow");
         srow.appendChild(el("span", "when", fmtDay(it.date)));
@@ -7176,8 +7365,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     allDays().forEach(function (d) { slot(d.date).day = d; });
     allOf("spend").forEach(function (s) { slot(s.date).spends.push(s); });
     weighIns().forEach(function (w) { slot(w.date).weigh = w; });
+    rollState().list.forEach(function (r) { slot(r.date).roll = r.amount; });
     var header = ["Date", "Weight (lb)", "Stuck to plan", "Off-plan food", "Off-plan calories", "Activities", "Steps",
-      "Activity points", "On-plan bonus", "Points spent", "Net", "Bank after", "Logged late", "Event day", "Rest-day plan"];
+      "Activity points", "On-plan bonus", "Points spent", "Net", "Bank after", "Logged late", "Event day", "Rest-day plan", "Old debt rolled off"];
     var lines = [header.map(function (h) { return csvCell(h); }).join(",")];
     var bank = 0, hits = tallyState().hits, hi = 0;
     Object.keys(byDate).sort().forEach(function (date) {
@@ -7186,6 +7376,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       var spent = (d ? d.spent : 0) + sum(e.spends, function (x) { return x.cost || 0; });
       var earned = d ? d.pts : 0;
       while (hi < hits.length && hits[hi] <= date) { bank -= TALLY_HIT; hi++; }
+      // A roll-off runs first thing Monday, before the day's own net.
+      if (e.roll) bank += e.roll;
       if (logged) bank += earned - spent;
       var food = [], offCal = 0;
       if (d) d.food.forEach(function (f) {
@@ -7199,8 +7391,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         [date], [e.weigh ? e.weigh.lb : ""], [d ? (d.onPlan ? "Yes" : "No") : ""], [food.join("; "), true], [offCal || ""],
         [d ? d.acts.map(function (e) { return e.name + " " + (e.mode === "kcal" ? e.kcal + " cal" + (e.min ? ", " + e.min + " min" : "") : e.min + " min" + detailBrief(e)); }).join("; ") : "", true],
         [d && d.steps ? d.steps.total : ""],
-        [d ? d.activityPts : ""], [d ? d.bonus : ""], [logged ? spent : ""], [logged ? earned - spent : ""], [logged ? bank : ""],
-        [d ? (d.late ? "Yes" : "No") : ""], [d ? (d.event ? "Yes" : "No") : ""], [d ? (d.rest ? "Yes" : "No") : ""]
+        [d ? d.activityPts : ""], [d ? d.bonus : ""], [logged ? spent : ""], [logged ? earned - spent : ""], [logged || e.roll ? bank : ""],
+        [d ? (d.late ? "Yes" : "No") : ""], [d ? (d.event ? "Yes" : "No") : ""], [d ? (d.rest ? "Yes" : "No") : ""], [e.roll || ""]
       ];
       lines.push(row.map(function (c) { return csvCell(c[0], c[1]); }).join(","));
     });
