@@ -2621,7 +2621,7 @@ html.still .tr-fg { transition: none; }
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.30.1","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.31.1","profile":null};</script>
 <script>
 /* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
    strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
@@ -2816,13 +2816,15 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   // ---------- Profile and settings ----------
   function rawSettings() { return state.docs.get("settings") || {}; }
   function pickNum(a, b) { return isNum(a) ? a : isNum(b) ? b : null; }
-  function profile() {
-    var p = rawSettings().profile || {}, d = PROFILE_DEFAULT || {};
+  function profile() { return profileOf(rawSettings().profile || {}); }
+  // Saved numbers p over the built-in ones.
+  function profileOf(p) {
+    var d = PROFILE_DEFAULT || {};
     var pm = p.meals || {}, dm = d.meals || {};
     // Rest-day meals are optional. Once you've saved your numbers, yours stand (blank turns the rest-day plan off).
     var pr = p.restMeals || {}, dr = p.restMeals ? {} : d.restMeals || {};
     var sex = p.sex === "male" || p.sex === "female" ? p.sex : (d.sex === "male" || d.sex === "female" ? d.sex : "");
-    return {
+    var out = {
       heightIn: pickNum(p.heightIn, d.heightIn),
       age: pickNum(p.age, d.age),
       sex: sex,
@@ -2830,6 +2832,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       meals: { breakfast: pickNum(pm.breakfast, dm.breakfast), lunch: pickNum(pm.lunch, dm.lunch), dinner: pickNum(pm.dinner, dm.dinner) },
       restMeals: { breakfast: pickNum(pr.breakfast, dr.breakfast), lunch: pickNum(pr.lunch, dr.lunch), dinner: pickNum(pr.dinner, dr.dinner) }
     };
+    // The plans you had before each change (see Plan history), kept with your numbers so backups carry them.
+    if (Array.isArray(p.past)) out.past = p.past;
+    return out;
   }
   function settings() {
     var s = rawSettings(), d = PROFILE_DEFAULT || {};
@@ -3025,23 +3030,134 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     return 10 * kg(lb) + 6.25 * (p.heightIn || 70) * 2.54 - 5 * (p.age || 30) + (p.sex === "female" ? -161 : 5);
   }
   function maintenance(lb) { return ACTIVITY * bmr(lb); }
-  function planKcal() { return profile().planKcal || 0; }
+  // The plan calories, and below, its meals: the current plan, or with a date, the plan in effect that day.
+  function planKcal(date) { return planOn(date).planKcal || 0; }
   function floorKcal() { return profile().sex === "female" ? 1200 : 1500; }
   // A plan meal's calories: the full plan's, or on a rest-day plan day the rest-day meal (the full one if that's
   // missing).
-  function mealKcal(meal, rest) {
+  function mealKcal(meal, rest, date) {
     if (!isPlanMeal(meal)) return 0;
-    var p = profile(), r = p.restMeals[meal], v = rest && isNum(r) ? r : p.meals[meal];
+    var p = planOn(date), r = p.restMeals[meal], v = rest && isNum(r) ? r : p.meals[meal];
     return isNum(v) ? v : 0;
   }
   // The rest-day plan: lighter meals for days you don't lift (set in Settings). The day's total keeps whatever
   // your full plan has beyond its three meals.
   function restReady() { var r = profile().restMeals; return MEAL_KEYS.every(function (k) { return isNum(r[k]) && r[k] >= 0 && r[k] <= 4000; }); }
-  function mealSum(rest) { return sum(MEAL_KEYS, function (k) { return mealKcal(k, rest); }); }
-  function restPlanKcal() { return Math.max(0, Math.round(planKcal() - mealSum(false) + mealSum(true))); }
-  function planFor(rest) { return rest ? restPlanKcal() : planKcal(); }
-  // The plan calories a saved day was eaten against.
-  function dayPlan(day) { return day && isNum(day.plan) ? day.plan : planKcal(); }
+  function mealSum(rest, date) { return sum(MEAL_KEYS, function (k) { return mealKcal(k, rest, date); }); }
+  function restPlanKcal(date) { return Math.max(0, Math.round(planKcal(date) - mealSum(false, date) + mealSum(true, date))); }
+  function planFor(rest, date) { return rest ? restPlanKcal(date) : planKcal(date); }
+  // The plan calories a day was eaten against: what it was saved with, or the plan in effect on its date (a day
+  // saved before days kept their plan, or one not logged).
+  function dayPlan(day, date) { return day && isNum(day.plan) ? day.plan : planFor(!!(day && day.rest), date || (day && day.date)); }
+
+  // ---------- Plan history ----------
+  // Changing your plan in Settings doesn't rewrite past days: each day is priced against the plan in effect on its
+  // date, including a day you log or edit later. profile.past keeps the plan you had before each change, oldest
+  // first: { until (the last day it applied), planKcal, meals, restMeals (null when they weren't set) }. Days after
+  // the last one use the current plan, and so does today.
+  function restComplete(r) { return !!r && MEAL_KEYS.every(function (k) { return isNum(r[k]); }); }
+  function copyMeals(m) { return { breakfast: m.breakfast, lunch: m.lunch, dinner: m.dinner }; }
+  function cleanPast(list) {
+    return list.filter(function (e) {
+      return e && validDate(e.until) && isNum(e.planKcal) && e.planKcal > 0 && !!e.meals && MEAL_KEYS.every(function (k) { return isNum(e.meals[k]); });
+    }).sort(function (a, b) { return a.until < b.until ? -1 : a.until > b.until ? 1 : 0; });
+  }
+  // Settings and saved days only change through write/remove/sync, which also replace normCache.
+  var pastCache = { key: null, day: "", val: [] };
+  function planPast() {
+    var t = today();
+    if (pastCache.key !== normCache || pastCache.day !== t) {
+      var raw = (rawSettings().profile || {}).past;
+      pastCache = { key: normCache, day: t, val: Array.isArray(raw) ? cleanPast(raw) : inferPast(t) };
+    }
+    return pastCache.val;
+  }
+  // An earlier plan without rest-day meals on record (one read from the saved days) takes the next ones on record.
+  function planOn(date) {
+    var cur = profile();
+    if (!date) return cur;
+    var past = planPast();
+    for (var i = 0; i < past.length; i++) {
+      if (date > past[i].until) continue;
+      var rm = cur.restMeals;
+      for (var j = i; j < past.length; j++) if (restComplete(past[j].restMeals)) { rm = past[j].restMeals; break; }
+      return { planKcal: past[i].planKcal, meals: past[i].meals, restMeals: rm };
+    }
+    return cur;
+  }
+  // Before the history was kept, it comes from the saved days. A day first logged on time keeps the plan total it
+  // was eaten against, so each run of them on a plan other than the current one is an earlier plan, through the
+  // last day of the run. (A day first logged late got the plan from when it was logged, so it doesn't mark where a
+  // plan began or ended.) Its meals come from those days' food.
+  function inferPast(t) {
+    var cur = profile(), days = [], runs = [], out = [], after = "";
+    if (!(cur.planKcal > 0)) return out;
+    state.docs.forEach(function (d) {
+      if (d && d.kind === "day" && validDate(d.date) && d.date < t && isNum(d.plan) && !d.rest) days.push(d);
+    });
+    days.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+    days.forEach(function (d) {
+      if (d.late === true) return;
+      var r = runs[runs.length - 1];
+      if (r && r.plan === d.plan) r.until = d.date;
+      else runs.push({ plan: d.plan, until: d.date });
+    });
+    while (runs.length && runs[runs.length - 1].plan === cur.planKcal) runs.pop();
+    runs.forEach(function (r) {
+      out.push({ until: r.until, planKcal: r.plan, meals: pastMeals(days, r.plan, after, r.until, cur), restMeals: null });
+      after = r.until;
+    });
+    return out;
+  }
+  // An earlier plan's meals: the plan-meal value its days' food was priced against, the most common for each meal.
+  // A meal none of them show is whatever the total leaves if it's the only one (your planned snacks as they are
+  // now), or otherwise its current value.
+  function pastMeals(days, plan, after, until, cur) {
+    var seen = {}, meals = {}, unknown = [];
+    MEAL_KEYS.forEach(function (k) { seen[k] = {}; });
+    days.forEach(function (d) {
+      if (d.plan !== plan || d.date <= after || d.date > until) return;
+      var used = {};
+      (d.food || []).forEach(function (f) {
+        if (!isPlanMeal(f.meal) || used[f.meal]) return;
+        used[f.meal] = true;
+        if (!isNum(f.base) || f.base <= 0) return;
+        var s = seen[f.meal], v = Math.round(f.base);
+        s[v] = { n: (s[v] ? s[v].n : 0) + 1, last: d.date };
+      });
+    });
+    MEAL_KEYS.forEach(function (k) {
+      var best = null;
+      Object.keys(seen[k]).forEach(function (v) {
+        var x = seen[k][v];
+        if (!best || x.n > best.n || (x.n === best.n && x.last > best.last)) best = { v: +v, n: x.n, last: x.last };
+      });
+      if (best) meals[k] = best.v; else unknown.push(k);
+    });
+    var snacks = cur.planKcal - sum(MEAL_KEYS, function (k) { return isNum(cur.meals[k]) ? cur.meals[k] : 0; });
+    if (unknown.length === 1) meals[unknown[0]] = Math.max(0, Math.round(plan - snacks - sum(MEAL_KEYS, function (k) { return meals[k] || 0; })));
+    else unknown.forEach(function (k) { meals[k] = isNum(cur.meals[k]) ? cur.meals[k] : 0; });
+    return meals;
+  }
+  // The profile to save, with the history: when the plan, its meals or the rest-day meals change, the plan you had
+  // through yesterday is kept for the days before today. A second change the same day doesn't add another (that
+  // plan never applied to a past day). Setting up rest-day meals for the first time isn't a change.
+  function withPast(next) {
+    var cur = profile(), nx = profileOf(next), past = planPast().map(function (e) { return Object.assign({}, e); });
+    var changed = cur.planKcal > 0 && (cur.planKcal !== nx.planKcal || MEAL_KEYS.some(function (k) { return cur.meals[k] !== nx.meals[k]; }) ||
+      (restComplete(cur.restMeals) && MEAL_KEYS.some(function (k) { return cur.restMeals[k] !== nx.restMeals[k]; })));
+    var until = addDays(today(), -1), last = past[past.length - 1];
+    if (changed && !(last && last.until >= until))
+      past.push({ until: until, planKcal: cur.planKcal, meals: copyMeals(cur.meals), restMeals: restComplete(cur.restMeals) ? copyMeals(cur.restMeals) : null });
+    return Object.assign({}, next, { past: past });
+  }
+  // Settings: the latest earlier plan, and through when.
+  function pastText() {
+    var past = planPast(), e = past[past.length - 1];
+    if (!e) return "";
+    return "Days through " + fmtShort(e.until) + " keep your earlier plan: " + fmt(e.planKcal) + " a day (breakfast " + fmt(e.meals.breakfast) +
+      ", lunch " + fmt(e.meals.lunch) + ", dinner " + fmt(e.meals.dinner) + ")" + (past.length > 1 ? ", and older days the plans before it." : ".");
+  }
   // Saved entries keep the numbers they were saved with, so editing your plan later never rewrites history.
   function foodBase(f) { return isNum(f.base) ? f.base : mealKcal(f.meal); }
   function foodEst(f) { var kc = (+f.kcal || 0) * Math.max(1, Math.round(+f.qty || 1)); return isNum(f.est) ? f.est : Math.round(f.posted === false ? kc * NO_LABEL : kc); }
@@ -3314,23 +3430,27 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     return { pts: keepOnTime ? fresh : Math.min(fresh, prev.pts || 0), late: false };
   }
   // A food line keeps the plan-meal value it was saved with unless its meal, or the day's plan (full or rest-day),
-  // is changed.
-  function formFoodBase(x, rest) { return isNum(x.base) && x.base > 0 && x.bmeal === x.meal && !!x.brest === !!rest ? x.base : mealKcal(x.meal, rest); }
+  // is changed. A new one takes the plan in effect on the day's date. Today's lines follow the current plan, as
+  // the day itself does, in case you changed it since logging them.
+  function formFoodBase(x, rest, date) {
+    var keep = isNum(x.base) && x.base > 0 && x.bmeal === x.meal && !!x.brest === !!rest && date !== today();
+    return keep ? x.base : mealKcal(x.meal, rest, date);
+  }
   function formFoodEst(x) { if (x.skip) return 0; var kc = Math.round(num(x.kcal)) * qtyOf(x); return Math.round(x.posted === false ? kc * NO_LABEL : kc); }
   // The day's food, row by row. Each plan meal counts once: the first entry for it (a different meal or a
   // skip) takes its plan calories; another entry for the same meal costs its full calories. A row with no
   // meal picked, or no calories and no skip, isn't counted (null).
-  function foodRows(rows, rest) {
+  function foodRows(rows, rest, date) {
     var used = {};
     return rows.map(function (x) {
       if (!x || !MEAL_INFO[x.meal] || !(x.skip || num(x.kcal) > 0)) return null;
       var base = 0;
-      if (isPlanMeal(x.meal) && !used[x.meal]) { base = formFoodBase(x, rest); used[x.meal] = true; }
+      if (isPlanMeal(x.meal) && !used[x.meal]) { base = formFoodBase(x, rest, date); used[x.meal] = true; }
       return { meal: x.meal, skip: !!x.skip, base: base, est: formFoodEst(x), noSnack: !!(x.skip && x.noSnack), snackFor: snackOf(x) };
     });
   }
   // The form's food for date, settled. rest: the day is on the rest-day plan.
-  function settleForm(rows, date, rest) { return settle(foodRows(rows, rest), date); }
+  function settleForm(rows, date, rest) { return settle(foodRows(rows, rest, date), date); }
   // A skipped meal's note in the log: which skip of the week, its snack, and what's left.
   function ordinal(n) { return n + (n % 10 === 1 && n % 100 !== 11 ? "st" : n % 10 === 2 && n % 100 !== 12 ? "nd" : n % 10 === 3 && n % 100 !== 13 ? "rd" : "th"); }
   function skipHow(s) {
@@ -3345,10 +3465,11 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var basis = prev ? { weight: prev.weight, tight: prev.tight } : settings();
     var lateNow = now > deadline(date);
     var day = blankDay(date, basis, prev ? !!(prev.late || prev.grace) : lateNow);
-    // The plan calories the day was eaten against, so changing the plan later doesn't rewrite its deficit.
-    // Today always takes the current plan, and so does a day switched between the full and rest-day plans.
+    // The plan calories the day was eaten against, so changing the plan later doesn't rewrite its deficit. Today
+    // always takes the current plan; an earlier day being logged, saved before days kept their plan, or switched
+    // between the full and rest-day plans takes the plan in effect on its date.
     var rest = !!f.rest;
-    day.plan = prev && isNum(prev.plan) && date !== today() && !!prev.rest === rest ? prev.plan : planFor(rest);
+    day.plan = prev && isNum(prev.plan) && date !== today() && !!prev.rest === rest ? prev.plan : planFor(rest, date);
     if (rest) day.rest = true;
     var b = bandFor(day.weight || 250), k = rateK(day.tight);
     var st = Math.round(num(f.steps));
@@ -3712,7 +3833,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     for (var i = 0; i < 7; i++) {
       var date = addDays(endDate, -i);
       var day = getDay(date);
-      total += maintenance(W) + BURN_PER_PT * stdActivity(day) - (dayPlan(day) + intakeDelta(day, sp[date]));
+      total += maintenance(W) + BURN_PER_PT * stdActivity(day) - (dayPlan(day, date) + intakeDelta(day, sp[date]));
     }
     return total / KCAL_PER_LB;
   }
@@ -3761,7 +3882,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     for (var i = 0; i < span; i++) {
       var date = addDays(t, -(3 + i));
       var day = getDay(date);
-      intake += dayPlan(day) + intakeDelta(day, sp[date]);
+      intake += dayPlan(day, date) + intakeDelta(day, sp[date]);
       formula += maintenance(W) + BURN_PER_PT * stdActivity(day);
     }
     intake /= span;
@@ -3798,7 +3919,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var ate = 0, plan = 0, over = 0;
     for (var i = 1; i <= 21; i++) {
       var date = addDays(M, -i), day = cx.byDate[date] || null;
-      var p = dayPlan(day), a = Math.max(0, Math.round(p + intakeDelta(day, cx.sp[date])));
+      var p = dayPlan(day, date), a = Math.max(0, Math.round(p + intakeDelta(day, cx.sp[date])));
       if (day) out.logged++;
       ate += a;
       plan += p;
@@ -3900,7 +4021,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function dayBalance(date, day, ws, spent) {
     var w = weighFor(ws, date, (day && day.weight) || settings().weight || 250);
     var rest = Math.round(bmr(w.lb)), life = Math.round((ACTIVITY - 1) * rest), act = Math.round(BURN_PER_PT * stdActivity(day));
-    var ate = Math.max(0, Math.round(dayPlan(day) + intakeDelta(day, spent)));
+    var ate = Math.max(0, Math.round(dayPlan(day, date) + intakeDelta(day, spent)));
     var burn = rest + life + act;
     return { date: date, lb: w.lb, lbDate: w.date, bmr: rest, life: life, act: act, burn: burn, ate: ate, net: burn - ate, partial: date === today(),
       restPlan: !!(day && day.rest) };
@@ -4131,7 +4252,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     } },
     deficit: { title: "Deficit", html: function (c) {
       return "<p>Switch Progress to <b>Deficit</b> to see an estimate of each logged day's calories in and out. A <b>deficit</b> means you burned more than you ate, a <b>surplus</b> the reverse. About 3,500 calories is a pound.</p>" + ul([
-        "<b>Ate</b>: your plan calories" + (c.ok ? " (" + fmt(planKcal()) + (restReady() ? ", or " + fmt(restPlanKcal()) + " on a rest-day plan day" : "") + ")" : "") + ", with that day's changes from your log: different meals, skipped meals, extra food and drinks.",
+        "<b>Ate</b>: your plan calories" + (c.ok ? " (" + fmt(planKcal()) + (restReady() ? ", or " + fmt(restPlanKcal()) + " on a rest-day plan day" : "") + ")" : "") + ", with that day's changes from your log: different meals, skipped meals, extra food and drinks. A day before you changed your plan uses the plan you had then.",
         "<b>BMR</b>: your resting burn at that morning's weigh-in, from your height, age and sex (Mifflin-St Jeor). A day without a weigh-in uses the last one before it.",
         "<b>Beyond BMR</b>: daily life, 20% of BMR, which covers an easy day up to 3,000 steps; plus your activity at about " + BURN_PER_PT + " calories per point, before Tight. Activity logged late still counts here.",
         "<b>Goal</b>: a " + fmt(DEF_GOAL) + " deficit a day, the dashed line. Days that reach it turn green. Over " + fmt(DEF_HIGH) + " is too steep, so those bars get a red outline: eat some of your points.",
@@ -4226,7 +4347,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "<b>Daily plan calories</b>: what your meal plan gives you each day.",
         "<b>Plan meals</b>: a different meal costs its calories minus the plan meal it replaced. If your meal plan changes, update these.",
         "<b>Rest-day meals</b> (optional): your lighter meals for days you don't lift, used on days with Rest-day plan on. Leave all three blank if you don't use one.",
-        "Changes apply to new entries. Days you've already logged keep their costs."
+        "Changes to your plan apply from today. Days before keep the plan you had then, for their costs and their deficit, even if you log or edit one later."
       ]);
     } },
     backup: { title: "Backups and your data", html: function () {
@@ -4678,7 +4799,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       ex.appendChild(row);
     });
     // On a rest-day plan day, meals are priced against the rest-day meal they'd replace.
-    if (rest && mealTab) ex.appendChild(el("span", "rxl rxd", "Rest-day plan " + MEAL_INFO[tab].short + ": " + fmt(mealKcal(tab, true)) + " cal"));
+    if (rest && mealTab) ex.appendChild(el("span", "rxl rxd", "Rest-day plan " + MEAL_INFO[tab].short + ": " + fmt(mealKcal(tab, true, date)) + " cal"));
     ex.hidden = !ex.firstChild;
     ex.classList.toggle("on", lines.length > 0);
     var list = $("redeemList");
@@ -5757,8 +5878,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     btn.setAttribute("aria-pressed", on ? "true" : "false");
     var q = $("planQ").querySelector("legend").firstChild, qt = on ? "Did you stick to the rest-day plan?" : "Did you stick to the meal plan?";
     if (q && q.nodeType === 3 && q.nodeValue !== qt) q.nodeValue = qt;
-    var r = profile().restMeals;
-    $("restLeft").textContent = restReady() ? fmt(restPlanKcal()) + " cal a day" : "";
+    // The plan on the form's day (an earlier day can have had a different one).
+    var r = planOn(state.logDate).restMeals;
+    $("restLeft").textContent = restReady() ? fmt(restPlanKcal(state.logDate)) + " cal a day" : "";
     $("restHint").hidden = !on;
     $("restHint").textContent = !on ? "" : restReady() ? "Plan meals: breakfast " + fmt(r.breakfast) + ", lunch " + fmt(r.lunch) + ", dinner " + fmt(r.dinner) + ". Off-plan food is priced against these." :
       "Your rest-day meals aren't set, so new food is priced against the full plan. Enter them in Settings → Your numbers.";
@@ -5782,7 +5904,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       var rm = readRestFields("rs");
       if (rm.error) { toast(rm.error); return; }
       if (!rm.meals) { toast("Enter the calories for each rest-day meal."); return; }
-      var p = Object.assign({}, rawSettings().profile || {}, { restMeals: rm.meals });
+      var p = withPast(Object.assign({}, rawSettings().profile || {}, { restMeals: rm.meals }));
       saveSettings({ profile: p }).then(function (ok) {
         if (!ok) return;
         closeSheet();
@@ -7008,6 +7130,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       '<p class="minor">Plan meals, calories</p>' +
       row("B", "Breakfast", "numeric", "0") + row("L", "Lunch", "numeric", "0") + row("D", "Dinner", "numeric", "0") +
       '<p class="hint" id="' + px + 'Sum"></p>' +
+      (withRest ? '<p class="hint" id="' + px + 'Past" hidden></p>' : "") +
       (withRest ? '<p class="minor">Rest-day meals, calories<button type="button" class="qm qm-sm" data-help="restday" aria-label="Help: the rest-day plan">?</button></p>' + restFieldsHTML(px) : "");
   }
   // The rest-day plan's meals (optional): all three, or none.
@@ -7103,7 +7226,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var save = button("btn primary", "Save and start", function () {
       var res = readProfileForm("su", true);
       if (res.errors.length) { toast(res.errors[0]); return; }
-      saveSettings({ weight: res.weight, profile: res.profile }).then(function (ok) {
+      saveSettings({ weight: res.weight, profile: withPast(res.profile) }).then(function (ok) {
         if (!ok) return;
         closeSheet();
         selectDay(today(), { scroll: "end" });
@@ -7163,6 +7286,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       $("goalNameIn").value = s.goal ? s.goal.name : "";
       $("goalPtsIn").value = s.goal ? s.goal.pts : "";
     }
+    var pp = $("pfPast");
+    if (pp) { pp.textContent = pastText(); pp.hidden = !pp.textContent; }
     $("rateStd").checked = !s.tight;
     $("rateTight").checked = s.tight;
     if (document.activeElement !== $("weight")) $("weight").value = s.weight ? round1(s.weight) : "";
@@ -7189,7 +7314,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function saveProfile() {
     var res = readProfileForm("pf", false);
     if (res.errors.length) { toast(res.errors[0]); return; }
-    saveSettings({ profile: res.profile }).then(function (ok) { if (ok) { toast("Numbers saved"); renderSettingsTab(true); } });
+    saveSettings({ profile: withPast(res.profile) }).then(function (ok) { if (ok) { toast("Numbers saved"); renderSettingsTab(true); } });
   }
   function saveGoal() {
     var name = $("goalNameIn").value.trim().slice(0, 40), pts = num($("goalPtsIn").value);
