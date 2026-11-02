@@ -783,7 +783,7 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .fcost.cal { font-size: 1.25rem; }
 
 /* ---------- Progress ---------- */
-.ptabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ptabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .ptabs button {
   appearance: none;
   height: 42px;
@@ -800,7 +800,7 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .ptabs button[aria-selected="true"] { background: linear-gradient(180deg, #6f8bff 0%, #3b55e8 100%); border-color: #b4c3ff; color: #ffffff; box-shadow: 0 0 14px var(--glow); }
 .ptabs button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 /* Deficit bars: blue under the goal, green at or past it, magenta for a surplus (all three validated for
-   lightness and color-blind separation on the chart surface). Past 1,500, a glowing red outline. */
+   lightness and color-blind separation on the chart surface). More than 150 past the day's goal, a glowing red outline. */
 #defKey { gap: 4px 12px; }
 .ki { display: inline-flex; align-items: center; gap: 6px; }
 .k-bar { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
@@ -820,7 +820,7 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .chart .bar.now.sur { stroke: #e8459a; }
 .chart .bar.now.high { stroke: #ff3b3b; }
 .chart .bar.on { stroke: #ffffff; stroke-width: 1.5; stroke-dasharray: none; fill-opacity: 1; }
-.chart .goalline { stroke: #7ee08a; stroke-width: 1.5; stroke-dasharray: 5 4; filter: drop-shadow(0 0 3px rgba(126, 224, 138, 0.6)); pointer-events: none; }
+.chart .goalline { fill: none; stroke: #7ee08a; stroke-width: 1.5; stroke-dasharray: 5 4; filter: drop-shadow(0 0 3px rgba(126, 224, 138, 0.6)); pointer-events: none; }
 .chart .goallab { fill: #7ee08a; font-family: var(--body); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; pointer-events: none; }
 .chart .tip .tag { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 .chart .tip .tag.goal { color: #7ee08a; }
@@ -888,6 +888,23 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .chart .tip .d { color: var(--muted); }
 .tk-line { display: inline-block; width: 12px; height: 2px; background: var(--earn); }
 .tk-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: rgba(185, 195, 255, 0.75); }
+/* Goals: the projection line, milestones in cyan, the goal in gold. */
+#goalKey { gap: 4px 12px; }
+.k-mark { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--earn); box-shadow: 0 0 6px var(--glow-cyan); }
+.k-mark.goal { width: 11px; height: 11px; background: var(--gold); box-shadow: 0 0 8px var(--gold-glow); }
+.chart .proj { fill: none; stroke: var(--earn); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; filter: drop-shadow(0 0 4px rgba(116, 228, 255, 0.55)); }
+.chart .drop { stroke: rgba(127, 155, 255, 0.45); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart .drop.goal { stroke: rgba(255, 210, 122, 0.6); }
+.chart .sdot { fill: var(--chart-surface); stroke: var(--earn); stroke-width: 2; }
+.chart .mdot { fill: var(--earn); stroke: var(--chart-surface); stroke-width: 2; }
+.chart .gdot { fill: var(--gold); stroke: var(--chart-surface); stroke-width: 2; filter: drop-shadow(0 0 5px var(--gold-glow)); }
+.chart .glab { fill: var(--gold); font-weight: 700; }
+.chart .tip .tag.mark { color: var(--earn); }
+.chart .tip .tag.gold { color: var(--gold); }
+.wstat b.gold { color: var(--gold); text-shadow: 0 0 10px var(--gold-glow); }
+.gwhen { color: var(--earn); }
+.gwhen small { display: block; margin-top: 2px; font: 700 0.6rem/1 var(--body); letter-spacing: 0.14em; color: var(--muted); }
+.gmark.goal .wk-when, .gmark.goal .gwhen { color: var(--gold); }
 .chart-empty { margin: 0; padding: 26px 12px; border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); text-align: center; }
 .tview { border: 1px solid var(--line); border-radius: 12px; background: rgba(9, 13, 53, 0.5); }
 .tview > summary { padding: 10px 12px; color: var(--muted); font-weight: 600; font-size: 0.9rem; cursor: pointer; }
@@ -2318,6 +2335,7 @@ html.still .tr-fg { transition: none; }
     <div class="ptabs" role="tablist" aria-label="Chart">
       <button type="button" role="tab" id="ptWeight" data-pm="weight" aria-selected="true" aria-controls="trendBlock">Weight</button>
       <button type="button" role="tab" id="ptDeficit" data-pm="deficit" aria-selected="false" aria-controls="trendBlock" tabindex="-1">Deficit</button>
+      <button type="button" role="tab" id="ptGoals" data-pm="goals" aria-selected="false" aria-controls="trendBlock" tabindex="-1">Goals</button>
     </div>
     <section class="block first" id="trendBlock" role="tabpanel" aria-labelledby="trendH">
       <div class="block-h">
@@ -2329,7 +2347,8 @@ html.still .tr-fg { transition: none; }
         </div>
       </div>
       <p class="chart-key" id="chartKey" hidden><span class="k-line"></span>7-day average<span class="k-dot"></span>Daily weigh-in</p>
-      <p class="chart-key" id="defKey" hidden><span class="ki"><span class="k-bar def"></span>Deficit</span><span class="ki"><span class="k-bar goal"></span>Goal met</span><span class="ki"><span class="k-bar goal high"></span>Over 1,500</span><span class="ki"><span class="k-bar sur"></span>Surplus</span></p>
+      <p class="chart-key" id="defKey" hidden><span class="ki"><span class="k-bar def"></span>Deficit</span><span class="ki"><span class="k-bar goal"></span>Goal met</span><span class="ki"><span class="k-bar goal high"></span>150+ over goal</span><span class="ki"><span class="k-bar sur"></span>Surplus</span></p>
+      <p class="chart-key" id="goalKey" hidden><span class="ki"><span class="k-line"></span>Projection</span><span class="ki"><span class="k-mark"></span>Milestone</span><span class="ki"><span class="k-mark goal"></span>Goal</span></p>
       <div class="chart" id="chart"></div>
       <details class="tview" id="wTableWrap" hidden><summary>Table view</summary><div class="tbl"><table id="wTable"></table></div></details>
       <div class="wout" id="wOut">
@@ -2347,6 +2366,12 @@ html.still .tr-fg { transition: none; }
       </div>
       <p class="hint" id="dNote" hidden></p>
       <p class="note warn" id="dStatus" hidden></p>
+      <div class="wout" id="gOut" hidden>
+        <div class="wstat"><span class="k" id="gStartK">7-day average</span><b id="gStart">—</b></div>
+        <div class="wstat"><span class="k">Goal pace</span><b id="gPace">—</b></div>
+        <div class="wstat"><span class="k" id="gDateK">Goal</span><b id="gDate">—</b></div>
+      </div>
+      <p class="hint" id="gNote" hidden></p>
     </section>
     </div>
 
@@ -2374,6 +2399,12 @@ html.still .tr-fg { transition: none; }
       <h2 id="dDaysH">Days<button type="button" class="qm" data-help="deficit" aria-label="Help: deficit">?</button></h2>
       <ul class="hist" id="dDays"></ul>
       <button type="button" class="btn ghost" id="dDaysMore" hidden>Show all</button>
+    </section>
+
+    <section class="block" id="gBlock" aria-labelledby="gH" hidden>
+      <h2 id="gH">Milestones<button type="button" class="qm" data-help="goals" aria-label="Help: goals">?</button></h2>
+      <ul class="weeks" id="gList"></ul>
+      <div class="btns"><button type="button" class="btn ghost" id="gEdit">Edit goals</button></div>
     </section>
     </div>
   </section>
@@ -2521,6 +2552,12 @@ html.still .tr-fg { transition: none; }
 
     <div class="col col-b">
 
+    <section class="block" aria-labelledby="wgH">
+      <h2 id="wgH">Weight goals<button type="button" class="qm" data-help="goals" aria-label="Help: goals">?</button></h2>
+      <p class="hint" id="wgSummary"></p>
+      <div class="btns"><button type="button" class="btn ghost" id="wgEdit">Edit goals</button></div>
+    </section>
+
     <section class="block" aria-labelledby="goalH">
       <h2 id="goalH">Savings goal<button type="button" class="qm" data-help="goal" aria-label="Help: savings goal and streak">?</button></h2>
       <input id="goalNameIn" type="text" maxlength="40" placeholder="What are you saving for?" aria-label="Goal name">
@@ -2621,7 +2658,7 @@ html.still .tr-fg { transition: none; }
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.10.31.1","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.11.01.3","profile":null};</script>
 <script>
 /* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
    strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
@@ -2654,7 +2691,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   var TIGHT = 2 / 3, NO_LABEL = 1.25, HIST_LIMIT = 10, WEEKS_LIMIT = 8;
   // Warnings explain; nothing is capped.
   var BIG_DAY = 400, BIG_FOOD = 2000, BIG_BANK = 2000;
-  var DEF_GOAL = 1200, DEF_HIGH = 1500;  // daily deficit: the goal, and past it, too steep
+  // Daily deficit: the goal is 1% of your weight a week (see Deficit goal); DEF_GOAL stands in with no weight at all.
+  // More than DEF_OVER past the day's goal is too steep.
+  var GOAL_PCT = 0.01, DEF_GOAL = 1200, DEF_OVER = 150;
   var ON_PLAN_BONUS = 25;     // a day on the meal plan, first logged on time
   var BURN_PER_PT = 2.3;      // standard points to mid-range calories burned
   var DEFICIT_PER_LB = 7;     // daily deficit above weight x 7 is well past 1% a week
@@ -3172,15 +3211,19 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   // skipping the snack never comes out ahead of eating it, and the snack itself is free. The first skip of the
   // week (Monday to Sunday, by date, then breakfast, lunch, dinner) keeps what's left after the snack for that
   // day's food; later ones only cover their snack, and the rest isn't eligible for anything.
-  var SKIP_RULES = "2026-10-12";
+  // From HALF_RULE on, a lighter meal is at least half its plan; one under half counts as skipped, with itself as
+  // the snack (so a snack logged as the meal scores the same as a skip with that snack). Before, the line was a
+  // quarter.
+  var SKIP_RULES = "2026-10-12", HALF_RULE = "2026-11-01";
   function snackMin(base) { return Math.round(base / 4); }
+  function lightMin(base, date) { return date && date >= HALF_RULE ? Math.round(base / 2) : snackMin(base); }
   function rulesOn(date) { return !!date && date >= SKIP_RULES; }
-  // Skipped meals (and meals under a quarter of plan) in a saved day's food.
-  function skipsIn(food) {
+  // Skipped meals (and meals under the lighter-meal line) in a saved day's food.
+  function skipsIn(food, date) {
     return (food || []).filter(function (f) {
       if (!f || !isPlanMeal(f.meal)) return false;
       var base = foodBase(f);
-      return base > 0 && (f.skip || foodEst(f) < snackMin(base));
+      return base > 0 && (f.skip || foodEst(f) < lightMin(base, date));
     }).length;
   }
   // While previewing a day, its unsaved food stands in for the saved one when counting the week's skips. Event
@@ -3190,9 +3233,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var n = 0;
     for (var d = weekStart(date); d < date; d = addDays(d, 1)) {
       if (!rulesOn(d) || isEvent(d)) continue;
-      if (skipOverride && skipOverride.date === d) { n += skipsIn(skipOverride.food); continue; }
+      if (skipOverride && skipOverride.date === d) { n += skipsIn(skipOverride.food, d); continue; }
       var doc = state.docs.get("day-" + d);
-      if (doc && doc.kind === "day" && Array.isArray(doc.food)) n += skipsIn(doc.food);
+      if (doc && doc.kind === "day" && Array.isArray(doc.food)) n += skipsIn(doc.food, d);
     }
     return n;
   }
@@ -3215,7 +3258,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       out.rows.push(r);
       if (r.drink) { r.cost = x.est; drinks += x.est; return; }
       if (x.meal === "extra") { r.cost = x.est; r.link = x.snackFor || ""; extras.push(r); return; }
-      if (rules && x.base > 0 && (x.skip || x.est < snackMin(x.base))) {
+      if (rules && x.base > 0 && (x.skip || x.est < lightMin(x.base, date))) {
         r.skip = { own: x.skip ? 0 : x.est, min: snackMin(x.base), noSnack: !!(x.skip && x.noSnack), tiny: !x.skip, got: 0 };
         skips.push(r);
         return;
@@ -3311,7 +3354,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     // the day reaches your floor; under it, the bonus would reward eating too little.
     day.lighter = !day.onPlan && day.food.every(function (f) {
       var base = foodBase(f), est = foodEst(f);
-      return isPlanMeal(f.meal) && !f.skip && base > 0 && est <= base && est >= snackMin(base);
+      return isPlanMeal(f.meal) && !f.skip && base > 0 && est <= base && est >= lightMin(base, day.date);
     }) && dayPlan(day) + intakeDelta(day, 0) >= floorKcal();
     day.activityPts = sum(day.acts, function (x) { return x.pts || 0; }) + (day.steps ? day.steps.pts || 0 : 0);
     day.bonus = (day.onPlan || day.lighter) && !day.late ? Math.round(ON_PLAN_BONUS * rateK(day.tight)) : 0;
@@ -3890,6 +3933,66 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     return { real: intake + pace * 500, formula: formula };
   }
 
+  // ---------- Weight goals ----------
+  // A goal weight and up to two milestones on the way, kept with your settings (the public app files carry none).
+  // Goals on Progress projects them from your 7-day average as if every day hit your deficit goal, 1% of your
+  // weight a week: each day takes off a seventh of 1% of what's left, so the line curves as it slows. It isn't your
+  // pace (Weight has that).
+  var GOAL_MILESTONES = 2;
+  function goalFactor() { return 1 - GOAL_PCT / 7; }
+  function projectLb(start, d) { return start * Math.pow(goalFactor(), d); }
+  // Days (with a fraction) until the projection reaches lb.
+  function daysTo(start, lb) { return Math.log(lb / start) / Math.log(goalFactor()); }
+  function lbShort(n) { return Math.round(n * 10) % 10 ? lbStr(n) : String(Math.round(n)); }
+  function yearOf(s) { return parseISO(s).getFullYear(); }
+  function inDays(n) { return n <= 1 ? "tomorrow" : n < 14 ? n + " days" : "about " + Math.round(n / 7) + " weeks"; }
+  function cleanGoals(g) {
+    if (!g || typeof g !== "object" || !isNum(g.goal) || g.goal < 80 || g.goal > 700) return null;
+    var goal = round1(g.goal), seen = {};
+    var ms = (Array.isArray(g.milestones) ? g.milestones : []).filter(function (x) { return isNum(x) && x <= 700; }).map(round1)
+      .filter(function (x) { if (x <= goal || seen[x]) return false; seen[x] = true; return true; })
+      .sort(function (a, b) { return b - a; }).slice(0, GOAL_MILESTONES);
+    return { goal: goal, milestones: ms };
+  }
+  // Yours once you've saved or cleared them; until then the build's (the Claude version has its owner's).
+  function weightGoals() {
+    var s = rawSettings();
+    return cleanGoals("weightGoals" in s ? s.weightGoals : (PROFILE_DEFAULT || {}).weightGoals);
+  }
+  // The first day your 7-day average was at or under lb.
+  function reachedOn(ws, lb) {
+    for (var i = 0; i < ws.length; i++) {
+      var a = avgWindow(ws, ws[i].date, 1);
+      if (a != null && round1(a) <= lb) return ws[i].date;
+    }
+    return null;
+  }
+  // Where the line starts (your 7-day average, else your last weigh-in, else your weight for points) and each mark
+  // (the milestones, then the goal): the first day the line reaches it, or, once you're under it, the day your
+  // average got there.
+  function goalPlan() {
+    var g = weightGoals(), t = today(), out = { goals: g, t: t, start: null, from: "", fromDate: "", marks: [] };
+    if (!g) return out;
+    var ws = weighIns(), a = avgWindow(ws, t, 1);
+    if (a != null) { out.start = round1(a); out.from = "avg"; }
+    else if (ws.length) { out.start = round1(ws[ws.length - 1].lb); out.from = "last"; out.fromDate = ws[ws.length - 1].date; }
+    else if (settings().weight) { out.start = round1(settings().weight); out.from = "set"; }
+    out.marks = g.milestones.concat([g.goal]).map(function (lb, i, all) {
+      var m = { lb: lb, goal: i === all.length - 1 };
+      if (out.start == null) return m;
+      if (out.start <= lb) { m.reached = true; m.on = reachedOn(ws, lb); return m; }
+      m.toGo = round1(out.start - lb);
+      m.at = daysTo(out.start, lb);
+      m.days = Math.max(1, Math.ceil(m.at - 1e-9));
+      m.date = addDays(t, m.days);
+      return m;
+    });
+    return out;
+  }
+  function startWord(gp) {
+    return gp.from === "avg" ? "7-day average" : gp.from === "last" ? "last weigh-in (" + fmtShort(gp.fromDate) + ")" : "weight for points";
+  }
+
   // ---------- Old debt roll-off ----------
   // Each Monday, debt at least 2 weeks old clears if the scale shows the 3 weeks before it stayed within budget:
   // calories over plan, day by day, came to no more than ROLL_SHARE of your progress, the deficit your plan gives at
@@ -4018,13 +4121,27 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     if (!best && ws.length) best = ws[0];
     return best ? { lb: best.lb, date: best.date } : { lb: fallback, date: null };
   }
+  // ---------- Deficit goal ----------
+  // 1% of your weight a week, the most that's safe to lose: 1% × 3,500 ÷ 7 = 5 calories a day for each pound of your
+  // 7-day average, so it eases down as you lose. Each day goes by the average that morning; a week without a
+  // weigh-in, the average at the last one before it (the first one, for days before you started weighing in).
+  function goalKcal(lb) { return Math.round(lb * GOAL_PCT * KCAL_PER_LB / 7); }
+  function goalWeight(ws, date) {
+    var a = avgWindow(ws, date, 1);
+    if (a != null) return a;
+    var prev = null;
+    for (var i = 0; i < ws.length && ws[i].date <= date; i++) prev = ws[i];
+    if (prev) return avgWindow(ws, prev.date, 1);
+    return ws.length ? ws[0].lb : settings().weight || null;
+  }
+  function goalOn(date, ws) { var lb = goalWeight(ws || weighIns(), date); return lb ? goalKcal(lb) : DEF_GOAL; }
   function dayBalance(date, day, ws, spent) {
     var w = weighFor(ws, date, (day && day.weight) || settings().weight || 250);
     var rest = Math.round(bmr(w.lb)), life = Math.round((ACTIVITY - 1) * rest), act = Math.round(BURN_PER_PT * stdActivity(day));
     var ate = Math.max(0, Math.round(dayPlan(day, date) + intakeDelta(day, spent)));
     var burn = rest + life + act;
     return { date: date, lb: w.lb, lbDate: w.date, bmr: rest, life: life, act: act, burn: burn, ate: ate, net: burn - ate, partial: date === today(),
-      restPlan: !!(day && day.rest) };
+      restPlan: !!(day && day.rest), goal: goalOn(date, ws) };
   }
   // Every logged day through today, oldest first.
   function balances() {
@@ -4034,9 +4151,10 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     return Object.keys(byDate).sort().map(function (date) { return dayBalance(date, byDate[date], ws, sp[date]); });
   }
   function netWord(n) { return n >= 0 ? "deficit" : "surplus"; }
-  // A day's (or average's) standing against the goal: surplus, under the goal, goal met, or too high.
-  function netKind(n) { return n < 0 ? "sur" : n > DEF_HIGH ? "high" : n >= DEF_GOAL ? "goal" : "def"; }
-  function netLabel(n) { var k = netKind(n); return k === "high" ? "too high" : k === "goal" ? "goal met" : netWord(n); }
+  // A day's (or average's) standing against its goal: surplus, under the goal, goal met, or too high (past
+  // more than DEF_OVER past the goal).
+  function netKind(n, goal) { return n < 0 ? "sur" : n > goal + DEF_OVER ? "high" : n >= goal ? "goal" : "def"; }
+  function netLabel(n, goal) { var k = netKind(n, goal); return k === "high" ? "too high" : k === "goal" ? "goal met" : netWord(n); }
 
   // ---------- Model for the Guide ----------
   // A full routine week: 6 lifts (2 of each), 6 forty-five-minute walks (about 5,000 steps), 7 on-plan days.
@@ -4131,7 +4249,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "Pick a day on the strip. The form shows what's saved for it; change anything and tap <b>Update</b>.",
         "Changes you haven't saved stay with their day when you switch days or close the app, and a dot marks the day. <b>Discard changes</b> puts the day back. Undo right after saving or deleting puts it back too.",
         "An on-plan day earns <b>" + c.bonus + "</b> even with no activity" + (c.s.tight ? " (25 on the Standard rate)." : " (17 on the Tight rate).") +
-          " So does a day of lighter versions of your plan meals, with nothing extra and nothing skipped, as long as you still eat at least your " + fmt(floorKcal()) + "-calorie floor.",
+          " So does a day of lighter versions of your plan meals (at least half of each), with nothing extra and nothing skipped, as long as you still eat at least your " + fmt(floorKcal()) + "-calorie floor.",
         "<b>Log by noon the next day.</b> After that the day is still scored like normal, so its total shows how the day went, but points it earns late (new activity, a raise, the on-plan bonus) don't count toward the bank. They're tagged <i>late</i>, and the log shows what counts. Lowering something still lowers what counts, and off-plan food always counts. Correcting a step total you reported on time keeps it on time.",
         "Late activity still counts toward your burn and deficit, and on an event day it raises the burn like any other.",
         "Until noon, the app reminds you if yesterday isn't logged.",
@@ -4158,7 +4276,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "A different meal costs its calories minus the plan meal it replaced (" + meals + "). Extras cost their full calories.",
         "<b>Skipped a meal?</b> Pick <i>Skipped breakfast</i>, lunch or dinner. It earns no points, but its plan calories offset that day's food cheats (not drinks). A smaller meal's leftover calories do the same. Nothing carries to another day, and the day never goes below 0 for food.",
         "<b>One skip a week.</b> Every skipped meal needs a snack of at least a quarter of that meal" + (c.ok ? " (lunch: " + fmt(Math.round(m.lunch / 4)) + ")" : "") + ". Eat it around that meal's usual time, so you don't go long without food. Tap <i>Add a snack</i> on the skipped meal, or check <i>Snack for skipped…</i> on an Extra food entry; drinks don't count. Only a snack attached that way counts: a snack hours later or a bigger meal doesn't. The snack is covered by the skipped meal. The first skip of the week (Monday to Sunday) keeps the rest for that day's food cheats. After that, a skip only covers its snack and the rest isn't eligible.",
-        "<b>No snack?</b> Check <i>No snack</i>: it costs the snack you skipped, a quarter of the meal, as if you'd eaten it. A snack under the minimum costs what it's short. The snack itself is free, so eating it always comes out ahead. A meal under a quarter of its plan counts as skipped, with itself as the snack.",
+        "<b>No snack?</b> Check <i>No snack</i>: it costs the snack you skipped, a quarter of the meal, as if you'd eaten it. A snack under the minimum costs what it's short. The snack itself is free, so eating it always comes out ahead. A meal under half its plan counts as skipped, with itself as the snack" + (c.ok ? " (lunch: under " + fmt(Math.round(m.lunch / 2)) + ")" : "") + ".",
         "Each plan meal counts once a day. A second entry for the same meal costs its full calories.",
         "On a day with <b>Rest-day plan</b> on, the rest-day meals stand in for these: a different meal costs its calories minus the rest-day meal it replaced.",
         "A day with a skipped meal counts as off plan, so it doesn't get the on-plan bonus. A day of only lighter plan meals does, if it still reaches your " + fmt(floorKcal()) + "-calorie floor.",
@@ -4255,12 +4373,24 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "<b>Ate</b>: your plan calories" + (c.ok ? " (" + fmt(planKcal()) + (restReady() ? ", or " + fmt(restPlanKcal()) + " on a rest-day plan day" : "") + ")" : "") + ", with that day's changes from your log: different meals, skipped meals, extra food and drinks. A day before you changed your plan uses the plan you had then.",
         "<b>BMR</b>: your resting burn at that morning's weigh-in, from your height, age and sex (Mifflin-St Jeor). A day without a weigh-in uses the last one before it.",
         "<b>Beyond BMR</b>: daily life, 20% of BMR, which covers an easy day up to 3,000 steps; plus your activity at about " + BURN_PER_PT + " calories per point, before Tight. Activity logged late still counts here.",
-        "<b>Goal</b>: a " + fmt(DEF_GOAL) + " deficit a day, the dashed line. Days that reach it turn green. Over " + fmt(DEF_HIGH) + " is too steep, so those bars get a red outline: eat some of your points.",
+        "<b>Goal</b>: 1% of your weight a week, the most that's safe to lose: 5 calories a day for each pound of your 7-day average" +
+          (goalWeight(weighIns(), today()) ? " (" + fmt(goalOn(today())) + " now)" : "") + ". The dashed line eases down as you lose. Days that reach it turn green. More than " +
+          fmt(DEF_OVER) + " past it is too steep, so those bars get a red outline: eat some of your points.",
         "<b>Today</b> shows so far. It assumes you finish your plan and counts the activity logged.",
         "Days you didn't log are left out. The 7-day average uses the last 7 full days.",
         "<b>Weeks</b> add up the logged days, with the estimated change in pounds next to the change in your weekly average weigh-in. Water moves the scale for a few days after salty, carb-heavy or drinking days, so compare over several weeks.",
         "These are estimates. After 3 weeks, <b>Real burn</b> on the Weight view checks them against your scale."
       ]);
+    } },
+    goals: { title: "Goals", html: function () {
+      var gp = goalPlan();
+      return "<p>Switch Progress to <b>Goals</b> to see when you'd reach your goal weight if every day hit your deficit goal: 1% of your weight a week, the most that's safe to lose.</p>" + ul([
+          "It starts at your 7-day average today, not your recent pace (that's on <b>Weight</b>). Each morning's weigh-in moves the average, and the dates move with it.",
+          "The line curves because 1% of a lighter body is less" + (gp.start != null && gp.goals ? ": " + lbStr(gp.start * GOAL_PCT) + " lb a week now, " +
+            lbStr(gp.goals.goal * GOAL_PCT) + " at " + lbShort(gp.goals.goal) + " lb" : ", so the pace slows as you go") + ". Your deficit goal eases down the same way.",
+          "Each milestone shows the first day the line reaches it. One you're already under shows the day your average first got there.",
+          "<b>Edit goals</b>, here or in Settings, sets your goal weight and up to two milestones on the way. Touch the chart to read a day."
+        ]);
     } },
     warnings: { title: "Warnings", html: function (c) {
       var list = [
@@ -4399,7 +4529,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "<p>Resting burn uses the Mifflin-St Jeor equation. Warnings and predictions use 1.2 × resting burn plus about 2.3 calories per standard point (the middle of each range), minus your plan calories and any off-plan changes. 3,500 calories is about 1 lb of fat. Costs are recalculated each week as your weight drops and assume every point gets spent.</p>";
     } }
   };
-  var GUIDE_ORDER = ["points", "bank", "rolloff", "logging", "plan", "restday", "events", "redeem", "workouts", "timer", "steps", "cardio", "other", "weigh", "weeks", "deficit", "warnings", "rate", "weightpts", "goal", "buys", "costs", "profile", "backup", "sync", "install", "numbers"];
+  var GUIDE_ORDER = ["points", "bank", "rolloff", "logging", "plan", "restday", "events", "redeem", "workouts", "timer", "steps", "cardio", "other", "weigh", "weeks", "deficit", "goals", "warnings", "rate", "weightpts", "goal", "buys", "costs", "profile", "backup", "sync", "install", "numbers"];
 
   // ---------- Sheet ----------
   var sheetOnClose = null;
@@ -6039,7 +6169,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
           var q = qtyOf(fd), dup = kc && isPlanMeal(fd.meal) && r && !base;
           var lead = (q > 1 ? q + " × " + fmt(kc) : fmt(kc)) + (fd.posted === false ? " + 25%" : "");
           els.how.textContent = !kc || !fd.meal || !r ? "" :
-            sk ? "Under ¼ of plan " + MEAL_INFO[fd.meal].short + ", so it counts as skipped · " + skipHow(sk) :
+            sk ? "Under " + (date >= HALF_RULE ? "½" : "¼") + " of plan " + MEAL_INFO[fd.meal].short + ", so it counts as skipped · " + skipHow(sk) :
             r.snack ? (r.snack < r.est ? (q > 1 || fd.posted === false ? lead + " · " : "") + fmt(r.snack) + " of it covered by the skipped " + MEAL_INFO[r.snackFor].short : q > 1 || fd.posted === false ? lead : "") :
             q > 1 || fd.posted === false || base || dup
             ? lead + (base ? " − " + fmt(base) + " plan " + MEAL_INFO[fd.meal].short : "") +
@@ -6521,8 +6651,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   }
 
   // ---------- Progress ----------
-  // Two views: Weight (the scale) and Deficit (calories in and out). Each keeps its own chart range.
-  function progMode() { return meta().progMode === "deficit" ? "deficit" : "weight"; }
+  // Three views: Weight (the scale), Deficit (calories in and out) and Goals (where a goal deficit every day takes
+  // you). Weight and Deficit each keep their own chart range; Goals runs from today to your goal.
+  function progMode() { var m = meta().progMode; return m === "deficit" || m === "goals" ? m : "weight"; }
   function setProgMode(m) {
     if (m === progMode()) return;
     setMeta({ progMode: m });
@@ -6530,24 +6661,31 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   }
   function renderProgress() {
     if (state.tab !== "progress") return;
-    var def = progMode() === "deficit";
+    var mode = progMode(), def = mode === "deficit", goals = mode === "goals";
     Array.prototype.forEach.call(document.querySelectorAll(".ptabs button"), function (b) {
-      var on = b.getAttribute("data-pm") === (def ? "deficit" : "weight");
+      var on = b.getAttribute("data-pm") === mode;
       b.setAttribute("aria-selected", on ? "true" : "false");
       b.tabIndex = on ? 0 : -1;
     });
-    $("trendT").textContent = def ? "Deficit" : "Weight";
-    $("trendQ").setAttribute("data-help", def ? "deficit" : "weigh");
-    $("trendQ").setAttribute("aria-label", def ? "Help: deficit" : "Help: weigh-ins and the chart");
-    ["wOut", "wBurnNote", "wStatus", "wRoll", "weeksBlock", "histBlock"].forEach(function (id) { $(id).hidden = def; });
+    $("trendT").textContent = goals ? "Goals" : def ? "Deficit" : "Weight";
+    $("trendQ").setAttribute("data-help", goals ? "goals" : def ? "deficit" : "weigh");
+    $("trendQ").setAttribute("aria-label", goals ? "Help: goals" : def ? "Help: deficit" : "Help: weigh-ins and the chart");
+    document.querySelector("#trendBlock .rangebar").hidden = goals;
+    ["wOut", "wBurnNote", "wStatus", "wRoll", "weeksBlock", "histBlock"].forEach(function (id) { $(id).hidden = mode !== "weight"; });
     ["dOut", "dWeeksBlock", "dDaysBlock"].forEach(function (id) { $(id).hidden = !def; });
+    $("gBlock").hidden = !goals;
     if (!def) { $("dNote").hidden = true; $("dStatus").hidden = true; }
+    if (!goals) { $("gOut").hidden = true; $("gNote").hidden = true; }
     renderTrend();
     if (def) { renderDefStats(); renderDefWeeks(); renderDefDays(); }
+    else if (goals) { renderGoalStats(); renderGoalList(); }
     else { renderStats(); renderWeeks(); renderHistory(); }
   }
   function renderTrend() {
-    if (progMode() === "deficit") renderDefChart();
+    var mode = progMode();
+    $("goalKey").hidden = true;
+    if (mode === "deficit") renderDefChart();
+    else if (mode === "goals") { $("defKey").hidden = true; renderGoalChart(); }
     else { $("defKey").hidden = true; renderChart(); }
   }
   function renderStats() {
@@ -6873,10 +7011,10 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     return "M" + f(x) + " " + f(y0) + "V" + f(y1 + s * r) + "Q" + f(x) + " " + f(y1) + " " + f(x + r) + " " + f(y1) +
       "H" + f(x + w - r) + "Q" + f(x + w) + " " + f(y1) + " " + f(x + w) + " " + f(y1 + s * r) + "V" + f(y0) + "Z";
   }
-  function netCell(cls, n) {
-    var c = el("span", cls + " dnet " + netKind(n));
+  function netCell(cls, n, goal) {
+    var c = el("span", cls + " dnet " + netKind(n, goal));
     c.appendChild(document.createTextNode(fmt(Math.abs(n))));
-    c.appendChild(el("small", null, netLabel(n)));
+    c.appendChild(el("small", null, netLabel(n, goal)));
     return c;
   }
   function renderDefChart() {
@@ -6903,8 +7041,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var m = { l: 40, r: 8, t: 12, b: 26 };
     var first = series[0].date, n = daysBetween(first, t) + 1, slot = (width - m.l - m.r) / n;
     var bw = Math.max(1, Math.min(22, slot - (slot >= 6 ? 2 : 1)));
-    var nets = series.map(function (b) { return b.net; });
-    var ticks = kcalTicks(Math.min.apply(null, nets), Math.max(DEF_HIGH, Math.max.apply(null, nets)));
+    var nets = series.map(function (b) { return b.net; }), ws = weighIns(), goals = [];
+    for (var gi = 0; gi < n; gi++) goals.push(goalOn(addDays(first, gi), ws));
+    var ticks = kcalTicks(Math.min.apply(null, nets), Math.max(Math.max.apply(null, goals) + DEF_OVER, Math.max.apply(null, nets)));
     var y0 = ticks[0], y1 = ticks[ticks.length - 1];
     function X(date) { return m.l + (daysBetween(first, date) + 0.5) * slot; }
     function Y(v) { return m.t + (y1 - v) / (y1 - y0) * (height - m.t - m.b); }
@@ -6935,14 +7074,18 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     series.forEach(function (b) {
       var top = Y(b.net);
       if (Math.abs(top - zy) < 1.5) top = zy + (b.net >= 0 ? -1.5 : 1.5);
-      var k = netKind(b.net);
+      var k = netKind(b.net, b.goal);
       bars.push(S("path", { d: barPath(X(b.date) - bw / 2, bw, zy, top), "class": "bar " + (k === "high" ? "goal high" : k) + (b.partial ? " now" : "") }, gb));
     });
     growBars(bars, zy);
-    // The goal line, labeled at the right end above it.
-    var gy = Math.round(Y(DEF_GOAL)) + 0.5;
-    S("line", { x1: m.l, x2: width - m.r, y1: gy, y2: gy, "class": "goalline" }, svg);
-    S("text", { x: width - m.r - 2, y: gy - 5, "class": "goallab", "text-anchor": "end" }, svg).textContent = "Goal " + fmt(DEF_GOAL);
+    // The goal line, each day's goal across its slot (it eases down as your average does), labeled at the right
+    // end above today's.
+    var gd = goals.map(function (g, i) {
+      var y = Y(g).toFixed(1), x0 = i ? m.l + i * slot : m.l, x1 = i === n - 1 ? width - m.r : m.l + (i + 1) * slot;
+      return (i ? "L" : "M") + x0.toFixed(1) + " " + y + " L" + x1.toFixed(1) + " " + y;
+    }).join(" ");
+    S("path", { d: gd, "class": "goalline" }, svg);
+    S("text", { x: width - m.r - 2, y: (Y(goals[n - 1]) - 5).toFixed(1), "class": "goallab", "text-anchor": "end" }, svg).textContent = "Goal " + fmt(goals[n - 1]);
     S("rect", { x: m.l, y: 0, width: width - m.l - m.r, height: height, fill: "transparent" }, svg);
     box.appendChild(svg);
     var tip = el("div", "tip");
@@ -6956,13 +7099,14 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       bars[i].classList.add("on");
       tip.textContent = "";
       var r1 = el("div", "r");
-      var k = netKind(b.net);
+      var k = netKind(b.net, b.goal);
       r1.appendChild(el("span", "tk-bar " + (k === "high" ? "goal high" : k)));
       r1.appendChild(el("b", null, fmt(Math.abs(b.net))));
       r1.appendChild(el("span", "d", netWord(b.net) + (b.partial ? " so far" : "")));
       if (k === "goal" || k === "high") r1.appendChild(el("span", "tag " + k, k === "high" ? "too high" : "goal met"));
       tip.appendChild(r1);
       tip.appendChild(el("div", null, "Ate " + fmt(b.ate) + " · Burned " + fmt(b.burn)));
+      tip.appendChild(el("div", null, "Goal " + fmt(b.goal)));
       tip.appendChild(el("div", "d", fmtDay(b.date)));
       tip.hidden = false;
       var scale = box.getBoundingClientRect().width / width || 1;
@@ -7007,19 +7151,21 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       paceEl.textContent = "—";
       note.textContent = all.length ? "The average uses the last 7 full days. It shows once you've logged one." : "";
     } else {
-      var avg = mean(wk.map(function (b) { return b.net; }));
+      var avg = mean(wk.map(function (b) { return b.net; })), goal = mean(wk.map(function (b) { return b.goal; }));
       $("dAvgK").textContent = "Avg " + netWord(avg);
       avgEl.textContent = fmt(Math.abs(avg)) + "/day";
-      avgEl.className = netKind(avg);
+      avgEl.className = netKind(avg, goal);
       var p = avg * 7 / KCAL_PER_LB;
       paceEl.textContent = paceText(p);
-      paceEl.className = netKind(avg);
+      paceEl.className = netKind(avg, goal);
       note.textContent = "Last 7 full days" + (wk.length < 7 ? ", " + wk.length + " of them logged" : "") + ". Burn is BMR, plus 20% for daily life, plus activity.";
-      if (avg > DEF_HIGH) {
-        st.textContent = "Averaging over " + fmt(DEF_HIGH) + " a day, past your " + fmt(DEF_GOAL) + " goal by too much. Eat some of your points.";
+      if (avg > goal + DEF_OVER) {
+        st.textContent = "Averaging " + fmt(avg) + " a day, more than " + fmt(DEF_OVER) + " past your " + fmt(goal) + " goal. Eat some of your points.";
         st.hidden = false;
       }
     }
+    var gw = goalWeight(weighIns(), t);
+    if (gw && ready()) note.textContent += (note.textContent ? " " : "") + "Goal: 1% of your weight a week, " + fmt(goalKcal(gw)) + " a day at " + lbStr(gw) + " lb.";
     note.hidden = !note.textContent;
     var ws = weighIns(), lb = ws.length ? ws[ws.length - 1].lb : settings().weight;
     $("dBmr").textContent = lb && ready() ? fmt(bmr(lb)) : "—";
@@ -7042,7 +7188,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       var avg = wk.length ? mean(wk) : null;
       if (s >= weekStart(all[0].date)) {
         rows.push({ start: s, end: e, n: days.length, ate: sum(days, function (b) { return b.ate; }), burn: sum(days, function (b) { return b.burn; }),
-          net: sum(days, function (b) { return b.net; }), change: avg != null && prevAvg != null ? avg - prevAvg : null });
+          net: sum(days, function (b) { return b.net; }), goal: days.length ? mean(days.map(function (b) { return b.goal; })) : 0,
+          change: avg != null && prevAvg != null ? avg - prevAvg : null });
       }
       if (avg != null) prevAvg = avg;
     }
@@ -7057,9 +7204,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         var est = r.net / KCAL_PER_LB, per = r.net / r.n;
         box.appendChild(el("span", "wk-sub", "Avg " + fmt(Math.abs(per)) + " " + netWord(per) + "/day · Est. " + (est >= 0 ? "−" : "+") + lbStr(Math.abs(est)) + " lb" +
           (r.change != null ? " · Scale " + (r.change <= 0 ? "−" : "+") + lbStr(Math.abs(r.change)) + " lb" : "")));
-        var nc = netCell("wk-net", r.net);
-        nc.className = "wk-net dnet " + netKind(per);
-        nc.lastChild.textContent = netLabel(per);
+        var nc = netCell("wk-net", r.net, r.goal);
+        nc.className = "wk-net dnet " + netKind(per, r.goal);
+        nc.lastChild.textContent = netLabel(per, r.goal);
         box.appendChild(nc);
       } else {
         box.appendChild(el("span", "wk-sub", "Nothing logged"));
@@ -7093,7 +7240,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       if (open) {
         row.type = "button";
         row.setAttribute("aria-label", "Open " + when + ". " + beyond + ". " + parts + ". " + rest + ". " + fmt(Math.abs(b.net)) + " " + netWord(b.net) +
-          (netKind(b.net) === "high" ? ", too high" : netKind(b.net) === "goal" ? ", goal met" : "") + ".");
+          (netKind(b.net, b.goal) === "high" ? ", too high" : netKind(b.net, b.goal) === "goal" ? ", goal met" : "") + ".");
         row.addEventListener("click", function () {
           showTab("today", { keepScroll: true });
           selectDay(b.date);
@@ -7104,13 +7251,224 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       row.appendChild(el("span", "what", beyond));
       row.appendChild(el("span", "what", parts));
       row.appendChild(el("span", "what", rest));
-      row.appendChild(netCell("amt", b.net));
+      row.appendChild(netCell("amt", b.net, b.goal));
       li.appendChild(row);
       list.appendChild(li);
     });
     var more = $("dDaysMore");
     more.hidden = all.length <= HIST_LIMIT;
     more.textContent = state.dDaysAll ? "Show fewer" : "Show all " + all.length;
+  }
+
+  // ---------- Goals ----------
+  // The projection from today to your goal: one straight line at the goal deficit's loss a day, each mark ahead of
+  // you on it with a guide across to its weight and down to its date. The goal is gold.
+  function renderGoalChart() {
+    var box = $("chart");
+    box.textContent = "";
+    box.onkeydown = null;
+    box.onblur = null;
+    box.removeAttribute("tabindex");
+    box.removeAttribute("aria-label");
+    $("chartKey").hidden = true;
+    $("wTableWrap").hidden = true;
+    var gp = goalPlan(), ahead = gp.marks.filter(function (x) { return x.days; });
+    $("goalKey").hidden = !ahead.length;
+    if (!ahead.length) {
+      box.appendChild(el("p", "chart-empty", !gp.goals ? "Set a goal weight to see when losing 1% a week gets you there." :
+        gp.start == null ? "Weigh in to start your projection." : "You've reached your goal weight. Set a new one to keep going."));
+      return;
+    }
+    var width = Math.max(260, Math.round(box.getBoundingClientRect().width || 340)), height = width >= 560 ? 270 : 220;
+    var m = { l: 44, r: 14, t: 14, b: 28 };
+    var fin = ahead[ahead.length - 1], span = fin.days, dmax = Math.max(7, span * 1.05);
+    var pad = Math.max(1, (gp.start - fin.lb) * 0.07), y1 = gp.start + pad, y0 = fin.lb - pad;
+    function X(d) { return m.l + d / dmax * (width - m.l - m.r); }
+    function Y(v) { return m.t + (y1 - v) / (y1 - y0) * (height - m.t - m.b); }
+    var NS = "http://www.w3.org/2000/svg";
+    function S(tag, attrs, parent) {
+      var n = document.createElementNS(NS, tag);
+      Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+      if (parent) parent.appendChild(n);
+      return n;
+    }
+    var svg = S("svg", { viewBox: "0 0 " + width + " " + height, width: width, height: height, role: "img",
+      "aria-label": "Goal projection from " + lbStr(gp.start) + " lb, losing 1% a week: " +
+        ahead.map(function (x) { return lbShort(x.lb) + " lb around " + fmtShort(x.date); }).join(", ") + "." });
+    var bottom = height - m.b;
+    ahead.forEach(function (x) {
+      var yy = Math.round(Y(x.lb)) + 0.5;
+      S("line", { x1: m.l, x2: width - m.r, y1: yy, y2: yy, "class": "grid" }, svg);
+      S("line", { x1: X(x.at).toFixed(1), x2: X(x.at).toFixed(1), y1: Y(x.lb).toFixed(1), y2: bottom, "class": "drop" + (x.goal ? " goal" : "") }, svg);
+    });
+    S("line", { x1: m.l, x2: width - m.r, y1: bottom + 0.5, y2: bottom + 0.5, "class": "grid" }, svg);
+    // Weights down the side and dates along the bottom, the goal's first; one that would crowd another is left
+    // off (the list has every one).
+    var ys = [];
+    ahead.slice().reverse().map(function (x) { return { v: x.lb, t: lbShort(x.lb), c: x.goal ? "ylab glab" : "ylab" }; })
+      .concat([{ v: gp.start, t: lbStr(gp.start), c: "ylab" }]).forEach(function (L) {
+        var yy = Y(L.v);
+        if (ys.some(function (p) { return Math.abs(p - yy) < 13; })) return;
+        ys.push(yy);
+        S("text", { x: m.l - 6, y: (yy + 4).toFixed(1), "class": L.c, "text-anchor": "end" }, svg).textContent = L.t;
+      });
+    var xs = [];
+    ahead.slice().reverse().map(function (x) { return { x: X(x.at), t: fmtShort(x.date), c: x.goal ? "xlab glab" : "xlab" }; })
+      .concat([{ x: X(0), t: "Today", c: "xlab", first: true }]).forEach(function (L) {
+        var w = L.t.length * 6.4 + 2, a = L.first ? "start" : L.x + w / 2 > width - 2 ? "end" : "middle";
+        var x = a === "end" ? width - 2 : L.x, x0 = a === "start" ? x : a === "end" ? x - w : x - w / 2;
+        if (xs.some(function (s) { return x0 < s[1] + 6 && x0 + w > s[0] - 6; })) return;
+        xs.push([x0, x0 + w]);
+        S("text", { x: x.toFixed(1), y: height - 8, "class": L.c, "text-anchor": a }, svg).textContent = L.t;
+      });
+    // The curve, through each mark exactly.
+    var ds = [];
+    for (var di = 0; di < 96; di++) ds.push(fin.at * di / 96);
+    ahead.forEach(function (x) { ds.push(x.at); });
+    ds.sort(function (a, b) { return a - b; });
+    var path = S("path", { d: ds.map(function (d, i) { return (i ? "L" : "M") + X(d).toFixed(1) + " " + Y(projectLb(gp.start, d)).toFixed(1); }).join(" "), "class": "proj" }, svg);
+    var gd = S("g", {}, svg);
+    S("circle", { cx: X(0).toFixed(1), cy: Y(gp.start).toFixed(1), r: 4, "class": "sdot" }, gd);
+    ahead.forEach(function (x) { S("circle", { cx: X(x.at).toFixed(1), cy: Y(x.lb).toFixed(1), r: x.goal ? 6 : 4.5, "class": x.goal ? "gdot" : "mdot" }, gd); });
+    drawLine(path, gd, []);
+    var cross = S("line", { x1: 0, x2: 0, y1: m.t, y2: bottom, "class": "cross", visibility: "hidden" }, svg);
+    var hl = S("circle", { cx: 0, cy: 0, r: 5, "class": "hl", visibility: "hidden" }, svg);
+    S("rect", { x: m.l, y: 0, width: width - m.l - m.r + 8, height: height, fill: "transparent" }, svg);
+    box.appendChild(svg);
+    var tip = el("div", "tip");
+    tip.hidden = true;
+    box.appendChild(tip);
+    state.chartIdx = -1;
+    // A day on the line: the weight it projects that morning, and the mark it reaches, if any.
+    function show(d) {
+      d = Math.max(0, Math.min(span, Math.round(d)));
+      state.chartIdx = d;
+      var lb = projectLb(gp.start, d), date = addDays(gp.t, d);
+      var mk = ahead.filter(function (k) { return k.days === d; })[0], x = mk ? X(mk.at) : X(d);
+      cross.setAttribute("x1", x);
+      cross.setAttribute("x2", x);
+      cross.setAttribute("visibility", "visible");
+      hl.setAttribute("cx", x);
+      hl.setAttribute("cy", Y(mk ? mk.lb : lb));
+      hl.setAttribute("visibility", "visible");
+      tip.textContent = "";
+      var r1 = el("div", "r");
+      r1.appendChild(el("span", "tk-line"));
+      r1.appendChild(el("b", null, lbStr(d ? lb : gp.start) + " lb"));
+      r1.appendChild(el("span", "d", d ? "projected" : startWord(gp).replace(/ \(.*/, "")));
+      tip.appendChild(r1);
+      if (mk) tip.appendChild(el("div", "tag " + (mk.goal ? "gold" : "mark"), mk.goal ? "Goal " + lbShort(mk.lb) + " lb" : lbShort(mk.lb) + " lb milestone"));
+      tip.appendChild(el("div", "d", d ? fmtDay(date) + (yearOf(date) !== yearOf(gp.t) ? ", " + yearOf(date) : "") : "Today"));
+      tip.hidden = false;
+      var scale = box.getBoundingClientRect().width / width || 1;
+      var tw = tip.offsetWidth, bw = box.clientWidth;
+      tip.style.left = Math.max(tw / 2, Math.min(bw - tw / 2, x * scale)) + "px";
+    }
+    function hide() { cross.setAttribute("visibility", "hidden"); hl.setAttribute("visibility", "hidden"); tip.hidden = true; state.chartIdx = -1; }
+    function dayAt(clientX) {
+      var r = svg.getBoundingClientRect(), px = (clientX - r.left) * (width / r.width);
+      var d = (px - m.l) / (width - m.l - m.r) * dmax;
+      // Close to a mark, land on it.
+      ahead.forEach(function (k) { if (Math.abs(X(k.at) - px) <= 8) d = k.days; });
+      return d;
+    }
+    svg.addEventListener("pointermove", function (e) { show(dayAt(e.clientX)); });
+    svg.addEventListener("pointerdown", function (e) { show(dayAt(e.clientX)); });
+    svg.addEventListener("pointerleave", function (e) { if (e.pointerType === "mouse") hide(); });
+    box.tabIndex = 0;
+    box.setAttribute("aria-label", "Goal projection chart. Use the left and right arrow keys to move a week at a time.");
+    box.onkeydown = function (e) {
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        e.preventDefault();
+        show(state.chartIdx < 0 ? 0 : state.chartIdx + (e.key === "ArrowRight" ? 7 : -7));
+      } else if (e.key === "Home" || e.key === "End") { e.preventDefault(); show(e.key === "Home" ? 0 : span); }
+      else if (e.key === "Escape") hide();
+    };
+    box.onblur = hide;
+  }
+  function renderGoalStats() {
+    var gp = goalPlan(), out = $("gOut"), note = $("gNote");
+    out.hidden = !gp.goals || gp.start == null;
+    note.hidden = out.hidden;
+    if (out.hidden) return;
+    var fin = gp.marks[gp.marks.length - 1];
+    $("gStartK").textContent = gp.from === "avg" ? "7-day average" : gp.from === "last" ? "Last weigh-in" : "Weight for points";
+    $("gStart").textContent = lbStr(gp.start) + " lb";
+    $("gPace").textContent = paceText(gp.start * GOAL_PCT);
+    $("gPace").className = "down";
+    $("gDateK").textContent = "Goal " + lbShort(fin.lb) + " lb";
+    $("gDate").textContent = fin.reached ? "Reached" : fmtShort(fin.date);
+    $("gDate").className = "gold";
+    note.textContent = "The line starts at your " + startWord(gp) + " and loses 1% a week, your deficit goal every day: " + lbStr(gp.start * GOAL_PCT) +
+      " lb a week now" + (fin.reached ? "" : ", " + lbStr(fin.lb * GOAL_PCT) + " at " + lbShort(fin.lb)) + ". As your average moves, so do the dates.";
+  }
+  function renderGoalList() {
+    var list = $("gList"), gp = goalPlan();
+    list.textContent = "";
+    $("gEdit").textContent = gp.goals ? "Edit goals" : "Set goals";
+    if (!gp.goals) {
+      list.appendChild(el("li", "empty", "Set a goal weight and up to two milestones on the way."));
+      return;
+    }
+    gp.marks.forEach(function (x) {
+      var li = el("li"), row = el("div", "wk gmark" + (x.goal ? " goal" : ""));
+      row.appendChild(el("span", "wk-when", lbShort(x.lb) + " lb" + (x.goal ? " · Goal" : "")));
+      var when = el("span", "wk-net gwhen");
+      if (gp.start == null) {
+        row.appendChild(el("span", "wk-sub", "Weigh in to see when."));
+        when.textContent = "—";
+      } else if (x.reached) {
+        row.appendChild(el("span", "wk-sub", x.on ? "Your 7-day average got there " + fmtShort(x.on) + (yearOf(x.on) !== yearOf(gp.t) ? ", " + yearOf(x.on) : "") + "." : "You're under it."));
+        when.textContent = "Reached";
+      } else {
+        row.appendChild(el("span", "wk-sub", lbStr(x.toGo) + " lb to go · " + inDays(x.days)));
+        when.appendChild(document.createTextNode(fmtShort(x.date)));
+        when.appendChild(el("small", null, String(yearOf(x.date))));
+      }
+      row.appendChild(when);
+      li.appendChild(row);
+      list.appendChild(li);
+    });
+  }
+  function goalsSummary() {
+    var g = weightGoals();
+    if (!g) return "Set a goal weight to see on Progress → Goals when losing 1% a week gets you there.";
+    var ms = g.milestones.map(lbShort);
+    return "Goal " + lbShort(g.goal) + " lb" + (ms.length ? ", with " + (ms.length > 1 ? "milestones at " + ms.join(" and ") : "a milestone at " + ms[0]) + " lb" : "") +
+      ". Progress → Goals shows when you'd get there.";
+  }
+  function openGoalsSheet() {
+    if (state.readOnly) return;
+    var g = weightGoals();
+    function row(id, label, ph) {
+      return '<div class="field two"><label for="' + id + '">' + label + '</label><input id="' + id + '" type="number" inputmode="decimal" min="80" max="700" step="0.1" placeholder="' + ph + '"></div>';
+    }
+    var body = el("div", "pf");
+    body.innerHTML = '<p class="fine" style="margin:0">Goals on Progress marks each one with the day losing 1% a week gets you there.</p>' +
+      row("wgGoal", "Goal weight (lb)", "0") + '<p class="minor">Milestones on the way (optional)</p>' + row("wgM1", "First", "—") + row("wgM2", "Second", "—");
+    function done(msg) { return function (ok) { if (!ok) return; closeSheet(); toast(msg); renderProgress(); renderSettingsTab(); }; }
+    var foot = [button("btn primary", "Save goals", function () {
+      var res = readGoalsForm();
+      if (res.error) { toast(res.error); return; }
+      saveSettings({ weightGoals: res.goals }).then(done("Goals saved"));
+    })];
+    if (g) foot.push(button("btn ghost", "Clear goals", function () { saveSettings({ weightGoals: null }).then(done("Goals cleared")); }));
+    openSheet("Weight goals", body, foot);
+    if (g) {
+      $("wgGoal").value = String(g.goal);
+      g.milestones.forEach(function (x, i) { $("wgM" + (i + 1)).value = String(x); });
+    }
+  }
+  function readGoalsForm() {
+    var goal = numOrNull($("wgGoal").value);
+    var ms = [numOrNull($("wgM1").value), numOrNull($("wgM2").value)].filter(function (x) { return x != null; }).map(round1);
+    if (goal == null) return { error: "Enter your goal weight." };
+    if (!(goal >= 80 && goal <= 700)) return { error: "Enter a goal weight from 80 to 700 lb." };
+    goal = round1(goal);
+    if (ms.some(function (x) { return x <= goal; })) return { error: "Milestones go above your goal weight." };
+    if (ms.some(function (x) { return x > 700; })) return { error: "Enter milestones up to 700 lb." };
+    if (ms.length === 2 && ms[0] === ms[1]) return { error: "Both milestones are the same. Change one or clear it." };
+    return { goals: { goal: goal, milestones: ms.sort(function (a, b) { return b - a; }) } };
   }
 
   // ---------- Your numbers ----------
@@ -7292,6 +7650,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     $("rateTight").checked = s.tight;
     if (document.activeElement !== $("weight")) $("weight").value = s.weight ? round1(s.weight) : "";
     $("goalClear").hidden = !s.goal;
+    $("wgSummary").textContent = goalsSummary();
+    $("wgEdit").textContent = weightGoals() ? "Edit goals" : "Set goals";
     var al = activities();
     $("actSummary").textContent = GROUPS.map(function (g) {
       var names = al.filter(function (x) { return x.group === g.id; }).map(function (x) { return x.name; });
@@ -8635,7 +8995,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function renderAccess() {
     var ro = state.readOnly;
     ["steps", "addAct", "nextAdd", "actEdit", "actEdit2", "cheatAdd", "addFood", "weight", "wLb", "wSave", "favPick",
-      "pfSave", "goalNameIn", "goalPtsIn", "goalSave", "goalClear", "restoreBtn", "eraseBtn", "tYes", "tNo", "evBtn", "restBtn"]
+      "pfSave", "goalNameIn", "goalPtsIn", "goalSave", "goalClear", "gEdit", "wgEdit", "restoreBtn", "eraseBtn", "tYes", "tNo", "evBtn", "restBtn"]
       .forEach(function (id) { var e = $(id); if (e) e.disabled = ro; });
     radios("plan").concat(radios("rate")).forEach(function (r) { r.disabled = ro; });
     Array.prototype.forEach.call(document.querySelectorAll("#foodList input, #foodList select, #foodList button, #actList input, #actList select, #actList button, #pfForm input"), function (c) { if (ro) c.disabled = true; });
@@ -8839,6 +9199,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     });
   });
   $("goalSave").addEventListener("click", saveGoal);
+  $("gEdit").addEventListener("click", openGoalsSheet);
+  $("wgEdit").addEventListener("click", openGoalsSheet);
   $("goalClear").addEventListener("click", clearGoal);
   $("backupBtn").addEventListener("click", backupNow);
   $("restoreBtn").addEventListener("click", startRestore);
