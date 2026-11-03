@@ -482,13 +482,21 @@ h2 {
 .chain.spent { color: #5cf2a1; filter: drop-shadow(0 0 2px rgba(92, 242, 161, 0.85)); }
 .chain.hit { color: #ff5c7a; filter: drop-shadow(0 0 2px rgba(255, 92, 122, 0.85)); }
 .chain.off { color: var(--muted); opacity: 0.3; filter: none; }
+/* A ticket's day and the day it gave back: lightsaber purple, a white-hot core in a violet glow. The whole link
+   glints with the chain like blue; the broken one stays still like red. */
+.chain.ticket, .chain.back { color: #f1e2ff; filter: drop-shadow(0 0 1.5px #b65cff) drop-shadow(0 0 4px rgba(155, 48, 255, 0.9)); }
 .day .chain { position: absolute; top: -8px; left: -8px; width: 22px; height: 22px; overflow: visible; pointer-events: none; }
 /* Now and then a glint runs along the streak chain, oldest day to newest. */
 .day .chain.n { animation: glint-n 7s ease-in-out infinite; animation-delay: calc(1.5s + var(--i, 0) * 0.07s); }
 .day .chain.spent { animation: glint-s 7s ease-in-out infinite; animation-delay: calc(1.5s + var(--i, 0) * 0.07s); }
+.day .chain.ticket { animation: glint-p 7s ease-in-out infinite; animation-delay: calc(1.5s + var(--i, 0) * 0.07s); }
 @keyframes glint-n {
   0%, 84%, 100% { filter: drop-shadow(0 0 2px rgba(127, 214, 255, 0.9)) brightness(1); }
   88% { filter: drop-shadow(0 0 5px rgba(190, 236, 255, 1)) brightness(1.8); }
+}
+@keyframes glint-p {
+  0%, 84%, 100% { filter: drop-shadow(0 0 1.5px #b65cff) drop-shadow(0 0 4px rgba(155, 48, 255, 0.9)) brightness(1); }
+  88% { filter: drop-shadow(0 0 2px #d3a3ff) drop-shadow(0 0 6px rgba(190, 120, 255, 1)) brightness(1.5); }
 }
 @keyframes glint-s {
   0%, 84%, 100% { filter: drop-shadow(0 0 2px rgba(92, 242, 161, 0.85)) brightness(1); }
@@ -665,6 +673,28 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .tbtn:disabled { opacity: 0.45; cursor: default; }
 .tdate { margin-left: 4px; color: var(--muted); font-size: 0.8rem; font-weight: 600; }
 .tally-n { display: flex; align-items: baseline; gap: 18px; }
+.tticket {
+  align-self: center;
+  appearance: none;
+  display: inline-grid;
+  place-items: center;
+  width: 46px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid rgba(182, 92, 255, 0.75);
+  border-radius: 10px;
+  background: rgba(58, 14, 110, 0.5);
+  color: #f1e2ff;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(155, 48, 255, 0.55);
+}
+.tticket svg { width: 28px; height: 18px; overflow: visible; filter: drop-shadow(0 0 1.5px #b65cff) drop-shadow(0 0 3px rgba(155, 48, 255, 0.9)); }
+.tticket .tk { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; }
+.tticket .tkp { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-dasharray: 1.5 1.6; }
+.tticket[aria-pressed="true"] { background: rgba(155, 48, 255, 0.4); border-color: #e2c2ff; box-shadow: 0 0 14px rgba(165, 70, 255, 0.8); }
+.tticket[aria-pressed="true"] .tk { fill: rgba(182, 92, 255, 0.45); }
+.tticket:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.tticket:disabled { opacity: 0.45; cursor: default; }
 .tn { display: inline-flex; align-items: baseline; gap: 7px; }
 .tn .k { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
 .tn b { min-width: 1.2ch; font-family: var(--display); font-weight: 400; font-size: 1.45rem; line-height: 1; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -2005,6 +2035,7 @@ html.still .tr-fg { transition: none; }
       <div class="tally-n">
         <span class="tn"><span class="k">Days</span><b id="tDays">0</b></span>
         <span class="tn"><span class="k">Points</span><b id="tPts">0</b></span>
+        <button type="button" class="tticket" id="tTicket" aria-pressed="false" aria-label="Ticket" hidden><svg viewBox="0 0 28 18" aria-hidden="true"><path class="tk" d="M2 2.5h24v4a2.5 2.5 0 0 0 0 5v4H2v-4a2.5 2.5 0 0 0 0-5z"/><path class="tkp" d="M10 4.5v9"/></svg></button>
       </div>
     </div>
     </div>
@@ -2658,7 +2689,7 @@ html.still .tr-fg { transition: none; }
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.11.01.3","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.11.03.2","profile":null};</script>
 <script>
 /* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
    strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
@@ -2754,7 +2785,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   var SCREEN_SHARE = 0.4;     // points per screen calorie: half, less 20%, since screens count resting burn and read high
   var TABS = ["today", "redeem", "timer", "progress", "guide", "settings"];
   var LS_KEY = "cheat-points-v1", META_KEY = "cheat-points-meta", DRAFT_KEY = "cheat-points-drafts";
-  var ID_RE = /^(settings|favorites|activities|day-\d{4}-\d{2}-\d{2}|w-\d{4}-\d{2}-\d{2}|t-\d{4}-\d{2}-\d{2}|ev-\d{4}-\d{2}-\d{2}|spend-[A-Za-z0-9_-]{1,60})$/;
+  var ID_RE = /^(settings|favorites|activities|day-\d{4}-\d{2}-\d{2}|w-\d{4}-\d{2}-\d{2}|t-\d{4}-\d{2}-\d{2}|k-\d{4}-\d{2}-\d{2}|ev-\d{4}-\d{2}-\d{2}|spend-[A-Za-z0-9_-]{1,60})$/;
 
   // ---------- Small helpers ----------
   function pad(n) { return (n < 10 ? "0" : "") + n; }
@@ -3707,19 +3738,33 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   }
   // One yes/no per day, replayed in date order so edits stay consistent. A no adds a day; every
   // TALLY_RUN of them adds a point and restarts the count. A yes takes a point, or with none left,
-  // restarts the count and takes TALLY_HIT off the bank.
+  // restarts the count and takes TALLY_HIT off the bank. A ticket (k-) spends a point to give back the latest
+  // hit not yet given back; the count carries on as usual. It comes after that day's no (so the no that earns the
+  // point can pay for it) and before a yes. back: each ticket that took, { date, hit }.
   function tallyState() {
-    var run = 0, pts = 0, hits = [], marks = {};
-    allOf("tally").filter(function (x) { return x.a === "y" || x.a === "n"; })
-      .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; })
-      .forEach(function (x) {
-        if (x.a === "n") { run++; if (run >= TALLY_RUN) { pts++; run = 0; } marks[x.date] = "n"; }
-        else if (pts > 0) { pts--; marks[x.date] = "spent"; }
-        else { run = 0; hits.push(x.date); marks[x.date] = "hit"; }
-      });
-    return { run: run, pts: pts, hits: hits, marks: marks };
+    var run = 0, pts = 0, hits = [], open = [], back = [], marks = {}, days = {};
+    allOf("tally").forEach(function (x) { if (x.a === "y" || x.a === "n") (days[x.date] = days[x.date] || {}).a = x.a; });
+    allOf("ticket").forEach(function (x) { (days[x.date] = days[x.date] || {}).k = true; });
+    Object.keys(days).sort().forEach(function (date) {
+      var d = days[date];
+      function answer() {
+        if (d.a === "n") { run++; if (run >= TALLY_RUN) { pts++; run = 0; } marks[date] = "n"; }
+        else if (d.a === "y" && pts > 0) { pts--; marks[date] = "spent"; }
+        else if (d.a === "y") { run = 0; hits.push(date); open.push(date); marks[date] = "hit"; }
+      }
+      function ticket() {
+        if (!d.k || pts < 1 || !open.length) return;
+        var h = open.pop();
+        pts--;
+        back.push({ date: date, hit: h });
+        marks[h] = "back";
+        marks[date] = "ticket";
+      }
+      if (d.a === "y") { ticket(); answer(); } else { answer(); ticket(); }
+    });
+    return { run: run, pts: pts, hits: hits, open: open, back: back, marks: marks };
   }
-  function tallyHit() { return tallyState().hits.length * TALLY_HIT; }
+  function tallyHit() { var ts = tallyState(); return (ts.hits.length - ts.back.length) * TALLY_HIT; }
   function spendsByDate() {
     var m = {};
     allOf("spend").forEach(function (s) { m[s.date] = (m[s.date] || 0) + (s.cost || 0); });
@@ -5981,8 +6026,13 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function renderTally() {
     var date = state.logDate, cur = state.docs.get("t-" + date), a = cur && cur.kind === "tally" ? cur.a : "";
     var ts = tallyState();
-    var mark = a ? ts.marks[date] : "";
+    var mark = ts.marks[date] || "";
     $("tMark").innerHTML = chainSVG(mark || "n").replace('class="chain n"', mark ? 'class="chain n"' : 'class="chain n off"');
+    // The ticket: today, with a point in hand and a hit to give back (or one already used on the picked day).
+    var tk = state.docs.get("k-" + date), used = !!(tk && tk.kind === "ticket"), btn = $("tTicket"), was = btn.hidden;
+    btn.hidden = !(used || (date === today() && ts.pts > 0 && ts.open.length > 0));
+    btn.setAttribute("aria-pressed", used ? "true" : "false");
+    if (was && !btn.hidden && state.loaded) popIn(btn);
     $("tYes").setAttribute("aria-pressed", a === "y" ? "true" : "false");
     $("tNo").setAttribute("aria-pressed", a === "n" ? "true" : "false");
     $("tDate").hidden = date === today();
@@ -6088,6 +6138,19 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     buzz();
     if (cur && cur.kind === "tally" && cur.a === a) remove(id);
     else write(id, { kind: "tally", date: date, a: a, ts: Date.now() });
+  }
+  function setTicket() {
+    var date = state.logDate;
+    if (state.readOnly || !validDate(date) || date > today()) return;
+    var id = "k-" + date, cur = state.docs.get(id), on = !!(cur && cur.kind === "ticket");
+    buzz();
+    function use() { return write(id, { kind: "ticket", date: date, ts: Date.now() }); }
+    (on ? remove(id) : use()).then(function (ok) {
+      if (!ok) return;
+      snack(on ? "Ticket put back: −" + fmt(TALLY_HIT) : "Ticket used: +" + fmt(TALLY_HIT), function () {
+        (on ? use() : remove(id)).then(function (ok2) { if (ok2) toast("Undone"); });
+      });
+    });
   }
   function calTxt(n) { n = Math.round(n); return (n > 0 ? "+" : n < 0 ? "−" : "") + fmt(Math.abs(n)) + " cal"; }
   // On an event day a field shows the calories it adds to the burn, logged late or not.
@@ -6444,7 +6507,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   var EV_MARK = '<svg class="evmark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l2.6 7.9 7.9 2.6-7.9 2.6-2.6 7.9-2.6-7.9-7.9-2.6 7.9-2.6z"/></svg>';
   // order: the tile's place in the strip, so a glint can run along the chain.
   function chainSVG(kind, order) {
-    var links = kind === "n"
+    var links = kind === "n" || kind === "ticket"
       ? '<rect x="1.5" y="12" width="12" height="6.4" rx="3.2" transform="rotate(-45 7.5 15.2)"/>' +
         '<rect x="9.3" y="5.4" width="12" height="6.4" rx="3.2" transform="rotate(-45 15.3 8.6)"/>'
       : '<rect x="-1" y="15.2" width="10.5" height="6.2" rx="3.1" transform="rotate(-45 4.25 18.3)"/>' +
@@ -7755,11 +7818,12 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       var d = obj.docs[id];
       if (!ID_RE.test(id) || !d || typeof d !== "object" || Array.isArray(d)) return;
       var kind = id === "settings" ? "settings" : id === "favorites" ? "favorites" : id === "activities" ? "activities" : id.indexOf("day-") === 0 ? "day" :
-        id.indexOf("w-") === 0 ? "weigh" : id.indexOf("t-") === 0 ? "tally" : id.indexOf("ev-") === 0 ? "event" : "spend";
+        id.indexOf("w-") === 0 ? "weigh" : id.indexOf("t-") === 0 ? "tally" : id.indexOf("k-") === 0 ? "ticket" : id.indexOf("ev-") === 0 ? "event" : "spend";
       if (d.kind !== kind) return;
-      if ((kind === "day" || kind === "weigh" || kind === "spend" || kind === "tally" || kind === "event") && !validDate(d.date)) return;
+      if ((kind === "day" || kind === "weigh" || kind === "spend" || kind === "tally" || kind === "ticket" || kind === "event") && !validDate(d.date)) return;
       if (kind === "event" && "ev-" + d.date !== id) return;
       if (kind === "tally" && (d.a !== "y" && d.a !== "n" || "t-" + d.date !== id)) return;
+      if (kind === "ticket" && "k-" + d.date !== id) return;
       out[id] = clone(d);
     });
     return out;
@@ -7854,13 +7918,14 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var header = ["Date", "Weight (lb)", "Stuck to plan", "Off-plan food", "Off-plan calories", "Activities", "Steps",
       "Activity points", "On-plan bonus", "Points spent", "Net", "Bank after", "Logged late", "Event day", "Rest-day plan", "Old debt rolled off"];
     var lines = [header.map(function (h) { return csvCell(h); }).join(",")];
-    var bank = 0, hits = tallyState().hits, hi = 0;
+    var tsx = tallyState(), bank = 0, hits = tsx.hits, hi = 0, backs = tsx.back.map(function (b) { return b.date; }), bi = 0;
     Object.keys(byDate).sort().forEach(function (date) {
       var e = byDate[date], d = e.day;
       var logged = !!d || e.spends.length > 0;
       var spent = (d ? d.spent : 0) + sum(e.spends, function (x) { return x.cost || 0; });
       var earned = d ? d.pts : 0;
       while (hi < hits.length && hits[hi] <= date) { bank -= TALLY_HIT; hi++; }
+      while (bi < backs.length && backs[bi] <= date) { bank += TALLY_HIT; bi++; }
       // A roll-off runs first thing Monday, before the day's own net.
       if (e.roll) bank += e.roll;
       if (logged) bank += earned - spent;
@@ -8995,7 +9060,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   function renderAccess() {
     var ro = state.readOnly;
     ["steps", "addAct", "nextAdd", "actEdit", "actEdit2", "cheatAdd", "addFood", "weight", "wLb", "wSave", "favPick",
-      "pfSave", "goalNameIn", "goalPtsIn", "goalSave", "goalClear", "gEdit", "wgEdit", "restoreBtn", "eraseBtn", "tYes", "tNo", "evBtn", "restBtn"]
+      "pfSave", "goalNameIn", "goalPtsIn", "goalSave", "goalClear", "gEdit", "wgEdit", "restoreBtn", "eraseBtn", "tYes", "tNo", "tTicket", "evBtn", "restBtn"]
       .forEach(function (id) { var e = $(id); if (e) e.disabled = ro; });
     radios("plan").concat(radios("rate")).forEach(function (r) { r.disabled = ro; });
     Array.prototype.forEach.call(document.querySelectorAll("#foodList input, #foodList select, #foodList button, #actList input, #actList select, #actList button, #pfForm input"), function (c) { if (ro) c.disabled = true; });
@@ -9096,6 +9161,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   $("toToday").addEventListener("click", function () { selectDay(today(), { scroll: "end" }); });
   $("week").addEventListener("scroll", stripFades, { passive: true });
   $("tYes").addEventListener("click", function () { setTally("y"); });
+  $("tTicket").addEventListener("click", setTicket);
   $("evBtn").addEventListener("click", toggleEvent);
   $("restBtn").addEventListener("click", toggleRest);
   $("tNo").addEventListener("click", function () { setTally("n"); });
