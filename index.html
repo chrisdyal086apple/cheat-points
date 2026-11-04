@@ -2690,7 +2690,7 @@ html.still .tr-fg { transition: none; }
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.11.04.1","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.11.04.2","profile":null};</script>
 <script>
 /* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
    strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
@@ -3390,7 +3390,6 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       return isPlanMeal(f.meal) && !f.skip && base > 0 && est <= base && est >= lightMin(base, day.date);
     }) && dayPlan(day) + intakeDelta(day, 0) >= floorKcal();
     day.activityPts = sum(day.acts, function (x) { return x.pts || 0; }) + (day.steps ? day.steps.pts || 0 : 0);
-    day.bonus = (day.onPlan || day.lighter) && !day.late ? Math.round(ON_PLAN_BONUS * rateK(day.tight)) : 0;
     // Days saved since skipped meals arrived settle the day's food together (see Skipped meals). Older days
     // keep the costs they were saved with.
     var fs = day.netFood ? settle(savedItems(day.food), day.date, !day.snackLinks) : null;
@@ -3405,11 +3404,15 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       day.refuel = Math.max(0, Math.min(fs.food, Math.round(rb.net + fs.food - (rb.goal + DEF_OVER))));
       day.spent -= day.refuel;
     }
+    // A day whose only food over plan was free getting out of the red (nothing skipped, no drinks, nothing past
+    // the line) keeps the on-plan bonus: eating to stay safe shouldn't cost it.
+    day.refueled = !day.onPlan && day.refuel > 0 && day.spent === 0 && skipsIn(day.food, day.date) === 0;
+    day.bonus = (day.onPlan || day.lighter || day.refueled) && !day.late ? Math.round(ON_PLAN_BONUS * rateK(day.tight)) : 0;
     day.pts = day.activityPts + day.bonus;
     // As scored: the day as if it had all been logged on time, so its total shows how it went. Points earned late
     // show here but don't count toward the bank (pts is what counts).
     day.fullActivity = sum(day.acts, function (x) { return entryFull(day, x, false); }) + (day.steps ? entryFull(day, day.steps, true) : 0);
-    day.fullBonus = day.onPlan || day.lighter ? Math.round(ON_PLAN_BONUS * rateK(day.tight)) : 0;
+    day.fullBonus = day.onPlan || day.lighter || day.refueled ? Math.round(ON_PLAN_BONUS * rateK(day.tight)) : 0;
     day.full = Math.max(day.pts, day.fullActivity + day.fullBonus);
     if (isEvent(day.date)) scoreEvent(day);
     return day;
@@ -4335,7 +4338,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "<b>No snack?</b> Check <i>No snack</i>: it costs the snack you skipped, a quarter of the meal, as if you'd eaten it. A snack under the minimum costs what it's short. The snack itself is free, so eating it always comes out ahead. A meal under half its plan counts as skipped, with itself as the snack" + (c.ok ? " (lunch: under " + fmt(Math.round(m.lunch / 2)) + ")" : "") + ".",
         "Each plan meal counts once a day. A second entry for the same meal costs its full calories.",
         "On a day with <b>Rest-day plan</b> on, the rest-day meals stand in for these: a different meal costs its calories minus the rest-day meal it replaced.",
-        "A day with a skipped meal counts as off plan, so it doesn't get the on-plan bonus. A day of only lighter plan meals does, if it still reaches your " + fmt(floorKcal()) + "-calorie floor.",
+        "A day with a skipped meal counts as off plan, so it doesn't get the on-plan bonus. A day of only lighter plan meals does, if it still reaches your " + fmt(floorKcal()) + "-calorie floor. So does a day whose only extra food was free getting out of the red.",
         "<b>Posted calories</b> means a chain menu, an app or a label. Unchecked adds 25%, since big meals are easy to underestimate.",
         "<b>Cheats</b> are your go-to meals. Save them ahead of time with <b>Add a cheat</b> on the Redeem tab, or name an entry here and tap <b>Save cheat</b>. Add one to the log from the <b>Add a cheat…</b> list or the Redeem tab; Edit lists them so you can change or remove any.",
         "Drinking night: eat dinner first. The late-night food costs more than the drinks."
@@ -6275,8 +6278,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     // The day as it would be saved (food waiting on its meal isn't counted yet).
     var fp = f.plan === "no" ? Object.assign({}, f, { food: f.food.filter(function (x) { return !!x.meal; }) }) : f;
     var day = buildDay(prev, fp, date, now), ev = day.event;
-    // The bonus waits for a Yes, or for food that's only lighter plan meals.
-    if (f.plan !== "yes" && !day.lighter) { day.bonus = 0; day.pts = day.activityPts; day.fullBonus = 0; day.full = Math.max(day.pts, day.fullActivity); }
+    // The bonus waits for a Yes, or for food that's only lighter plan meals or free getting out of the red.
+    if (f.plan !== "yes" && !day.lighter && !day.refueled) { day.bonus = 0; day.pts = day.activityPts; day.fullBonus = 0; day.full = Math.max(day.pts, day.fullActivity); }
     // On an event day each activity shows the calories it adds to the burn instead of points, late or not.
     if (ev) setCal("stepPts", day.steps ? BURN_PER_PT * stepPts(b, 1, day.steps.total) : 0);
     else setPts("stepPts", day.steps ? day.steps.pts : 0, day.steps ? entryFull(day, day.steps, true) : 0);
