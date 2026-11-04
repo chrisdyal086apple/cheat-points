@@ -2105,6 +2105,7 @@ html.still .tr-fg { transition: none; }
         <div class="ln" id="sumFoodRow" hidden><span>Off-plan food</span><b class="spend" id="sumFood">0</b></div>
         <div class="ln" id="sumOffRow" hidden><span>Skipped or smaller meals</span><b class="earn" id="sumOff">+0</b></div>
         <div class="ln" id="sumPenRow" hidden><span>Snack penalty</span><b class="spend" id="sumPen">0</b></div>
+        <div class="ln" id="sumRedRow" hidden><span>Out of the red<button type="button" class="qm qm-sm" data-help="warnings" aria-label="Help: getting out of the red">?</button></span><b class="earn" id="sumRed">+0</b></div>
         <div class="ln" id="sumBurnRow" hidden><span>Burn (estimate)<button type="button" class="qm qm-sm" data-help="events" aria-label="Help: event days">?</button></span><b class="earn" id="sumBurn">0</b></div>
         <div class="ln" id="sumAteRow" hidden><span>Ate (estimate)</span><b class="spend" id="sumAte">0</b></div>
         <div class="ln" id="sumOverRow" hidden><span id="sumOverLab">Under your burn</span><b class="earn" id="sumOver">0</b></div>
@@ -2689,7 +2690,7 @@ html.still .tr-fg { transition: none; }
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.11.03.2","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.11.04.1","profile":null};</script>
 <script>
 /* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
    strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
@@ -2725,9 +2726,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   // Daily deficit: the goal is 1% of your weight a week (see Deficit goal); DEF_GOAL stands in with no weight at all.
   // More than DEF_OVER past the day's goal is too steep.
   var GOAL_PCT = 0.01, DEF_GOAL = 1200, DEF_OVER = 150;
+  var DEFICIT_PER_LB = 7;     // before REFUEL_RULE, the day's warning: a deficit above weight x 7 is well past 1% a week
   var ON_PLAN_BONUS = 25;     // a day on the meal plan, first logged on time
   var BURN_PER_PT = 2.3;      // standard points to mid-range calories burned
-  var DEFICIT_PER_LB = 7;     // daily deficit above weight x 7 is well past 1% a week
   var ACTIVITY = 1.2;         // daily life on top of resting burn
   var KCAL_PER_LB = 3500;
   var BACKUP_DAYS = 7;
@@ -3245,7 +3246,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   // From HALF_RULE on, a lighter meal is at least half its plan; one under half counts as skipped, with itself as
   // the snack (so a snack logged as the meal scores the same as a skip with that snack). Before, the line was a
   // quarter.
-  var SKIP_RULES = "2026-10-12", HALF_RULE = "2026-11-01";
+  var SKIP_RULES = "2026-10-12", HALF_RULE = "2026-11-01", REFUEL_RULE = "2026-11-04";
   function snackMin(base) { return Math.round(base / 4); }
   function lightMin(base, date) { return date && date >= HALF_RULE ? Math.round(base / 2) : snackMin(base); }
   function rulesOn(date) { return !!date && date >= SKIP_RULES; }
@@ -3354,7 +3355,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     out.gross = cost + drinks;
     out.off = Math.min(cost, credit);
     out.left = Math.max(0, credit - cost);
-    out.spent = Math.max(0, cost - credit) + drinks + out.pen;
+    out.food = Math.max(0, cost - credit);
+    out.spent = out.food + drinks + out.pen;
     return out;
   }
 
@@ -3394,6 +3396,15 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var fs = day.netFood ? settle(savedItems(day.food), day.date, !day.snackLinks) : null;
     day.spent = fs ? fs.spent : sum(day.food, foodCost);
     day.penalty = fs ? fs.pen : 0;
+    // Getting out of the red is free (from REFUEL_RULE): on a day whose deficit would be more than DEF_OVER past its
+    // goal without its food over plan, that food costs nothing as far as it brings the day back to the line. Past
+    // the line it costs as usual, and drinks always do. It's the Deficit view's deficit (see Daily deficit).
+    day.refuel = 0;
+    if (fs && fs.food > 0 && day.date >= REFUEL_RULE && !isEvent(day.date)) {
+      var rb = dayBalance(day.date, day, weighIns(), spendsByDate()[day.date]);
+      day.refuel = Math.max(0, Math.min(fs.food, Math.round(rb.net + fs.food - (rb.goal + DEF_OVER))));
+      day.spent -= day.refuel;
+    }
     day.pts = day.activityPts + day.bonus;
     // As scored: the day as if it had all been logged on time, so its total shows how it went. Points earned late
     // show here but don't count toward the bank (pts is what counts).
@@ -4420,7 +4431,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "<b>Beyond BMR</b>: daily life, 20% of BMR, which covers an easy day up to 3,000 steps; plus your activity at about " + BURN_PER_PT + " calories per point, before Tight. Activity logged late still counts here.",
         "<b>Goal</b>: 1% of your weight a week, the most that's safe to lose: 5 calories a day for each pound of your 7-day average" +
           (goalWeight(weighIns(), today()) ? " (" + fmt(goalOn(today())) + " now)" : "") + ". The dashed line eases down as you lose. Days that reach it turn green. More than " +
-          fmt(DEF_OVER) + " past it is too steep, so those bars get a red outline: eat some of your points.",
+          fmt(DEF_OVER) + " past it is too steep, so those bars get a red outline. Food over plan that brings a day back to that line costs no points (drinks still cost).",
         "<b>Today</b> shows so far. It assumes you finish your plan and counts the activity logged.",
         "Days you didn't log are left out. The 7-day average uses the last 7 full days.",
         "<b>Weeks</b> add up the logged days, with the estimated change in pounds next to the change in your weekly average weigh-in. Water moves the scale for a few days after salty, carb-heavy or drinking days, so compare over several weeks.",
@@ -4441,7 +4452,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       var list = [
         ["Big activity day", "Activity earns more than " + BIG_DAY + " points in a day.", "Fine now and then. Work up to days like this."],
         ["Ramp-up", "Your last 7 days of activity run 30% or more above the two weeks before.", "Hold steady for a week or two. Feet and knees adapt slower than your lungs."],
-        ["High deficit", "The day's estimated deficit passes 7 × your weight (about " + fmt(near50(DEFICIT_PER_LB * c.w)) + " now).", "Eat some of the day's points."],
+        ["Too steep", "The day's estimated deficit is more than " + fmt(DEF_OVER) + " past its goal (a red outline on the Deficit view).", "Eat. Food over plan that brings the day back to that line is free; drinks still cost."],
         ["Under the floor", "Estimated intake falls under " + fmt(floorKcal()) + " calories.", "Eat the rest of your plan meals."],
         ["Big food day", "More than " + fmt(BIG_FOOD) + " points of off-plan food in one day.", "Expect a 2–5 lb water bump for a few days. Back on plan tomorrow."],
         ["Rest-day plan on a lifting day", "A day with Rest-day plan on has a Lower, Upper or Core day.", "Eat the full plan on lifting days: recovery needs the extra food."],
@@ -4922,6 +4933,17 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     var f = Object.assign(captureForm(), { plan: "no", food: rows.filter(function (x) { return !!x.meal; }) });
     return buildDay(getDay(date), f, date, Date.now()).event || { over: 0, room: 0 };
   }
+  // A normal day: what the picked day's form with these food rows takes from the bank as scored (getting out of
+  // the red included), and how much more food would still be free getting out of it.
+  function formDay(rows, date) {
+    var f = Object.assign(captureForm(), { plan: "no", food: rows.filter(function (x) { return !!x.meal; }) });
+    return buildDay(getDay(date), f, date, Date.now());
+  }
+  function redRoom(rows, date) {
+    if (date < REFUEL_RULE || isEvent(date)) return 0;
+    var b = dayBalance(date, formDay(rows, date), weighIns(), spendsByDate()[date]);
+    return Math.max(0, b.net - (b.goal + DEF_OVER));
+  }
   function favEventNeed(fv, rows, meal, date) { return Math.max(0, formEvent(withFav(rows, fv, meal), date).over - formEvent(rows, date).over); }
   // The tab Redeem opens on: the meal around this time of day, or Snack late at night.
   var RTABS = ["breakfast", "lunch", "dinner", "snack", "drink"];
@@ -4966,6 +4988,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     if (evd) { var room = formEvent(rows, date).room; if (room) lines.push([room, true, "of your burn left " + dayTxt]); }
     else if (drinkTab) { if (stl.left + stl.voidLeft) lines.push([stl.left + stl.voidLeft, false]); }
     else { if (stl.left) lines.push([stl.left, true]); if (stl.voidLeft) lines.push([stl.voidLeft, false]); }
+    var redFree = evd || drinkTab ? 0 : redRoom(rows, date);
+    if (redFree) lines.push([redFree, true, "free out of the red " + dayTxt]);
     ex.textContent = lines.length || date === today() ? "" : "For " + fmtDay(date);
     lines.forEach(function (ln) {
       var row = el("span", "rxl");
@@ -4981,9 +5005,11 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     list.textContent = "";
     var all = favorites();
     var inTab = all.filter(function (fv) { return cheatType(fv) === (mealTab ? "meal" : tab); });
+    var base = evd || !redFree ? 0 : formDay(rows, date).spent;
     var items = inTab.filter(function (fv) { return !favOnly || starredFor(fv, tab); }).map(function (fv) {
       var en = evd ? favEventNeed(fv, rows, meal, date) : 0;
-      return { fv: fv, need: evd ? en : favCostFor(fv, rows, meal, date, rest), take: evd ? en : favNeedFor(fv, rows, meal, date, rest) };
+      var take = evd ? en : redFree ? Math.max(0, formDay(withFav(rows, fv, meal), date).spent - base) : favNeedFor(fv, rows, meal, date, rest);
+      return { fv: fv, need: evd ? en : favCostFor(fv, rows, meal, date, rest), take: take };
     }).sort(function (a, b) {
       if (a.need !== b.need) return a.need - b.need;
       var x = favKey(a.fv.name), y = favKey(b.fv.name);
@@ -6278,6 +6304,8 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     $("sumOff").textContent = "+" + fmt(ns.off);
     $("sumPenRow").hidden = !!ev || !ns.pen;
     $("sumPen").textContent = "−" + fmt(ns.pen);
+    $("sumRedRow").hidden = !!ev || !day.refuel;
+    $("sumRed").textContent = "+" + fmt(day.refuel || 0);
     // An event day: the burn, what you ate, and how far past (or under) the burn that is.
     ["sumBurnRow", "sumAteRow", "sumOverRow"].forEach(function (id) { $(id).hidden = !ev; });
     if (ev) {
@@ -6312,9 +6340,13 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
       var W = basis.weight;
       var std = stdActivity(day);
       var intake = dayPlan(day) + intakeDelta(day, 0);
-      var deficit = maintenance(W) + BURN_PER_PT * std - intake;
       if (std > BIG_DAY) warns.push({ kind: "warn", text: "Big activity day. Fine now and then; work up to days like this.", help: "warnings" });
-      if (deficit > DEFICIT_PER_LB * W) warns.push({ kind: "warn", text: "Deficit about " + fmt(near50(deficit)) + " today, past the 1%-a-week pace (" + fmt(near50(5 * W)) + "). Eating some points is fine.", help: "warnings" });
+      // From REFUEL_RULE the warning is the Deficit view's red line, and says how much food is free getting back to it.
+      var bal = ev || date < REFUEL_RULE ? null : dayBalance(date, day, weighIns(), spendsByDate()[date]), redLine = bal ? bal.goal + DEF_OVER : 0;
+      var deficit = maintenance(W) + BURN_PER_PT * std - intake;
+      if (!bal && deficit > DEFICIT_PER_LB * W) warns.push({ kind: "warn", text: "Deficit about " + fmt(near50(deficit)) + " today, past the 1%-a-week pace (" + fmt(near50(5 * W)) + "). Eating some points is fine.", help: "warnings" });
+      if (bal && bal.net > redLine) warns.push({ kind: "warn", text: "Deficit about " + fmt(bal.net) + (date === today() ? " today" : "") + ", more than " + fmt(DEF_OVER) + " past your " + fmt(bal.goal) +
+        " goal. Eat up to " + fmt(bal.net - redLine) + " more and it's free: getting back to " + fmt(redLine) + " costs nothing (drinks still cost).", help: "warnings" });
       if (day.food.length && intake < floorKcal()) warns.push({ kind: "warn", text: "Intake about " + fmt(near50(intake)) + ", under your " + fmt(floorKcal()) + " floor. Eat the rest of your plan meals.", help: "warnings" });
       if ((ev ? ns.gross : day.spent) > BIG_FOOD) warns.push({ kind: "info", text: "Over " + fmt(BIG_FOOD) + " off plan. Expect a 2–5 lb water jump for a few days.", help: "warnings" });
     }
