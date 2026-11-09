@@ -2690,7 +2690,7 @@ html.still .tr-fg { transition: none; }
 </dialog>
 <div class="snack" id="snack" role="status" aria-live="polite"><span class="snack-msg" id="snackMsg"></span><button type="button" id="snackUndo" hidden>Undo</button></div>
 <input type="file" id="restoreFile" class="sr" tabindex="-1" aria-hidden="true">
-<script>window.CP_BUILD = {"target":"pwa","version":"2026.11.04.2","profile":null};</script>
+<script>window.CP_BUILD = {"target":"pwa","version":"2026.11.09.1","profile":null};</script>
 <script>
 /* Beat maps for the bundled songs, made by tools/beatmap.py: beat grid (10 ms units), kick/snare/hat
    strength (0-7) on each 16th note, loudness every 100 ms. The visuals follow these while a song plays. */
@@ -3246,7 +3246,9 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
   // From HALF_RULE on, a lighter meal is at least half its plan; one under half counts as skipped, with itself as
   // the snack (so a snack logged as the meal scores the same as a skip with that snack). Before, the line was a
   // quarter.
-  var SKIP_RULES = "2026-10-12", HALF_RULE = "2026-11-01", REFUEL_RULE = "2026-11-04";
+  // From TOTAL_RULE on, the on-plan bonus for lighter plan meals goes by the day's total: one meal over its plan
+  // is fine if the others are under by as much. Before, each meal had to be at or under its own plan.
+  var SKIP_RULES = "2026-10-12", HALF_RULE = "2026-11-01", REFUEL_RULE = "2026-11-04", TOTAL_RULE = "2026-11-09";
   function snackMin(base) { return Math.round(base / 4); }
   function lightMin(base, date) { return date && date >= HALF_RULE ? Math.round(base / 2) : snackMin(base); }
   function rulesOn(date) { return !!date && date >= SKIP_RULES; }
@@ -3384,11 +3386,13 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
     }
     day.onPlan = day.food.length === 0;
     // Lighter versions of your plan meals (nothing extra, nothing skipped) still earn the on-plan bonus, as long as
-    // the day reaches your floor; under it, the bonus would reward eating too little.
+    // the day reaches your floor; under it, the bonus would reward eating too little. From TOTAL_RULE, the meals
+    // together have to be at or under plan, each at least half its own; before, each one at or under its own.
+    var byTotal = day.date >= TOTAL_RULE;
     day.lighter = !day.onPlan && day.food.every(function (f) {
       var base = foodBase(f), est = foodEst(f);
-      return isPlanMeal(f.meal) && !f.skip && base > 0 && est <= base && est >= lightMin(base, day.date);
-    }) && dayPlan(day) + intakeDelta(day, 0) >= floorKcal();
+      return isPlanMeal(f.meal) && !f.skip && base > 0 && (byTotal || est <= base) && est >= lightMin(base, day.date);
+    }) && (!byTotal || sum(day.food, foodEst) <= sum(day.food, foodBase)) && dayPlan(day) + intakeDelta(day, 0) >= floorKcal();
     day.activityPts = sum(day.acts, function (x) { return x.pts || 0; }) + (day.steps ? day.steps.pts || 0 : 0);
     // Days saved since skipped meals arrived settle the day's food together (see Skipped meals). Older days
     // keep the costs they were saved with.
@@ -4308,7 +4312,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "Pick a day on the strip. The form shows what's saved for it; change anything and tap <b>Update</b>.",
         "Changes you haven't saved stay with their day when you switch days or close the app, and a dot marks the day. <b>Discard changes</b> puts the day back. Undo right after saving or deleting puts it back too.",
         "An on-plan day earns <b>" + c.bonus + "</b> even with no activity" + (c.s.tight ? " (25 on the Standard rate)." : " (17 on the Tight rate).") +
-          " So does a day of lighter versions of your plan meals (at least half of each), with nothing extra and nothing skipped, as long as you still eat at least your " + fmt(floorKcal()) + "-calorie floor.",
+          " So does a day of only your plan meals that comes in at or under the plan's total (each at least half its plan, and one over is fine if another's under by as much), with nothing extra and nothing skipped, as long as you still eat at least your " + fmt(floorKcal()) + "-calorie floor.",
         "<b>Log by noon the next day.</b> After that the day is still scored like normal, so its total shows how the day went, but points it earns late (new activity, a raise, the on-plan bonus) don't count toward the bank. They're tagged <i>late</i>, and the log shows what counts. Lowering something still lowers what counts, and off-plan food always counts. Correcting a step total you reported on time keeps it on time.",
         "Late activity still counts toward your burn and deficit, and on an event day it raises the burn like any other.",
         "Until noon, the app reminds you if yesterday isn't logged.",
@@ -4338,7 +4342,7 @@ window.CP_BEATS = {"golden-dust":{"t0":36,"d":"A-BAA-A-A-A_A-A_A-BAA-A-A-A_A-A_A
         "<b>No snack?</b> Check <i>No snack</i>: it costs the snack you skipped, a quarter of the meal, as if you'd eaten it. A snack under the minimum costs what it's short. The snack itself is free, so eating it always comes out ahead. A meal under half its plan counts as skipped, with itself as the snack" + (c.ok ? " (lunch: under " + fmt(Math.round(m.lunch / 2)) + ")" : "") + ".",
         "Each plan meal counts once a day. A second entry for the same meal costs its full calories.",
         "On a day with <b>Rest-day plan</b> on, the rest-day meals stand in for these: a different meal costs its calories minus the rest-day meal it replaced.",
-        "A day with a skipped meal counts as off plan, so it doesn't get the on-plan bonus. A day of only lighter plan meals does, if it still reaches your " + fmt(floorKcal()) + "-calorie floor. So does a day whose only extra food was free getting out of the red.",
+        "A day with a skipped meal counts as off plan, so it doesn't get the on-plan bonus. A day of only plan meals at or under the plan's total does, if it still reaches your " + fmt(floorKcal()) + "-calorie floor. So does a day whose only extra food was free getting out of the red.",
         "<b>Posted calories</b> means a chain menu, an app or a label. Unchecked adds 25%, since big meals are easy to underestimate.",
         "<b>Cheats</b> are your go-to meals. Save them ahead of time with <b>Add a cheat</b> on the Redeem tab, or name an entry here and tap <b>Save cheat</b>. Add one to the log from the <b>Add a cheat…</b> list or the Redeem tab; Edit lists them so you can change or remove any.",
         "Drinking night: eat dinner first. The late-night food costs more than the drinks."
